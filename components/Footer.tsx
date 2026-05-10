@@ -1,20 +1,20 @@
 import { Gauge } from 'lucide-react';
 
 const SERVICES_LINKS = [
-  { label: 'ECU Tuning', href: '#services' },
-  { label: 'Exhaust Systems', href: '#services' },
-  { label: 'Suspension Tuning', href: '#services' },
-  { label: 'Performance Diagnostics', href: '#services' },
-  { label: 'Custom Builds', href: '#services' },
-  { label: 'Track Upgrades', href: '#services' },
+  { label: 'ECU Tuning', href: '/#services' },
+  { label: 'Exhaust Systems', href: '/#services' },
+  { label: 'Suspension Tuning', href: '/#services' },
+  { label: 'Performance Diagnostics', href: '/#services' },
+  { label: 'Custom Builds', href: '/#services' },
+  { label: 'Track Upgrades', href: '/#services' },
 ];
 
 const COMPANY_LINKS = [
-  { label: 'Our Process', href: '#process' },
-  { label: 'Build Packages', href: '#packages' },
-  { label: 'Why JILBER', href: '#why-us' },
-  { label: 'Gallery', href: '#gallery' },
-  { label: 'Book Consultation', href: '#contact' },
+  { label: 'Our Process', href: '/#process' },
+  { label: 'Build Packages', href: '/#packages' },
+  { label: 'Why JILBER', href: '/#why-us' },
+  { label: 'Gallery', href: '/#gallery' },
+  { label: 'Book Consultation', href: '/#contact' },
 ];
 
 const SOCIAL_LINKS = [
@@ -93,7 +93,7 @@ export default function Footer() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[2fr_1fr_1fr_1fr] gap-12 lg:gap-8">
           {/* Brand */}
           <div className="col-span-1 sm:col-span-2 lg:col-span-1">
-            <a href="#" className="flex items-center gap-2.5 mb-6 group w-fit">
+            <a href="/" className="flex items-center gap-2.5 mb-6 group w-fit">
               <div className="w-9 h-9 flex items-center justify-center border border-cyan-400/30 bg-cyan-400/5 group-hover:bg-cyan-400/10 transition-colors">
                 <Gauge
                   className="w-5 h-5 text-cyan-400 group-hover:rotate-45 transition-transform duration-500"
@@ -199,17 +199,19 @@ export default function Footer() {
             &copy; {year} JILBER Performance Engineering. All rights reserved.
           </p>
           <div className="flex items-center gap-6">
-            {['Privacy Policy', 'Terms of Service', 'Cookie Policy'].map(
-              (item) => (
-                <a
-                  key={item}
-                  href="#"
-                  className="text-xs text-zinc-600 hover:text-zinc-400 transition-colors"
-                >
-                  {item}
-                </a>
-              )
-            )}
+            {[
+              { label: 'Privacy Policy', href: '/privacy-policy' },
+              { label: 'Terms of Service', href: '/terms-of-service' },
+              { label: 'Cookie Policy', href: '/cookie-policy' },
+            ].map(({ label, href }) => (
+              <a
+                key={label}
+                href={href}
+                className="text-xs text-zinc-600 hover:text-zinc-400 transition-colors"
+              >
+                {label}
+              </a>
+            ))}
           </div>
         </div>
       </div>
