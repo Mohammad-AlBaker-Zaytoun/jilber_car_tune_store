@@ -4,7 +4,7 @@ import { getSessionFromRequest } from '@/lib/auth';
 const PROTECTED = ['/account', '/checkout'];
 const AUTH_ONLY = ['/signin', '/signup'];
 
-export default async function middleware(request: NextRequest) {
+export default async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   const isProtected = PROTECTED.some((p) => pathname.startsWith(p));
@@ -13,7 +13,6 @@ export default async function middleware(request: NextRequest) {
 
   const user = await getSessionFromRequest(request);
 
-  // Admin route protection
   if (isAdminRoute) {
     if (!user) {
       const url = new URL('/signin', request.url);
