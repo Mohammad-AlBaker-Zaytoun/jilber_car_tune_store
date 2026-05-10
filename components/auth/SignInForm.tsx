@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { LogIn, AlertCircle } from 'lucide-react';
 import { useAuth } from './AuthProvider';
+import { safeRedirect } from '@/lib/auth';
 import FormInput from './FormInput';
 import PasswordInput from './PasswordInput';
 
@@ -24,7 +25,7 @@ function validate(email: string, password: string): FormErrors {
 export default function SignInForm() {
   const router = useRouter();
   const params = useSearchParams();
-  const redirect = params.get('redirect') ?? '/account';
+  const redirect = safeRedirect(params.get('redirect'));
   const { refresh } = useAuth();
 
   const [email, setEmail] = useState('');
@@ -56,7 +57,6 @@ export default function SignInForm() {
 
       await refresh();
       router.push(redirect);
-      router.refresh();
     } catch {
       setServerError('Something went wrong. Please try again.');
     } finally {

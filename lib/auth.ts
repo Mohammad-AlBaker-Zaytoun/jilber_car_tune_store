@@ -7,6 +7,7 @@ const COOKIE_MAX_AGE = 60 * 60 * 24 * 7; // 7 days
 function getSecret(): Uint8Array {
   const secret = process.env.AUTH_SECRET;
   if (!secret) throw new Error('AUTH_SECRET environment variable is not set');
+  if (secret.length < 32) throw new Error('AUTH_SECRET must be at least 32 characters');
   return new TextEncoder().encode(secret);
 }
 
@@ -28,12 +29,11 @@ export async function createToken(user: SessionUser): Promise<string> {
 export async function verifyToken(token: string): Promise<SessionUser | null> {
   try {
     const { payload } = await jwtVerify(token, getSecret());
-    return {
-      id: payload.id as string,
-      email: payload.email as string,
-      name: payload.name as string,
-      phone: payload.phone as string | undefined,
-    };
+    const { id, email, name, phone } = payload;
+    if (typeof id !== 'string' || typeof email !== 'string' || typeof name !== 'string') {
+      return null;
+    }
+    return { id, email, name, phone: typeof phone === 'string' ? phone : undefined };
   } catch {
     return null;
   }
@@ -66,4 +66,14 @@ export function clearSessionCookie(response: NextResponse): void {
     maxAge: 0,
     path: '/',
   });
+}
+
+/**
+ * Returns a safe relative redirect path.
+ * Rejects absolute URLs (e.g. https://evil.com) and protocol-relative URLs (//).
+ */
+export function safeRedirect(redirect: string | null | undefined, fallback = '/account'): string {
+  if (!redirect || typeof redirect !== 'string') return fallback;
+  if (!redirect.startsWith('/') || redirect.startsWith('//')) return fallback;
+  return redirect;
 }

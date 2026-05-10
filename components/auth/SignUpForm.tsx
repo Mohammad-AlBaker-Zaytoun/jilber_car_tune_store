@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { UserPlus, AlertCircle, CheckCircle } from 'lucide-react';
 import { useAuth } from './AuthProvider';
+import { safeRedirect } from '@/lib/auth';
 import FormInput from './FormInput';
 import PasswordInput from './PasswordInput';
 
@@ -50,7 +51,7 @@ function validate(form: FormState): FormErrors {
 export default function SignUpForm() {
   const router = useRouter();
   const params = useSearchParams();
-  const redirect = params.get('redirect') ?? '/account';
+  const redirect = safeRedirect(params.get('redirect'));
   const { refresh } = useAuth();
 
   const [form, setForm] = useState<FormState>(INITIAL);
@@ -87,7 +88,6 @@ export default function SignUpForm() {
         return;
       }
 
-      setSuccess(true);
       // Auto sign-in after registration
       const loginRes = await fetch('/api/auth/login', {
         method: 'POST',
@@ -97,8 +97,8 @@ export default function SignUpForm() {
 
       if (loginRes.ok) {
         await refresh();
+        setSuccess(true);
         router.push(redirect);
-        router.refresh();
       } else {
         router.push('/signin');
       }

@@ -12,19 +12,27 @@ export default function UserMenu() {
 
   useEffect(() => {
     if (!open) return;
-    const handler = (e: MouseEvent) => {
+    const handleClick = (e: MouseEvent) => {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
         setOpen(false);
       }
     };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setOpen(false);
+    };
+    document.addEventListener('mousedown', handleClick);
+    document.addEventListener('keydown', handleKey);
+    return () => {
+      document.removeEventListener('mousedown', handleClick);
+      document.removeEventListener('keydown', handleKey);
+    };
   }, [open]);
 
   if (!user) return null;
 
   const initials = user.name
     .split(' ')
+    .filter(Boolean)
     .map((n) => n[0])
     .slice(0, 2)
     .join('')
@@ -37,6 +45,7 @@ export default function UserMenu() {
         className="flex items-center gap-2 h-10 px-3 border border-zinc-800 hover:border-cyan-400/40 bg-zinc-900/40 hover:bg-cyan-400/5 text-zinc-400 hover:text-cyan-400 transition-all duration-200"
         aria-expanded={open}
         aria-haspopup="true"
+        aria-label="Account menu"
       >
         <div className="w-5 h-5 rounded-full bg-cyan-400/20 border border-cyan-400/30 flex items-center justify-center shrink-0">
           <span className="text-[8px] font-black text-cyan-400">{initials}</span>

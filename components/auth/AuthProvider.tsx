@@ -19,7 +19,7 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue>({
   user: null,
-  loading: true,
+  loading: false,
   refresh: async () => {},
   signOut: async () => {},
 });
@@ -53,7 +53,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await fetch('/api/auth/logout', { method: 'POST' });
     setUser(null);
     router.push('/');
-    router.refresh();
   }, [router]);
 
   return (
