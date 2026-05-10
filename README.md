@@ -250,3 +250,7 @@ components/
 public/
   scroll-frames/          frame_0001.jpg … frame_0241.jpg
 ```
+
+---
+
+Powered By Zaytoun Solutions
