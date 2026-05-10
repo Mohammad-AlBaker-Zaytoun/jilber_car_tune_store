@@ -2,18 +2,9 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Save } from 'lucide-react';
+import { ArrowLeft, Save, AlertCircle } from 'lucide-react';
 import type { Order, OrderStatus } from '@/types/admin';
-
-const STATUSES: OrderStatus[] = ['pending', 'confirmed', 'in-progress', 'completed', 'cancelled'];
-
-const STATUS_COLORS: Record<string, string> = {
-  pending: 'text-yellow-400 border-yellow-400/30 bg-yellow-400/5',
-  confirmed: 'text-cyan-400 border-cyan-400/30 bg-cyan-400/5',
-  'in-progress': 'text-blue-400 border-blue-400/30 bg-blue-400/5',
-  completed: 'text-emerald-400 border-emerald-400/30 bg-emerald-400/5',
-  cancelled: 'text-red-400 border-red-400/30 bg-red-400/5',
-};
+import { STATUS_COLORS, STATUSES, formatStatus } from '@/components/admin/orderStatus';
 
 interface Props {
   order: Order;
@@ -29,21 +20,27 @@ export default function OrderDetailClient({ order: initialOrder }: Props) {
   const [notes, setNotes] = useState(order.notes ?? '');
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [saveError, setSaveError] = useState('');
 
   const handleSave = async () => {
     setSaving(true);
+    setSaveError('');
     try {
       const res = await fetch(`/api/admin/orders/${order.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status, notes }),
       });
-      const updated = (await res.json()) as Order;
-      setOrder(updated);
+      const data = (await res.json()) as Order & { error?: string };
+      if (!res.ok) {
+        setSaveError((data as { error?: string }).error ?? 'Failed to save changes.');
+        return;
+      }
+      setOrder(data);
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
-    } catch (e) {
-      console.error(e);
+    } catch {
+      setSaveError('Something went wrong. Please try again.');
     } finally {
       setSaving(false);
     }
@@ -58,22 +55,27 @@ export default function OrderDetailClient({ order: initialOrder }: Props) {
         >
           <ArrowLeft size={10} aria-hidden="true" /> Back
         </Link>
-        <span className={`text-[9px] font-black tracking-widest uppercase border px-2 py-0.5 ${STATUS_COLORS[order.status] ?? ''}`}>
-          {order.status}
+        {/* Shows last-saved status, not the pending form value */}
+        <span className={`text-[9px] font-black tracking-widest uppercase border px-2 py-0.5 ${STATUS_COLORS[order.status]}`}>
+          {formatStatus(order.status)}
         </span>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Customer info */}
         <div className={sectionCls}>
-          <h3 className="text-[10px] font-black text-white tracking-[0.25em] uppercase mb-5">Customer</h3>
+          <h3 className="text-[10px] font-black text-white tracking-[0.25em] uppercase mb-5">
+            Customer
+          </h3>
           <div className="grid grid-cols-2 gap-4">
-            {[
-              ['Name', order.customer.fullName],
-              ['Email', order.customer.email],
-              ['Phone', order.customer.phone],
-              ['Address', order.customer.address || '—'],
-            ].map(([l, v]) => (
+            {(
+              [
+                ['Name', order.customer.fullName],
+                ['Email', order.customer.email],
+                ['Phone', order.customer.phone],
+                ['Address', order.customer.address || '—'],
+              ] as [string, string][]
+            ).map(([l, v]) => (
               <div key={l}>
                 <p className={labelCls}>{l}</p>
                 <p className={valueCls}>{v}</p>
@@ -84,14 +86,18 @@ export default function OrderDetailClient({ order: initialOrder }: Props) {
 
         {/* Vehicle info */}
         <div className={sectionCls}>
-          <h3 className="text-[10px] font-black text-white tracking-[0.25em] uppercase mb-5">Vehicle</h3>
+          <h3 className="text-[10px] font-black text-white tracking-[0.25em] uppercase mb-5">
+            Vehicle
+          </h3>
           <div className="grid grid-cols-2 gap-4">
-            {[
-              ['Make', order.vehicle.make],
-              ['Model', order.vehicle.model],
-              ['Year', order.vehicle.year],
-              ['Engine', order.vehicle.engine || '—'],
-            ].map(([l, v]) => (
+            {(
+              [
+                ['Make', order.vehicle.make],
+                ['Model', order.vehicle.model],
+                ['Year', order.vehicle.year],
+                ['Engine', order.vehicle.engine || '—'],
+              ] as [string, string][]
+            ).map(([l, v]) => (
               <div key={l}>
                 <p className={labelCls}>{l}</p>
                 <p className={valueCls}>{v}</p>
@@ -115,10 +121,15 @@ export default function OrderDetailClient({ order: initialOrder }: Props) {
 
       {/* Order items */}
       <div className={sectionCls}>
-        <h3 className="text-[10px] font-black text-white tracking-[0.25em] uppercase mb-5">Order Items</h3>
+        <h3 className="text-[10px] font-black text-white tracking-[0.25em] uppercase mb-5">
+          Order Items
+        </h3>
         <div className="flex flex-col gap-3 mb-5">
           {order.items.map((item, i) => (
-            <div key={i} className="flex items-center justify-between gap-4 py-3 border-b border-zinc-800/40 last:border-0">
+            <div
+              key={i}
+              className="flex items-center justify-between gap-4 py-3 border-b border-zinc-800/40 last:border-0"
+            >
               <div className="flex items-center gap-3">
                 <div
                   className="w-8 h-8 shrink-0 border border-zinc-800"
@@ -127,7 +138,9 @@ export default function OrderDetailClient({ order: initialOrder }: Props) {
                 />
                 <div>
                   <p className="text-xs font-black text-zinc-200">{item.name}</p>
-                  <p className="text-[10px] text-zinc-600">{item.category} · qty {item.quantity}</p>
+                  <p className="text-[10px] text-zinc-600">
+                    {item.category} · qty {item.quantity}
+                  </p>
                 </div>
               </div>
               <span className="text-xs font-black text-zinc-300 shrink-0">
@@ -154,7 +167,9 @@ export default function OrderDetailClient({ order: initialOrder }: Props) {
 
       {/* Status + notes */}
       <div className={sectionCls}>
-        <h3 className="text-[10px] font-black text-white tracking-[0.25em] uppercase mb-5">Update Order</h3>
+        <h3 className="text-[10px] font-black text-white tracking-[0.25em] uppercase mb-5">
+          Update Order
+        </h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
           <div>
             <label className={`${labelCls} block`}>Status</label>
@@ -164,7 +179,9 @@ export default function OrderDetailClient({ order: initialOrder }: Props) {
               className="w-full bg-zinc-900 border border-zinc-800 focus:border-cyan-400/50 text-zinc-100 text-sm px-4 py-3 outline-none transition-colors"
             >
               {STATUSES.map((s) => (
-                <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1).replace('-', ' ')}</option>
+                <option key={s} value={s}>
+                  {formatStatus(s)}
+                </option>
               ))}
             </select>
           </div>
@@ -183,11 +200,19 @@ export default function OrderDetailClient({ order: initialOrder }: Props) {
             />
           </div>
         </div>
+
+        {saveError && (
+          <div className="flex items-center gap-2.5 mt-4 p-3 border border-red-500/30 bg-red-500/5 text-red-400 text-xs">
+            <AlertCircle size={13} className="shrink-0" aria-hidden="true" />
+            {saveError}
+          </div>
+        )}
+
         <div className="flex items-center gap-4 mt-5">
           <button
             onClick={handleSave}
             disabled={saving}
-            className="inline-flex items-center gap-2 px-6 py-3 bg-cyan-400 hover:bg-cyan-300 text-black font-black text-xs tracking-[0.25em] uppercase transition-all duration-200 disabled:opacity-50"
+            className="inline-flex items-center gap-2 px-6 py-3 bg-cyan-400 hover:bg-cyan-300 text-black font-black text-xs tracking-[0.25em] uppercase transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Save size={12} aria-hidden="true" />
             {saving ? 'Saving…' : saved ? 'Saved!' : 'Save Changes'}

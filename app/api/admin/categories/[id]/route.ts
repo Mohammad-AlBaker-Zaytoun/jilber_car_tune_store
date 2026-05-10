@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { requireAdmin, handleAdminError } from '@/lib/admin';
 import { updateCategory, deleteCategory } from '@/lib/categories.dev';
-import { getProducts } from '@/lib/products.dev';
 
 const schema = z.object({
   name: z.string().min(1).optional(),
@@ -34,14 +33,6 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
   try {
     await requireAdmin();
     const { id } = await params;
-    // Warn if products depend on this category
-    // (we still allow delete — admin's responsibility to reassign products)
-    const products = getProducts();
-    const inUse = products.filter((p) => {
-      // Check by category id match if possible (categories store name-based)
-      return false; // placeholder — products use category name not id
-    });
-    void inUse;
     const deleted = deleteCategory(id);
     if (!deleted) return NextResponse.json({ error: 'Not found' }, { status: 404 });
     return NextResponse.json({ success: true });

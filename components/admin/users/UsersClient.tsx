@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { Search, Shield, User, Users } from 'lucide-react';
+import { Search, Shield, User, Users, AlertCircle } from 'lucide-react';
 import ConfirmDialog from '@/components/admin/ConfirmDialog';
 import type { StoredUser } from '@/lib/users.dev';
 import { useAuth } from '@/components/auth/AuthProvider';
@@ -15,6 +15,7 @@ export default function UsersClient() {
   const [search, setSearch] = useState('');
   const [pendingRole, setPendingRole] = useState<{ user: SafeUser; newRole: 'user' | 'admin' } | null>(null);
   const [saving, setSaving] = useState(false);
+  const [roleError, setRoleError] = useState('');
 
   const load = () => {
     fetch('/api/admin/users')
@@ -36,16 +37,26 @@ export default function UsersClient() {
   const handleRoleChange = async () => {
     if (!pendingRole) return;
     setSaving(true);
+    setRoleError('');
     try {
-      await fetch(`/api/admin/users/${pendingRole.user.id}`, {
+      const res = await fetch(`/api/admin/users/${pendingRole.user.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ role: pendingRole.newRole }),
       });
+      const data = (await res.json()) as { error?: string };
+      if (!res.ok) {
+        setRoleError(data.error ?? 'Failed to update role.');
+        setPendingRole(null);
+        return;
+      }
       setPendingRole(null);
       load();
-    } catch (e) { console.error(e); }
-    finally { setSaving(false); }
+    } catch {
+      setRoleError('Something went wrong. Please try again.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   if (loading) return <div className="py-20 text-center text-xs text-zinc-600 animate-pulse">Loading…</div>;
@@ -61,6 +72,13 @@ export default function UsersClient() {
         onConfirm={handleRoleChange}
         onCancel={() => setPendingRole(null)}
       />
+
+      {roleError && (
+        <div className="flex items-center gap-2.5 mb-4 p-3 border border-red-500/30 bg-red-500/5 text-red-400 text-xs">
+          <AlertCircle size={13} className="shrink-0" aria-hidden="true" />
+          {roleError}
+        </div>
+      )}
 
       <div className="flex flex-wrap items-center gap-3 mb-6">
         <div className="relative flex-1 min-w-48">

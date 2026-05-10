@@ -29,16 +29,15 @@ const NAV = [
   { href: '/admin/settings', label: 'Settings', icon: Settings, exact: false },
 ];
 
-interface Props {
+interface SidebarProps {
   user: SessionUser;
-  children: React.ReactNode;
+  pathname: string;
+  onNavClick: () => void;
+  onSignOut: () => void;
+  closeButton?: React.ReactNode;
 }
 
-export default function AdminShell({ user, children }: Props) {
-  const pathname = usePathname();
-  const { signOut } = useAuth();
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-
+function AdminSidebar({ user, pathname, onNavClick, onSignOut, closeButton }: SidebarProps) {
   const initials = user.name
     .split(' ')
     .filter(Boolean)
@@ -47,20 +46,23 @@ export default function AdminShell({ user, children }: Props) {
     .join('')
     .toUpperCase();
 
-  const SidebarContent = () => (
+  return (
     <>
       {/* Logo */}
-      <div className="flex items-center gap-2.5 px-5 py-5 border-b border-zinc-800/50">
-        <div className="w-8 h-8 flex items-center justify-center border border-cyan-400/30 bg-cyan-400/5 shrink-0">
-          <Gauge className="w-4 h-4 text-cyan-400" aria-hidden="true" />
+      <div className="flex items-center justify-between px-5 py-5 border-b border-zinc-800/50">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 flex items-center justify-center border border-cyan-400/30 bg-cyan-400/5 shrink-0">
+            <Gauge className="w-4 h-4 text-cyan-400" aria-hidden="true" />
+          </div>
+          <div className="flex flex-col leading-none">
+            <span className="text-sm font-black tracking-[0.2em] text-white uppercase">JILBER</span>
+            <span className="text-[9px] text-cyan-400/60 tracking-widest font-medium uppercase flex items-center gap-1">
+              <Shield size={8} aria-hidden="true" />
+              Admin
+            </span>
+          </div>
         </div>
-        <div className="flex flex-col leading-none">
-          <span className="text-sm font-black tracking-[0.2em] text-white uppercase">JILBER</span>
-          <span className="text-[9px] text-cyan-400/60 tracking-widest font-medium uppercase flex items-center gap-1">
-            <Shield size={8} aria-hidden="true" />
-            Admin
-          </span>
-        </div>
+        {closeButton}
       </div>
 
       {/* User card */}
@@ -82,7 +84,7 @@ export default function AdminShell({ user, children }: Props) {
             <Link
               key={href}
               href={href}
-              onClick={() => setSidebarOpen(false)}
+              onClick={onNavClick}
               className={`flex items-center gap-3 px-3 py-2.5 text-xs font-semibold tracking-wide transition-all duration-200 ${
                 active
                   ? 'bg-cyan-400/10 text-cyan-400 border border-cyan-400/20'
@@ -91,7 +93,9 @@ export default function AdminShell({ user, children }: Props) {
             >
               <Icon size={13} aria-hidden="true" />
               {label}
-              {active && <ChevronRight size={10} className="ml-auto opacity-50" aria-hidden="true" />}
+              {active && (
+                <ChevronRight size={10} className="ml-auto opacity-50" aria-hidden="true" />
+              )}
             </Link>
           );
         })}
@@ -107,7 +111,7 @@ export default function AdminShell({ user, children }: Props) {
           View Site
         </Link>
         <button
-          onClick={signOut}
+          onClick={onSignOut}
           className="flex items-center gap-3 px-3 py-2.5 text-xs font-semibold text-zinc-600 hover:text-red-400 hover:bg-zinc-900/40 border border-transparent transition-all duration-200 text-left"
         >
           <LogOut size={13} aria-hidden="true" />
@@ -116,30 +120,62 @@ export default function AdminShell({ user, children }: Props) {
       </div>
     </>
   );
+}
+
+interface Props {
+  user: SessionUser;
+  children: React.ReactNode;
+}
+
+export default function AdminShell({ user, children }: Props) {
+  const pathname = usePathname();
+  const { signOut } = useAuth();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  const closeSidebar = () => setSidebarOpen(false);
 
   return (
     <div className="min-h-screen bg-zinc-950 flex">
-      {/* Desktop sidebar */}
+      {/* Desktop sidebar — always visible, never re-mounts */}
       <aside className="hidden lg:flex w-56 shrink-0 flex-col border-r border-zinc-800/50 bg-zinc-950 fixed top-0 left-0 bottom-0 z-40">
-        <SidebarContent />
+        <AdminSidebar
+          user={user}
+          pathname={pathname}
+          onNavClick={closeSidebar}
+          onSignOut={signOut}
+        />
       </aside>
 
       {/* Mobile sidebar overlay */}
       {sidebarOpen && (
         <div
           className="lg:hidden fixed inset-0 z-40 bg-black/60 backdrop-blur-sm"
-          onClick={() => setSidebarOpen(false)}
+          onClick={closeSidebar}
           aria-hidden="true"
         />
       )}
 
-      {/* Mobile sidebar */}
+      {/* Mobile sidebar — slide in/out */}
       <aside
         className={`lg:hidden fixed top-0 left-0 bottom-0 z-50 w-56 flex flex-col border-r border-zinc-800/50 bg-zinc-950 transition-transform duration-300 ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
-        <SidebarContent />
+        <AdminSidebar
+          user={user}
+          pathname={pathname}
+          onNavClick={closeSidebar}
+          onSignOut={signOut}
+          closeButton={
+            <button
+              onClick={closeSidebar}
+              className="p-1.5 text-zinc-600 hover:text-zinc-300 transition-colors shrink-0"
+              aria-label="Close menu"
+            >
+              <X size={14} aria-hidden="true" />
+            </button>
+          }
+        />
       </aside>
 
       {/* Main content */}
@@ -166,9 +202,7 @@ export default function AdminShell({ user, children }: Props) {
           </button>
         </div>
 
-        <main className="flex-1 p-6 lg:p-8 min-w-0">
-          {children}
-        </main>
+        <main className="flex-1 p-6 lg:p-8 min-w-0">{children}</main>
       </div>
     </div>
   );

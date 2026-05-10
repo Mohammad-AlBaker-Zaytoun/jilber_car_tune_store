@@ -247,7 +247,19 @@ export default function ProductForm({ initial, mode }: Props) {
             <input type="number" min={0} step={0.01} value={form.price} onChange={set('price')} className={inputCls} placeholder="499" />
           </Field>
           <Field label="Old Price (optional)" error={errors.oldPrice}>
-            <input type="number" min={0} step={0.01} value={form.oldPrice ?? ''} onChange={set('oldPrice')} className={inputCls} placeholder="599" />
+            <input
+              type="number"
+              min={0}
+              step={0.01}
+              value={form.oldPrice ?? ''}
+              onChange={(e) => {
+                const n = parseFloat(e.target.value);
+                setForm((prev) => ({ ...prev, oldPrice: isNaN(n) ? undefined : n }));
+                setErrors((prev) => ({ ...prev, oldPrice: undefined }));
+              }}
+              className={inputCls}
+              placeholder="599"
+            />
           </Field>
           <Field label="Currency">
             <input type="text" value={form.currency} onChange={set('currency')} className={inputCls} placeholder="USD" />

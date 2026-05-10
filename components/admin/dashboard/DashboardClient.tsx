@@ -11,35 +11,43 @@ import {
   TrendingUp,
   Plus,
   ArrowRight,
+  AlertCircle,
+  RefreshCw,
 } from 'lucide-react';
 import AdminStatCard from '@/components/admin/AdminStatCard';
+import { STATUS_COLORS, formatStatus } from '@/components/admin/orderStatus';
 import type { AdminStats, Order } from '@/types/admin';
-
-const STATUS_COLORS: Record<string, string> = {
-  pending: 'text-yellow-400 border-yellow-400/30 bg-yellow-400/5',
-  confirmed: 'text-cyan-400 border-cyan-400/30 bg-cyan-400/5',
-  'in-progress': 'text-blue-400 border-blue-400/30 bg-blue-400/5',
-  completed: 'text-emerald-400 border-emerald-400/30 bg-emerald-400/5',
-  cancelled: 'text-red-400 border-red-400/30 bg-red-400/5',
-};
 
 export default function DashboardClient() {
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [recentOrders, setRecentOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
 
   useEffect(() => {
+    setLoading(true);
+    setFetchError(null);
     Promise.all([
-      fetch('/api/admin/stats').then((r) => r.json()) as Promise<AdminStats>,
-      fetch('/api/admin/orders').then((r) => r.json()) as Promise<Order[]>,
+      fetch('/api/admin/stats').then((r) => {
+        if (!r.ok) throw new Error('Failed to load stats');
+        return r.json() as Promise<AdminStats>;
+      }),
+      fetch('/api/admin/orders').then((r) => {
+        if (!r.ok) throw new Error('Failed to load orders');
+        return r.json() as Promise<Order[]>;
+      }),
     ])
       .then(([s, orders]) => {
         setStats(s);
         setRecentOrders(orders.slice(0, 6));
       })
-      .catch(console.error)
+      .catch((e: unknown) => {
+        console.error(e);
+        setFetchError('Failed to load dashboard data. Check your connection and try again.');
+      })
       .finally(() => setLoading(false));
-  }, []);
+  }, [retryCount]);
 
   if (loading) {
     return (
@@ -51,11 +59,29 @@ export default function DashboardClient() {
     );
   }
 
+  if (fetchError) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 gap-5">
+        <div className="w-12 h-12 flex items-center justify-center border border-red-500/30 bg-red-500/5">
+          <AlertCircle size={20} className="text-red-400" aria-hidden="true" />
+        </div>
+        <p className="text-sm text-red-400 text-center max-w-xs">{fetchError}</p>
+        <button
+          onClick={() => setRetryCount((n) => n + 1)}
+          className="inline-flex items-center gap-2 px-5 py-2.5 border border-zinc-700 hover:border-cyan-400/40 text-zinc-400 hover:text-cyan-400 text-xs font-black tracking-widest uppercase transition-all duration-200"
+        >
+          <RefreshCw size={11} aria-hidden="true" />
+          Retry
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col gap-8">
-      {/* Stats grid */}
+      {/* Stats grid — 2 cols on small, 3 on lg (sidebar is visible at lg) */}
       {stats && (
-        <div className="grid grid-cols-2 xl:grid-cols-3 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
           <AdminStatCard
             label="Total Products"
             value={stats.totalProducts}
@@ -63,7 +89,7 @@ export default function DashboardClient() {
             accent="cyan"
           />
           <AdminStatCard
-            label="Active / In Stock"
+            label="Products In Stock"
             value={stats.activeProducts}
             icon={TrendingUp}
             accent="green"
@@ -156,18 +182,28 @@ export default function DashboardClient() {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-zinc-800/50">
-                  <th className="text-left px-6 py-3 text-[9px] text-zinc-600 tracking-[0.2em] uppercase font-bold">Ref</th>
-                  <th className="text-left px-4 py-3 text-[9px] text-zinc-600 tracking-[0.2em] uppercase font-bold">Customer</th>
-                  <th className="text-left px-4 py-3 text-[9px] text-zinc-600 tracking-[0.2em] uppercase font-bold hidden sm:table-cell">Total</th>
-                  <th className="text-left px-4 py-3 text-[9px] text-zinc-600 tracking-[0.2em] uppercase font-bold">Status</th>
-                  <th className="text-right px-6 py-3 text-[9px] text-zinc-600 tracking-[0.2em] uppercase font-bold hidden md:table-cell">Date</th>
+                  <th className="text-left px-6 py-3 text-[9px] text-zinc-600 tracking-[0.2em] uppercase font-bold">
+                    Ref
+                  </th>
+                  <th className="text-left px-4 py-3 text-[9px] text-zinc-600 tracking-[0.2em] uppercase font-bold">
+                    Customer
+                  </th>
+                  <th className="text-left px-4 py-3 text-[9px] text-zinc-600 tracking-[0.2em] uppercase font-bold hidden sm:table-cell">
+                    Total
+                  </th>
+                  <th className="text-left px-4 py-3 text-[9px] text-zinc-600 tracking-[0.2em] uppercase font-bold">
+                    Status
+                  </th>
+                  <th className="text-right px-6 py-3 text-[9px] text-zinc-600 tracking-[0.2em] uppercase font-bold hidden md:table-cell">
+                    Date
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 {recentOrders.map((order) => (
                   <tr
                     key={order.id}
-                    className="border-b border-zinc-800/30 hover:bg-zinc-900/30 transition-colors group"
+                    className="border-b border-zinc-800/30 hover:bg-zinc-900/30 transition-colors"
                   >
                     <td className="px-6 py-3.5">
                       <Link
@@ -178,7 +214,9 @@ export default function DashboardClient() {
                       </Link>
                     </td>
                     <td className="px-4 py-3.5">
-                      <p className="text-xs text-zinc-300 font-semibold">{order.customer.fullName}</p>
+                      <p className="text-xs text-zinc-300 font-semibold">
+                        {order.customer.fullName}
+                      </p>
                       <p className="text-[10px] text-zinc-600">{order.customer.email}</p>
                     </td>
                     <td className="px-4 py-3.5 hidden sm:table-cell">
@@ -187,8 +225,10 @@ export default function DashboardClient() {
                       </span>
                     </td>
                     <td className="px-4 py-3.5">
-                      <span className={`text-[9px] font-black tracking-widest uppercase border px-2 py-0.5 ${STATUS_COLORS[order.status] ?? 'text-zinc-400 border-zinc-700 bg-zinc-900/30'}`}>
-                        {order.status}
+                      <span
+                        className={`text-[9px] font-black tracking-widest uppercase border px-2 py-0.5 ${STATUS_COLORS[order.status]}`}
+                      >
+                        {formatStatus(order.status)}
                       </span>
                     </td>
                     <td className="px-6 py-3.5 text-right hidden md:table-cell">

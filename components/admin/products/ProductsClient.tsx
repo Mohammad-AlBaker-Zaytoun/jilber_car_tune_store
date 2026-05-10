@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
-import { Plus, Search, Pencil, Trash2, Star, Package, CheckCircle, XCircle } from 'lucide-react';
+import { Plus, Search, Pencil, Trash2, Star, Package, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
 import ConfirmDialog from '@/components/admin/ConfirmDialog';
 import type { Product } from '@/data/products';
 import { CATEGORIES } from '@/data/products';
@@ -15,6 +15,7 @@ export default function ProductsClient() {
   const [filterStock, setFilterStock] = useState('');
   const [toDelete, setToDelete] = useState<Product | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [toggleError, setToggleError] = useState('');
 
   const load = () => {
     setLoading(true);
@@ -54,20 +55,30 @@ export default function ProductsClient() {
   };
 
   const toggleFeatured = async (product: Product) => {
-    await fetch(`/api/admin/products/${product.slug}`, {
+    setToggleError('');
+    const res = await fetch(`/api/admin/products/${product.slug}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ featured: !product.featured }),
     });
+    if (!res.ok) {
+      const data = (await res.json()) as { error?: string };
+      setToggleError(data.error ?? 'Failed to update product.');
+    }
     load();
   };
 
   const toggleStock = async (product: Product) => {
-    await fetch(`/api/admin/products/${product.slug}`, {
+    setToggleError('');
+    const res = await fetch(`/api/admin/products/${product.slug}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ inStock: !product.inStock }),
     });
+    if (!res.ok) {
+      const data = (await res.json()) as { error?: string };
+      setToggleError(data.error ?? 'Failed to update product.');
+    }
     load();
   };
 
@@ -91,6 +102,13 @@ export default function ProductsClient() {
         onConfirm={handleDelete}
         onCancel={() => setToDelete(null)}
       />
+
+      {toggleError && (
+        <div className="flex items-center gap-2.5 mb-4 p-3 border border-red-500/30 bg-red-500/5 text-red-400 text-xs">
+          <AlertCircle size={13} className="shrink-0" aria-hidden="true" />
+          {toggleError}
+        </div>
+      )}
 
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-3 mb-6">

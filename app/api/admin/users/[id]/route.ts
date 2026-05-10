@@ -36,8 +36,8 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     const updated = updateUser(id, result.data);
     if (!updated) return NextResponse.json({ error: 'User not found' }, { status: 404 });
 
-    const { passwordHash: _, ...safe } = updated as typeof updated & { passwordHash: string };
-    void _;
+    const { passwordHash: _pw, ...safe } = updated;
+    void _pw;
     return NextResponse.json(safe);
   } catch (err) {
     return handleAdminError(err);

@@ -83,12 +83,22 @@ export default function CategoriesClient() {
   const handleDelete = async () => {
     if (!toDelete) return;
     setDeleting(true);
+    setError('');
     try {
-      await fetch(`/api/admin/categories/${toDelete.id}`, { method: 'DELETE' });
+      const res = await fetch(`/api/admin/categories/${toDelete.id}`, { method: 'DELETE' });
+      if (!res.ok) {
+        const data = (await res.json()) as { error?: string };
+        setError(data.error ?? 'Failed to delete category.');
+        setToDelete(null);
+        return;
+      }
       setToDelete(null);
       load();
-    } catch (e) { console.error(e); }
-    finally { setDeleting(false); }
+    } catch {
+      setError('Something went wrong. Please try again.');
+    } finally {
+      setDeleting(false);
+    }
   };
 
   if (loading) return <div className="py-20 text-center text-xs text-zinc-600 animate-pulse">Loading…</div>;

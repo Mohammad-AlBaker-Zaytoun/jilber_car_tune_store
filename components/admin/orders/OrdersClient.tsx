@@ -4,16 +4,7 @@ import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { Search, ShoppingBag } from 'lucide-react';
 import type { Order, OrderStatus } from '@/types/admin';
-
-const STATUS_COLORS: Record<string, string> = {
-  pending: 'text-yellow-400 border-yellow-400/30 bg-yellow-400/5',
-  confirmed: 'text-cyan-400 border-cyan-400/30 bg-cyan-400/5',
-  'in-progress': 'text-blue-400 border-blue-400/30 bg-blue-400/5',
-  completed: 'text-emerald-400 border-emerald-400/30 bg-emerald-400/5',
-  cancelled: 'text-red-400 border-red-400/30 bg-red-400/5',
-};
-
-const STATUSES: OrderStatus[] = ['pending', 'confirmed', 'in-progress', 'completed', 'cancelled'];
+import { STATUS_COLORS, STATUSES, formatStatus } from '@/components/admin/orderStatus';
 
 export default function OrdersClient() {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -63,7 +54,7 @@ export default function OrdersClient() {
         >
           <option value="">All Statuses</option>
           {STATUSES.map((s) => (
-            <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
+            <option key={s} value={s}>{formatStatus(s)}</option>
           ))}
         </select>
         <span className="text-[10px] text-zinc-600 ml-auto">{filtered.length} order{filtered.length !== 1 ? 's' : ''}</span>
@@ -110,8 +101,8 @@ export default function OrdersClient() {
                     <span className="text-xs font-black text-zinc-200">${order.total.toLocaleString()}</span>
                   </td>
                   <td className="px-4 py-3.5">
-                    <span className={`text-[9px] font-black tracking-widest uppercase border px-2 py-0.5 ${STATUS_COLORS[order.status] ?? ''}`}>
-                      {order.status}
+                    <span className={`text-[9px] font-black tracking-widest uppercase border px-2 py-0.5 ${STATUS_COLORS[order.status]}`}>
+                      {formatStatus(order.status)}
                     </span>
                   </td>
                   <td className="px-5 py-3.5 text-right">
