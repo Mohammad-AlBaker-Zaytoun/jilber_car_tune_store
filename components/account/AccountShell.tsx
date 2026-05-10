@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, User, Package, ShoppingCart, Store, LogOut } from 'lucide-react';
+import { LayoutDashboard, User, Package, ShoppingCart, Store, LogOut, Shield } from 'lucide-react';
 import { useAuth } from '@/components/auth/AuthProvider';
 import type { SessionUser } from '@/lib/session';
 
@@ -21,7 +21,7 @@ interface Props {
 
 export default function AccountShell({ user, children }: Props) {
   const pathname = usePathname();
-  const { signOut } = useAuth();
+  const { signOut, user: authUser } = useAuth();
 
   const initials = user.name
     .split(' ')
@@ -80,6 +80,16 @@ export default function AccountShell({ user, children }: Props) {
                 );
               })}
             </nav>
+
+            {authUser?.role === 'admin' && (
+              <Link
+                href="/admin"
+                className="flex items-center gap-3 px-4 py-3 mt-2 text-xs font-semibold text-cyan-400 hover:text-cyan-300 hover:bg-cyan-400/5 border border-cyan-400/20 transition-all duration-200"
+              >
+                <Shield size={13} aria-hidden="true" />
+                Admin Panel
+              </Link>
+            )}
 
             <button
               onClick={signOut}

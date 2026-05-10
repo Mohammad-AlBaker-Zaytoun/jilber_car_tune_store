@@ -1,9 +1,9 @@
 import { notFound } from 'next/navigation';
-import { getProductBySlug, products } from '@/data/products';
+import { getProductBySlug, getProducts } from '@/lib/products.dev';
 import ProductDetails from '@/components/store/ProductDetails';
 
 export async function generateStaticParams() {
-  return products.map((p) => ({ slug: p.slug }));
+  return getProducts().map((p) => ({ slug: p.slug }));
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {

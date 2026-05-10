@@ -9,8 +9,22 @@ export default async function middleware(request: NextRequest) {
 
   const isProtected = PROTECTED.some((p) => pathname.startsWith(p));
   const isAuthPage = AUTH_ONLY.some((p) => pathname.startsWith(p));
+  const isAdminRoute = pathname.startsWith('/admin');
 
   const user = await getSessionFromRequest(request);
+
+  // Admin route protection
+  if (isAdminRoute) {
+    if (!user) {
+      const url = new URL('/signin', request.url);
+      url.searchParams.set('redirect', pathname);
+      return NextResponse.redirect(url);
+    }
+    if (user.role !== 'admin') {
+      return NextResponse.redirect(new URL('/account', request.url));
+    }
+    return NextResponse.next();
+  }
 
   if (isProtected && !user) {
     const url = new URL('/signin', request.url);
@@ -26,5 +40,5 @@ export default async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/account/:path*', '/checkout', '/signin', '/signup'],
+  matcher: ['/account/:path*', '/checkout', '/signin', '/signup', '/admin/:path*'],
 };

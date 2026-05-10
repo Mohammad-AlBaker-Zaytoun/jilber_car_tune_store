@@ -8,6 +8,7 @@ export interface AuthUser {
   email: string;
   name: string;
   phone?: string;
+  role: 'user' | 'admin';
 }
 
 interface AuthContextValue {

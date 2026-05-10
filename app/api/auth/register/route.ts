@@ -41,7 +41,7 @@ export async function POST(request: Request) {
     }
 
     const passwordHash = await bcrypt.hash(password, 12);
-    createUser({ email, name, phone, passwordHash });
+    createUser({ email, name, phone, passwordHash, role: 'user' });
 
     return NextResponse.json({ success: true }, { status: 201 });
   } catch (err) {

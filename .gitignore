@@ -33,8 +33,12 @@ yarn-error.log*
 # env files (can opt-in for committing if needed)
 .env*
 
-# dev-only local user store (must be replaced with a real DB before production)
+# dev-only local data stores (must be replaced with a real DB before production)
 .dev-users.json
+.dev-products.json
+.dev-orders.json
+.dev-categories.json
+.dev-settings.json
 
 # vercel
 .vercel

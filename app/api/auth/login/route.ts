@@ -35,6 +35,7 @@ export async function POST(request: Request) {
       email: user.email,
       name: user.name,
       phone: user.phone,
+      role: user.role ?? 'user',
     };
 
     const token = await createToken(sessionUser);

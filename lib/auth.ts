@@ -1,5 +1,8 @@
 import { SignJWT, jwtVerify } from 'jose';
 import type { NextRequest, NextResponse } from 'next/server';
+import type { UserRole } from '@/types/admin';
+
+export { type UserRole };
 
 export const COOKIE_NAME = 'jilber-session';
 const COOKIE_MAX_AGE = 60 * 60 * 24 * 7; // 7 days
@@ -16,10 +19,11 @@ export interface SessionUser {
   email: string;
   name: string;
   phone?: string;
+  role: UserRole;
 }
 
 export async function createToken(user: SessionUser): Promise<string> {
-  return new SignJWT({ id: user.id, email: user.email, name: user.name, phone: user.phone })
+  return new SignJWT({ id: user.id, email: user.email, name: user.name, phone: user.phone, role: user.role })
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
     .setExpirationTime('7d')
@@ -29,11 +33,15 @@ export async function createToken(user: SessionUser): Promise<string> {
 export async function verifyToken(token: string): Promise<SessionUser | null> {
   try {
     const { payload } = await jwtVerify(token, getSecret());
-    const { id, email, name, phone } = payload;
+    const { id, email, name, phone, role } = payload;
     if (typeof id !== 'string' || typeof email !== 'string' || typeof name !== 'string') {
       return null;
     }
-    return { id, email, name, phone: typeof phone === 'string' ? phone : undefined };
+    return {
+      id, email, name,
+      phone: typeof phone === 'string' ? phone : undefined,
+      role: role === 'admin' ? 'admin' : 'user',
+    };
   } catch {
     return null;
   }

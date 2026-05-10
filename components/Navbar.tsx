@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Menu, X, Gauge, ShoppingCart, LogIn, LayoutDashboard, LogOut } from 'lucide-react';
+import { Menu, X, Gauge, ShoppingCart, LogIn, LayoutDashboard, LogOut, Shield } from 'lucide-react';
 import { useCartStore } from '@/lib/cart';
 import { useAuth } from '@/components/auth/AuthProvider';
 import UserMenu from '@/components/auth/UserMenu';
@@ -192,6 +192,16 @@ export default function Navbar() {
             <>
               {user ? (
                 <>
+                  {user.role === 'admin' && (
+                    <Link
+                      href="/admin"
+                      onClick={() => setMenuOpen(false)}
+                      className="py-3 text-xs text-cyan-400 hover:text-cyan-300 transition-colors tracking-[0.2em] uppercase font-semibold border-b border-white/5 flex items-center gap-2"
+                    >
+                      <Shield size={12} aria-hidden="true" />
+                      Admin Panel
+                    </Link>
+                  )}
                   <Link
                     href="/account"
                     onClick={() => setMenuOpen(false)}

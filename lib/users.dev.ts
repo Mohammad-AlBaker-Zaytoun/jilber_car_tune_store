@@ -13,6 +13,7 @@
 import fs from 'fs';
 import path from 'path';
 import { randomUUID } from 'crypto';
+import type { UserRole } from '@/types/admin';
 
 export interface StoredUser {
   id: string;
@@ -21,6 +22,7 @@ export interface StoredUser {
   phone?: string;
   /** bcrypt hash — never exposed to clients */
   passwordHash: string;
+  role: UserRole;
   createdAt: string;
 }
 
@@ -50,7 +52,12 @@ export function findUserById(id: string): StoredUser | null {
 
 export function createUser(data: Omit<StoredUser, 'id' | 'createdAt'>): StoredUser {
   const users = readStore();
-  const user: StoredUser = { ...data, id: randomUUID(), createdAt: new Date().toISOString() };
+  const user: StoredUser = {
+    ...data,
+    role: data.role ?? 'user',
+    id: randomUUID(),
+    createdAt: new Date().toISOString(),
+  };
   writeStore([...users, user]);
   return user;
 }
@@ -65,4 +72,12 @@ export function updateUser(
   users[idx] = { ...users[idx], ...data };
   writeStore(users);
   return users[idx];
+}
+
+export function listUsers(): Omit<StoredUser, 'passwordHash'>[] {
+  return readStore().map(({ passwordHash: _, ...u }) => u);
+}
+
+export function countUsers(): number {
+  return readStore().length;
 }
