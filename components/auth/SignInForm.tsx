@@ -36,13 +36,16 @@ export default function SignInForm() {
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    // Guard against concurrent submissions (keyboard Enter bypasses disabled button)
+    if (loading) return;
+
     setServerError('');
     const errs = validate(email, password);
     if (Object.keys(errs).length > 0) { setErrors(errs); return; }
     setErrors({});
-    setLoading(true);
 
     try {
+      setLoading(true);
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -56,7 +59,8 @@ export default function SignInForm() {
       }
 
       await refresh();
-      router.push(redirect);
+      // replace so Back doesn't return to the login page after a successful sign-in
+      router.replace(redirect);
     } catch {
       setServerError('Something went wrong. Please try again.');
     } finally {
@@ -103,7 +107,11 @@ export default function SignInForm() {
           type="email"
           autoComplete="email"
           value={email}
-          onChange={(e) => { setEmail(e.target.value); setErrors((p) => ({ ...p, email: undefined })); }}
+          onChange={(e) => {
+            setEmail(e.target.value);
+            setErrors((p) => ({ ...p, email: undefined }));
+            if (serverError) setServerError('');
+          }}
           placeholder="you@email.com"
           required
           error={errors.email}
@@ -114,7 +122,11 @@ export default function SignInForm() {
           id="password"
           autoComplete="current-password"
           value={password}
-          onChange={(e) => { setPassword(e.target.value); setErrors((p) => ({ ...p, password: undefined })); }}
+          onChange={(e) => {
+            setPassword(e.target.value);
+            setErrors((p) => ({ ...p, password: undefined }));
+            if (serverError) setServerError('');
+          }}
           placeholder="Your password"
           required
           error={errors.password}

@@ -65,17 +65,22 @@ export default function SignUpForm() {
       const value = key === 'terms' ? e.target.checked : e.target.value;
       setForm((p) => ({ ...p, [key]: value }));
       setErrors((p) => ({ ...p, [key]: undefined }));
+      // Clear any server error as soon as the user starts correcting their input
+      if (serverError) setServerError('');
     };
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    // Guard against concurrent submissions (keyboard Enter bypasses disabled button)
+    if (loading) return;
+
     setServerError('');
     const errs = validate(form);
     if (Object.keys(errs).length > 0) { setErrors(errs); return; }
     setErrors({});
-    setLoading(true);
 
     try {
+      setLoading(true);
       const res = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -98,9 +103,10 @@ export default function SignUpForm() {
       if (loginRes.ok) {
         await refresh();
         setSuccess(true);
-        router.push(redirect);
+        // replace so Back doesn't return to the sign-up page after account creation
+        router.replace(redirect);
       } else {
-        router.push('/signin');
+        router.replace('/signin');
       }
     } catch {
       setServerError('Something went wrong. Please try again.');

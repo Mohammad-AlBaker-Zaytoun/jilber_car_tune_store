@@ -4,6 +4,7 @@
  */
 
 import { getSession } from './session';
+import { findUserById } from './users.dev';
 import type { SessionUser } from './auth';
 
 export class AdminError extends Error {
@@ -20,6 +21,14 @@ export async function requireAdmin(): Promise<SessionUser> {
   const session = await getSession();
   if (!session) throw new AdminError('Unauthorized', 401);
   if (session.role !== 'admin') throw new AdminError('Forbidden — admin access required', 403);
+
+  // Re-verify the current role from the live store so a demotion takes effect
+  // immediately, without waiting for the JWT to expire (up to 24 hours).
+  const live = findUserById(session.id);
+  if (!live || live.role !== 'admin') {
+    throw new AdminError('Forbidden — admin access required', 403);
+  }
+
   return session;
 }
 

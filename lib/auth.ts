@@ -5,13 +5,20 @@ import type { UserRole } from '@/types/admin';
 export { type UserRole };
 
 export const COOKIE_NAME = 'jilber-session';
-const COOKIE_MAX_AGE = 60 * 60 * 24 * 7; // 7 days
+// 24-hour window; the proxy renews the cookie on every authenticated page load
+// so active sessions slide forward while inactive ones expire predictably.
+const COOKIE_MAX_AGE = 60 * 60 * 24;
 
 function getSecret(): Uint8Array {
   const secret = process.env.AUTH_SECRET;
   if (!secret) throw new Error('AUTH_SECRET environment variable is not set');
   if (secret.length < 32) throw new Error('AUTH_SECRET must be at least 32 characters');
   return new TextEncoder().encode(secret);
+}
+
+/** Called once at server startup (via instrumentation.ts) to fail fast on misconfiguration. */
+export function validateAuthSecret(): void {
+  getSecret();
 }
 
 export interface SessionUser {
@@ -26,7 +33,7 @@ export async function createToken(user: SessionUser): Promise<string> {
   return new SignJWT({ id: user.id, email: user.email, name: user.name, phone: user.phone, role: user.role })
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
-    .setExpirationTime('7d')
+    .setExpirationTime('24h')
     .sign(getSecret());
 }
 
@@ -58,7 +65,7 @@ export async function getSessionFromRequest(request: NextRequest): Promise<Sessi
 export function setSessionCookie(response: NextResponse, token: string): void {
   response.cookies.set(COOKIE_NAME, token, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
+    secure: process.env.NODE_ENV !== 'development',
     sameSite: 'lax',
     maxAge: COOKIE_MAX_AGE,
     path: '/',
@@ -69,7 +76,7 @@ export function setSessionCookie(response: NextResponse, token: string): void {
 export function clearSessionCookie(response: NextResponse): void {
   response.cookies.set(COOKIE_NAME, '', {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
+    secure: process.env.NODE_ENV !== 'development',
     sameSite: 'lax',
     maxAge: 0,
     path: '/',

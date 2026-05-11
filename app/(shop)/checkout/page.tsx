@@ -110,6 +110,7 @@ export default function CheckoutPage() {
   const [payment, setPayment] = useState<PaymentMethod>('shop');
   const [errors, setErrors] = useState<Partial<FormData>>({});
   const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState('');
 
   if (items.length === 0) {
     return (
@@ -142,19 +143,14 @@ export default function CheckoutPage() {
 
   const placeOrder = async () => {
     if (!validate()) return;
+    setSubmitError('');
     setSubmitting(true);
-    const ref = `TUNE-${Math.floor(10000 + Math.random() * 90000)}`;
-
-    const subtotal = items.reduce((s, i) => s + i.price * i.quantity, 0);
-    const tax = Math.round(subtotal * 0.1 * 100) / 100;
-    const total = Math.round((subtotal + tax) * 100) / 100;
 
     try {
-      await fetch('/api/orders', {
+      const res = await fetch('/api/orders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          ref,
           customer: {
             fullName: form.fullName,
             email: form.email,
@@ -169,28 +165,26 @@ export default function CheckoutPage() {
             currentMods: form.currentMods,
             serviceDate: form.serviceDate,
           },
-          items: items.map((i) => ({
-            id: i.id,
-            slug: i.slug,
-            name: i.name,
-            category: i.category,
-            price: i.price,
-            currency: i.currency,
-            quantity: i.quantity,
-            visualColor: i.visualColor,
-          })),
+          // Send only the fields the server needs; price/totals are derived server-side
+          items: items.map((i) => ({ slug: i.slug, quantity: i.quantity })),
           payment,
-          subtotal,
-          tax,
-          total,
         }),
       });
-    } catch {
-      // Order persistence failed — still complete the UX flow
-    }
 
-    clearCart();
-    router.push(`/checkout/success?ref=${ref}`);
+      if (!res.ok) {
+        const data = (await res.json()) as { error?: string };
+        setSubmitError(data.error ?? 'Failed to place order. Please try again.');
+        return;
+      }
+
+      const data = (await res.json()) as { orderId: string; ref: string };
+      clearCart();
+      router.push(`/checkout/success?ref=${encodeURIComponent(data.ref)}`);
+    } catch {
+      setSubmitError('Something went wrong. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const handleSubmit = (e: FormEvent) => {
@@ -408,11 +402,19 @@ export default function CheckoutPage() {
             </div>
 
             {/* Right: order summary */}
-            <OrderSummary
-              showCheckoutButton
-              onCheckout={placeOrder}
-              isSubmitting={submitting}
-            />
+            <div className="flex flex-col gap-4">
+              {submitError && (
+                <div className="flex items-start gap-2.5 p-4 border border-red-500/30 bg-red-500/5 text-red-400 text-xs leading-relaxed">
+                  <span className="shrink-0 mt-0.5" aria-hidden="true">!</span>
+                  {submitError}
+                </div>
+              )}
+              <OrderSummary
+                showCheckoutButton
+                onCheckout={placeOrder}
+                isSubmitting={submitting}
+              />
+            </div>
           </div>
         </form>
       </div>

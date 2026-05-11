@@ -65,13 +65,14 @@ export function createUser(data: Omit<StoredUser, 'id' | 'createdAt'>): StoredUs
 export function updateUser(
   id: string,
   data: Partial<Omit<StoredUser, 'id' | 'createdAt' | 'passwordHash'>>
-): StoredUser | null {
+): Omit<StoredUser, 'passwordHash'> | null {
   const users = readStore();
   const idx = users.findIndex((u) => u.id === id);
   if (idx === -1) return null;
   users[idx] = { ...users[idx], ...data };
   writeStore(users);
-  return users[idx];
+  const { passwordHash: _, ...safe } = users[idx];
+  return safe;
 }
 
 export function listUsers(): Omit<StoredUser, 'passwordHash'>[] {
