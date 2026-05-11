@@ -34,6 +34,7 @@ export default function AddToCartButton({
         price: product.price,
         currency: product.currency,
         visualColor: product.visualColor,
+        images: product.images,
       },
       quantity
     );

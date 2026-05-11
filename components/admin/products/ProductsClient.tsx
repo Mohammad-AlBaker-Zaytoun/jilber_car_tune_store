@@ -173,10 +173,18 @@ export default function ProductsClient() {
                   <td className="px-5 py-3.5">
                     <div className="flex items-center gap-3">
                       <div
-                        className="w-7 h-7 shrink-0 border border-zinc-800"
-                        style={{ background: `linear-gradient(135deg, ${p.visualColor}22, ${p.visualColor2}22)` }}
+                        className="w-9 h-9 shrink-0 border border-zinc-800 overflow-hidden"
+                        style={p.images?.[0] ? undefined : { background: `linear-gradient(135deg, ${p.visualColor}22, ${p.visualColor2}22)` }}
                         aria-hidden="true"
-                      />
+                      >
+                        {p.images?.[0] ? (
+                          <img
+                            src={p.images[0]}
+                            alt=""
+                            className="w-full h-full object-cover"
+                          />
+                        ) : null}
+                      </div>
                       <div>
                         <p className="text-xs font-black text-zinc-200">{p.name}</p>
                         <p className="text-[10px] text-zinc-600">{p.slug}</p>

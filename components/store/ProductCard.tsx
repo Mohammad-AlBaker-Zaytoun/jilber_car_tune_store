@@ -41,6 +41,8 @@ export default function ProductCard({ product }: { product: Product }) {
         category={product.category}
         visualColor={product.visualColor}
         visualColor2={product.visualColor2}
+        imageUrl={product.images?.[0]}
+        productName={product.name}
         size="md"
       />
 

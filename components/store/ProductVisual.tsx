@@ -17,9 +17,18 @@ interface Props {
   visualColor: string;
   visualColor2: string;
   size?: 'sm' | 'md' | 'lg';
+  imageUrl?: string;
+  productName?: string;
 }
 
-export default function ProductVisual({ category, visualColor, visualColor2, size = 'md' }: Props) {
+export default function ProductVisual({
+  category,
+  visualColor,
+  visualColor2,
+  size = 'md',
+  imageUrl,
+  productName,
+}: Props) {
   const Icon = CATEGORY_ICONS[category];
 
   const heights: Record<string, string> = {
@@ -27,6 +36,23 @@ export default function ProductVisual({ category, visualColor, visualColor2, siz
     md: 'h-52',
     lg: 'h-72',
   };
+
+  if (imageUrl) {
+    return (
+      <div className={`relative group/visual w-full ${heights[size]} overflow-hidden`}>
+        <img
+          src={imageUrl}
+          alt={productName ?? category}
+          className="w-full h-full object-cover transition-transform duration-500 group-hover/visual:scale-105"
+        />
+        <div
+          aria-hidden="true"
+          className="absolute bottom-0 left-0 right-0 h-12 pointer-events-none"
+          style={{ background: 'linear-gradient(to top, rgba(6,10,16,0.55), transparent)' }}
+        />
+      </div>
+    );
+  }
 
   return (
     <div

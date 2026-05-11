@@ -411,6 +411,7 @@ export default function CheckoutPage() {
               )}
               <OrderSummary
                 showCheckoutButton
+                showItems
                 onCheckout={placeOrder}
                 isSubmitting={submitting}
               />

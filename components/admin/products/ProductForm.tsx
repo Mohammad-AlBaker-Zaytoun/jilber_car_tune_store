@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Plus, Trash2, AlertCircle, CheckCircle } from 'lucide-react';
 import type { Product } from '@/data/products';
 import { CATEGORIES } from '@/data/products';
+import ProductImageUploader from './ProductImageUploader';
 
 type FormProduct = Omit<Product, 'id'>;
 
@@ -22,6 +23,7 @@ const EMPTY: FormProduct = {
   reviewCount: 0,
   inStock: true,
   featured: false,
+  images: [],
   visualColor: '#00d4ff',
   visualColor2: '#003d99',
   specs: [],
@@ -318,6 +320,23 @@ export default function ProductForm({ initial, mode }: Props) {
             </div>
           </Field>
         </div>
+      </div>
+
+      {/* Product Images */}
+      <div className={sectionCls}>
+        <div className="mb-5">
+          <h3 className="text-[10px] font-black text-white tracking-[0.25em] uppercase mb-2">
+            Product Images
+          </h3>
+          <p className="text-[10px] text-zinc-500 leading-relaxed">
+            Upload product images from your device. The first image will be used as the main product image.
+            If no image is uploaded, the product will use the existing fallback color/gradient visual.
+          </p>
+        </div>
+        <ProductImageUploader
+          images={form.images ?? []}
+          onChange={(imgs) => setForm((prev) => ({ ...prev, images: imgs }))}
+        />
       </div>
 
       {/* Specs */}

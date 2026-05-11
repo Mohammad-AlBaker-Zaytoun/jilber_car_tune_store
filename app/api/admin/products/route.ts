@@ -22,6 +22,7 @@ const productSchema = z.object({
   featured: z.boolean().default(false),
   visualColor: z.string().default('#00d4ff'),
   visualColor2: z.string().default('#003d99'),
+  images: z.array(z.string()).optional(),
   specs: z.array(specSchema).default([]),
   compatibility: z.array(z.string()).default([]),
   includedItems: z.array(z.string()).default([]),

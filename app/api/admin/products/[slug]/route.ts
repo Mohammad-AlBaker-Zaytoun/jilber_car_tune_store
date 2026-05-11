@@ -21,6 +21,7 @@ const updateSchema = z.object({
   featured: z.boolean().optional(),
   visualColor: z.string().optional(),
   visualColor2: z.string().optional(),
+  images: z.array(z.string()).optional(),
   specs: z.array(specSchema).optional(),
   compatibility: z.array(z.string()).optional(),
   includedItems: z.array(z.string()).optional(),

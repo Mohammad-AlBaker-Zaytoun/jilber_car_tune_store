@@ -5,15 +5,18 @@ import { useCartStore } from '@/lib/cart';
 
 interface Props {
   showCheckoutButton?: boolean;
+  showItems?: boolean;
   onCheckout?: () => void;
   isSubmitting?: boolean;
 }
 
 export default function OrderSummary({
   showCheckoutButton = true,
+  showItems = false,
   onCheckout,
   isSubmitting = false,
 }: Props) {
+  const items = useCartStore((s) => s.items);
   const subtotal = useCartStore((s) => s.subtotal());
   const tax = useCartStore((s) => s.tax());
   const total = useCartStore((s) => s.total());
@@ -26,6 +29,48 @@ export default function OrderSummary({
       <h2 className="text-xs font-black text-white tracking-[0.2em] uppercase mb-1">
         Order Summary
       </h2>
+
+      {/* Item thumbnails list — shown when showItems is true */}
+      {showItems && items.length > 0 && (
+        <div className="flex flex-col gap-2.5 pb-4 border-b border-zinc-800/50">
+          {items.map((item) => {
+            const thumb = item.images?.[0];
+            return (
+              <div key={item.id} className="flex items-center gap-3">
+                <div
+                  className="shrink-0 w-10 h-10 border border-zinc-800 overflow-hidden"
+                  style={thumb ? undefined : {
+                    background: `radial-gradient(ellipse at 30% 30%, ${item.visualColor}20, transparent 70%), #0d1117`,
+                  }}
+                >
+                  {thumb ? (
+                    <img
+                      src={thumb}
+                      alt={item.name}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <div
+                        className="w-3 h-3 rounded-sm"
+                        style={{ background: item.visualColor, opacity: 0.7 }}
+                        aria-hidden="true"
+                      />
+                    </div>
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-semibold text-zinc-300 truncate">{item.name}</p>
+                  <p className="text-[10px] text-zinc-600">×{item.quantity}</p>
+                </div>
+                <span className="text-xs font-black text-zinc-300 shrink-0">
+                  {fmt(item.price * item.quantity)}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       <div className="flex flex-col gap-2.5 text-sm">
         <div className="flex justify-between">

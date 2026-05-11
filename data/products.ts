@@ -39,6 +39,7 @@ export interface Product {
   reviewCount: number;
   inStock: boolean;
   featured: boolean;
+  images?: string[];
   visualColor: string;
   visualColor2: string;
   specs: ProductSpec[];

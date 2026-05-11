@@ -14,7 +14,10 @@ import StarRating from './StarRating';
 
 export default function ProductDetails({ product }: { product: Product }) {
   const [quantity, setQuantity] = useState(1);
+  const [activeIdx, setActiveIdx] = useState(0);
   const related = getRelatedProducts(product, 3);
+  const images = product.images?.filter(Boolean) ?? [];
+  const hasImages = images.length > 0;
 
   return (
     <div className="bg-zinc-950 pt-28 lg:pt-32 pb-20 lg:pb-28">
@@ -32,16 +35,63 @@ export default function ProductDetails({ product }: { product: Product }) {
       {/* Main product area */}
       <div className="max-w-7xl mx-auto px-6 lg:px-8">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16 mb-20">
-          {/* Left: Visual */}
+          {/* Left: Visual / Gallery */}
           <div className="flex flex-col gap-4">
             <div className="border border-zinc-800/50 overflow-hidden">
-              <ProductVisual
-                category={product.category}
-                visualColor={product.visualColor}
-                visualColor2={product.visualColor2}
-                size="lg"
-              />
+              {hasImages ? (
+                <div className="relative h-72 overflow-hidden group/main">
+                  <img
+                    src={images[activeIdx]}
+                    alt={`${product.name} — image ${activeIdx + 1}`}
+                    className="w-full h-full object-cover transition-transform duration-500 group-hover/main:scale-105"
+                  />
+                  <div
+                    aria-hidden="true"
+                    className="absolute bottom-0 left-0 right-0 h-16 pointer-events-none"
+                    style={{ background: 'linear-gradient(to top, rgba(6,10,16,0.7), transparent)' }}
+                  />
+                  {images.length > 1 && (
+                    <div className="absolute bottom-3 right-3 bg-zinc-900/80 text-zinc-500 text-[10px] font-bold px-2 py-1 tracking-wide">
+                      {activeIdx + 1} / {images.length}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <ProductVisual
+                  category={product.category}
+                  visualColor={product.visualColor}
+                  visualColor2={product.visualColor2}
+                  size="lg"
+                />
+              )}
             </div>
+
+            {/* Thumbnail strip — only shown when multiple images exist */}
+            {images.length > 1 && (
+              <div className="flex gap-2 overflow-x-auto pb-1">
+                {images.map((src, i) => (
+                  <button
+                    key={src + i}
+                    type="button"
+                    onClick={() => setActiveIdx(i)}
+                    className={`relative shrink-0 w-16 h-16 border overflow-hidden transition-all duration-200 ${
+                      i === activeIdx
+                        ? 'border-cyan-400/70 opacity-100'
+                        : 'border-zinc-800 opacity-50 hover:opacity-80 hover:border-zinc-600'
+                    }`}
+                    aria-label={`View image ${i + 1}`}
+                    aria-pressed={i === activeIdx}
+                  >
+                    <img
+                      src={src}
+                      alt={`${product.name} thumbnail ${i + 1}`}
+                      className="w-full h-full object-cover"
+                    />
+                  </button>
+                ))}
+              </div>
+            )}
+
             {/* Key spec chips */}
             {product.specs.length > 0 && (
               <div className="flex flex-wrap gap-2">
