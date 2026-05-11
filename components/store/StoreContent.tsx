@@ -10,9 +10,11 @@ import EmptyState from './EmptyState';
 
 interface Props {
   products: Product[];
+  /** Map of productId → effective { rating, count } computed server-side. */
+  ratings?: Record<string, { rating: number; count: number }>;
 }
 
-export default function StoreContent({ products }: Props) {
+export default function StoreContent({ products, ratings }: Props) {
   const [search, setSearch] = useState('');
   const [activeCategory, setActiveCategory] = useState<Category | null>(null);
   const [sort, setSort] = useState<SortOption>('featured');
@@ -34,13 +36,16 @@ export default function StoreContent({ products }: Props) {
             return a.price - b.price;
           case 'price-desc':
             return b.price - a.price;
-          case 'rating':
-            return b.rating - a.rating;
+          case 'rating': {
+            const aRating = ratings?.[a.id]?.rating ?? a.rating;
+            const bRating = ratings?.[b.id]?.rating ?? b.rating;
+            return bRating - aRating;
+          }
           default:
             return (b.featured ? 1 : 0) - (a.featured ? 1 : 0);
         }
       });
-  }, [products, search, activeCategory, sort]);
+  }, [products, search, activeCategory, sort, ratings]);
 
   const handleReset = () => {
     setSearch('');
@@ -73,7 +78,12 @@ export default function StoreContent({ products }: Props) {
             />
           ) : (
             filtered.map((product) => (
-              <ProductCard key={product.id} product={product} />
+              <ProductCard
+                key={product.id}
+                product={product}
+                effectiveRating={ratings?.[product.id]?.rating}
+                effectiveCount={ratings?.[product.id]?.count}
+              />
             ))
           )}
         </div>

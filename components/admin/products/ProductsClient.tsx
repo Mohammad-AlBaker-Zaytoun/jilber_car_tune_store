@@ -164,6 +164,7 @@ export default function ProductsClient() {
                 <th className="text-left px-4 py-3 text-[9px] text-zinc-600 tracking-[0.2em] uppercase font-bold">Price</th>
                 <th className="text-center px-4 py-3 text-[9px] text-zinc-600 tracking-[0.2em] uppercase font-bold hidden md:table-cell">Stock</th>
                 <th className="text-center px-4 py-3 text-[9px] text-zinc-600 tracking-[0.2em] uppercase font-bold hidden md:table-cell">Featured</th>
+                <th className="text-left px-4 py-3 text-[9px] text-zinc-600 tracking-[0.2em] uppercase font-bold hidden lg:table-cell">Rating</th>
                 <th className="text-right px-5 py-3 text-[9px] text-zinc-600 tracking-[0.2em] uppercase font-bold">Actions</th>
               </tr>
             </thead>
@@ -217,6 +218,20 @@ export default function ProductsClient() {
                         aria-hidden="true"
                       />
                     </button>
+                  </td>
+                  <td className="px-4 py-3.5 hidden lg:table-cell">
+                    {p.rating > 0 && p.reviewCount > 0 ? (
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-xs font-black text-amber-400">
+                          ★ {p.rating}
+                        </span>
+                        <span className="text-[10px] text-zinc-600">
+                          {p.reviewCount.toLocaleString()} reviews
+                        </span>
+                      </div>
+                    ) : (
+                      <span className="text-[10px] text-zinc-700 italic">No reviews</span>
+                    )}
                   </td>
                   <td className="px-5 py-3.5 text-right">
                     <div className="flex items-center justify-end gap-2">

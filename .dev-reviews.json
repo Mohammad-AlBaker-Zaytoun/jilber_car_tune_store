@@ -1,0 +1,28 @@
+[
+  {
+    "productId": "prod-007",
+    "productSlug": "forged-wheel-set",
+    "userId": "a070d20e-f285-44b4-84fc-08032e0468cf",
+    "userName": "mhmd Albaker zaytoun",
+    "userEmail": "10119023@mu.edu.lb",
+    "rating": 1,
+    "title": "test",
+    "status": "approved",
+    "id": "rev-3d787663",
+    "createdAt": "2026-05-11T18:56:18.899Z",
+    "updatedAt": "2026-05-11T18:56:18.899Z"
+  },
+  {
+    "productId": "prod-001",
+    "productSlug": "stage-1-ecu-tune",
+    "userId": "a070d20e-f285-44b4-84fc-08032e0468cf",
+    "userName": "mhmd Albaker zaytoun",
+    "userEmail": "10119023@mu.edu.lb",
+    "rating": 2,
+    "title": "test",
+    "status": "approved",
+    "id": "rev-2d1c7bc8",
+    "createdAt": "2026-05-11T18:58:49.040Z",
+    "updatedAt": "2026-05-11T18:58:49.040Z"
+  }
+]

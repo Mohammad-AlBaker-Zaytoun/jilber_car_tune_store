@@ -16,6 +16,7 @@ import {
   ChevronRight,
   LogOut,
   Shield,
+  MessageSquare,
 } from 'lucide-react';
 import { useAuth } from '@/components/auth/AuthProvider';
 import type { SessionUser } from '@/lib/auth';
@@ -26,6 +27,7 @@ const NAV = [
   { href: '/admin/categories', label: 'Categories', icon: Tag, exact: false },
   { href: '/admin/orders', label: 'Orders', icon: ShoppingBag, exact: false },
   { href: '/admin/users', label: 'Users', icon: Users, exact: false },
+  { href: '/admin/reviews', label: 'Reviews', icon: MessageSquare, exact: false },
   { href: '/admin/settings', label: 'Settings', icon: Settings, exact: false },
 ];
 

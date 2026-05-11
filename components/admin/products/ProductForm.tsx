@@ -19,7 +19,7 @@ const EMPTY: FormProduct = {
   oldPrice: undefined,
   currency: 'USD',
   badge: undefined,
-  rating: 5.0,
+  rating: 0,
   reviewCount: 0,
   inStock: true,
   featured: false,
@@ -109,6 +109,12 @@ export default function ProductForm({ initial, mode }: Props) {
     if (!form.price || form.price <= 0) errs.price = 'Price must be a positive number';
     if (form.oldPrice !== undefined && form.oldPrice !== null && form.oldPrice <= 0) {
       errs.oldPrice = 'Old price must be positive';
+    }
+    if (!Number.isFinite(form.rating) || form.rating < 0 || form.rating > 5) {
+      errs.rating = 'Rating must be between 0 and 5';
+    }
+    if (!Number.isInteger(form.reviewCount) || form.reviewCount < 0) {
+      errs.reviewCount = 'Review count must be a whole number (0 or more)';
     }
     setErrors(errs);
     return Object.keys(errs).length === 0;
@@ -269,29 +275,58 @@ export default function ProductForm({ initial, mode }: Props) {
         </div>
       </div>
 
+      {/* Fallback Rating */}
+      <div className={sectionCls}>
+        <h3 className="text-[10px] font-black text-white tracking-[0.25em] uppercase mb-1.5">
+          Fallback Rating &amp; Review Count
+        </h3>
+        <p className="text-[10px] text-zinc-600 mb-5 leading-relaxed">
+          Used only when this product has no approved customer reviews. When customers submit
+          reviews, the displayed rating is calculated automatically from those reviews instead.
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <Field label="Fallback Rating (0–5)" error={errors.rating}>
+            <input
+              type="number"
+              min={0}
+              max={5}
+              step={0.1}
+              value={form.rating}
+              onChange={set('rating')}
+              className={inputCls}
+              placeholder="0"
+            />
+          </Field>
+          <Field label="Fallback Review Count" error={errors.reviewCount}>
+            <input
+              type="number"
+              min={0}
+              step={1}
+              value={form.reviewCount}
+              onChange={(e) => {
+                const n = parseInt(e.target.value, 10);
+                setForm((prev) => ({ ...prev, reviewCount: isNaN(n) ? 0 : Math.max(0, n) }));
+                setErrors((prev) => ({ ...prev, reviewCount: undefined }));
+              }}
+              className={inputCls}
+              placeholder="0"
+            />
+          </Field>
+        </div>
+      </div>
+
       {/* Status & appearance */}
       <div className={sectionCls}>
         <h3 className="text-[10px] font-black text-white tracking-[0.25em] uppercase mb-5">Status & Appearance</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="flex flex-col gap-3">
-            <label className="flex items-center gap-3 cursor-pointer group">
-              <input type="checkbox" checked={form.inStock} onChange={set('inStock')} className="w-4 h-4 accent-cyan-400 cursor-pointer" />
-              <span className="text-xs text-zinc-400 group-hover:text-zinc-200 transition-colors font-semibold">In Stock</span>
-            </label>
-            <label className="flex items-center gap-3 cursor-pointer group">
-              <input type="checkbox" checked={form.featured} onChange={set('featured')} className="w-4 h-4 accent-cyan-400 cursor-pointer" />
-              <span className="text-xs text-zinc-400 group-hover:text-zinc-200 transition-colors font-semibold">Featured</span>
-            </label>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <Field label="Rating (0–5)">
-              <input type="number" min={0} max={5} step={0.1} value={form.rating} onChange={set('rating')} className={inputCls} />
-            </Field>
-            <Field label="Review Count">
-              <input type="number" min={0} step={1} value={form.reviewCount} onChange={set('reviewCount')} className={inputCls} />
-            </Field>
-          </div>
+        <div className="flex flex-col gap-3">
+          <label className="flex items-center gap-3 cursor-pointer group">
+            <input type="checkbox" checked={form.inStock} onChange={set('inStock')} className="w-4 h-4 accent-cyan-400 cursor-pointer" />
+            <span className="text-xs text-zinc-400 group-hover:text-zinc-200 transition-colors font-semibold">In Stock</span>
+          </label>
+          <label className="flex items-center gap-3 cursor-pointer group">
+            <input type="checkbox" checked={form.featured} onChange={set('featured')} className="w-4 h-4 accent-cyan-400 cursor-pointer" />
+            <span className="text-xs text-zinc-400 group-hover:text-zinc-200 transition-colors font-semibold">Featured</span>
+          </label>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">

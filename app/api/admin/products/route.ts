@@ -16,7 +16,7 @@ const productSchema = z.object({
   oldPrice: z.number().positive().optional(),
   currency: z.string().default('USD'),
   badge: z.string().optional(),
-  rating: z.number().min(0).max(5).default(5),
+  rating: z.number().min(0).max(5).default(0),
   reviewCount: z.number().int().nonnegative().default(0),
   inStock: z.boolean().default(true),
   featured: z.boolean().default(false),

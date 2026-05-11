@@ -7,7 +7,18 @@ import ProductBadge from './ProductBadge';
 import AddToCartButton from './AddToCartButton';
 import StarRating from './StarRating';
 
-export default function ProductCard({ product }: { product: Product }) {
+interface Props {
+  product: Product;
+  /** Effective customer-average rating. When provided, overrides product.rating. */
+  effectiveRating?: number;
+  /** Effective review count. When provided, overrides product.reviewCount. */
+  effectiveCount?: number;
+}
+
+export default function ProductCard({ product, effectiveRating, effectiveCount }: Props) {
+  const displayRating = effectiveRating ?? product.rating;
+  const displayCount = effectiveCount ?? product.reviewCount;
+
   const discountPct = product.oldPrice
     ? Math.round((1 - product.price / product.oldPrice) * 100)
     : null;
@@ -62,7 +73,7 @@ export default function ProductCard({ product }: { product: Product }) {
           {product.shortDescription}
         </p>
 
-        <StarRating rating={product.rating} count={product.reviewCount} />
+        <StarRating rating={displayRating} count={displayCount} />
 
         <div className="flex items-baseline gap-2 pt-1 border-t border-zinc-800/50">
           <span className="text-base font-black text-white">

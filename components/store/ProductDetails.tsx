@@ -5,19 +5,44 @@ import Link from 'next/link';
 import { CheckCircle, XCircle, ChevronRight, Package, Wrench, Users } from 'lucide-react';
 import type { Product } from '@/data/products';
 import { getRelatedProducts } from '@/data/products';
+import type { SessionUser } from '@/lib/auth';
+import type { PublicReview } from '@/lib/reviews.dev';
 import ProductVisual from './ProductVisual';
 import ProductBadge from './ProductBadge';
 import AddToCartButton from './AddToCartButton';
 import QuantitySelector from './QuantitySelector';
 import ProductCard from './ProductCard';
 import StarRating from './StarRating';
+import ProductReviewsSection from './reviews/ProductReviewsSection';
 
-export default function ProductDetails({ product }: { product: Product }) {
+interface Props {
+  product: Product;
+  session: SessionUser | null;
+  initialReviews: PublicReview[];
+  userReview: PublicReview | null;
+}
+
+export default function ProductDetails({
+  product,
+  session,
+  initialReviews,
+  userReview,
+}: Props) {
   const [quantity, setQuantity] = useState(1);
   const [activeIdx, setActiveIdx] = useState(0);
   const related = getRelatedProducts(product, 3);
   const images = product.images?.filter(Boolean) ?? [];
   const hasImages = images.length > 0;
+
+  // Effective rating: prefer customer reviews, fall back to admin-managed fields
+  const hasCustomerReviews = initialReviews.length > 0;
+  const effectiveRating = hasCustomerReviews
+    ? Math.round(
+        (initialReviews.reduce((s, r) => s + r.rating, 0) / initialReviews.length) * 10
+      ) / 10
+    : product.rating;
+  const effectiveCount = hasCustomerReviews ? initialReviews.length : product.reviewCount;
+  const ratingIsCustomer = hasCustomerReviews;
 
   return (
     <div className="bg-zinc-950 pt-28 lg:pt-32 pb-20 lg:pb-28">
@@ -127,7 +152,16 @@ export default function ProductDetails({ product }: { product: Product }) {
             </h1>
 
             {/* Rating */}
-            <StarRating rating={product.rating} count={product.reviewCount} size={13} />
+            <div className="flex flex-col gap-1">
+              <StarRating rating={effectiveRating} count={effectiveCount} size={13} />
+              {effectiveCount > 0 && (
+                <span className="text-[9px] text-zinc-600 tracking-[0.15em] uppercase font-medium">
+                  {ratingIsCustomer
+                    ? `Based on ${effectiveCount} customer ${effectiveCount === 1 ? 'review' : 'reviews'}`
+                    : 'Store rating'}
+                </span>
+              )}
+            </div>
 
             {/* Price */}
             <div className="flex items-baseline gap-3">
@@ -193,7 +227,7 @@ export default function ProductDetails({ product }: { product: Product }) {
         </div>
 
         {/* Tabs: Description / Specs / Compatibility / Included */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-20">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
           {/* Description */}
           <div className="lg:col-span-2 flex flex-col gap-6">
             <div className="border border-zinc-800/50 bg-zinc-900/20 p-7">
@@ -259,6 +293,19 @@ export default function ProductDetails({ product }: { product: Product }) {
               </ul>
             </div>
           </div>
+        </div>
+
+        {/* Customer Reviews section */}
+        <div className="mb-20">
+          <ProductReviewsSection
+            productId={product.id}
+            productSlug={product.slug}
+            adminRating={product.rating}
+            adminReviewCount={product.reviewCount}
+            session={session}
+            initialReviews={initialReviews}
+            initialUserReview={userReview}
+          />
         </div>
 
         {/* Related products */}
