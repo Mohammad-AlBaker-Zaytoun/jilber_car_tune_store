@@ -1,12 +1,12 @@
 import { getProducts } from '@/lib/products.dev';
-import StoreHero from '@/components/store/StoreHero';
+import StoreScrollHero from '@/components/store/StoreScrollHero';
 import StoreContent from '@/components/store/StoreContent';
 
 export default function StorePage() {
   const products = getProducts();
   return (
     <>
-      <StoreHero />
+      <StoreScrollHero />
       <StoreContent products={products} />
     </>
   );
