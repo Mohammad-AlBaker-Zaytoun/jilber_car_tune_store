@@ -109,8 +109,9 @@ export default function ProductImageUploader({ images, onChange }: Props) {
     <div className="flex flex-col gap-4">
       {/* Dropzone */}
       <div
+        onDragEnter={(e) => { e.preventDefault(); setDragOver(true); }}
         onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
-        onDragLeave={() => setDragOver(false)}
+        onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setDragOver(false); }}
         onDrop={handleDrop}
         onClick={() => !uploading && inputRef.current?.click()}
         className={`flex flex-col items-center justify-center gap-3 p-8 border-2 border-dashed transition-all duration-200 ${
