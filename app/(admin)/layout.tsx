@@ -4,7 +4,8 @@ import AdminShell from '@/components/admin/AdminShell';
 import type { ReactNode } from 'react';
 
 export const metadata = {
-  title: 'Admin | JILBER Performance',
+  title: 'Admin Dashboard',
+  robots: { index: false, follow: false },
 };
 
 export default async function AdminLayout({ children }: { children: ReactNode }) {

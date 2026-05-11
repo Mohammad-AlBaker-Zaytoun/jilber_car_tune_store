@@ -1,5 +1,11 @@
+import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { User, Mail, Phone, Calendar, Edit } from 'lucide-react';
+
+export const metadata: Metadata = {
+  title: 'Profile',
+  robots: { index: false, follow: false },
+};
 import { getSession } from '@/lib/session';
 import AccountShell from '@/components/account/AccountShell';
 

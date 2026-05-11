@@ -3,7 +3,8 @@ import type { Metadata } from 'next';
 import SignUpForm from '@/components/auth/SignUpForm';
 
 export const metadata: Metadata = {
-  title: 'Create Account | JILBER Performance',
+  title: 'Create Account',
+  robots: { index: false, follow: false },
 };
 
 export default function SignUpPage() {

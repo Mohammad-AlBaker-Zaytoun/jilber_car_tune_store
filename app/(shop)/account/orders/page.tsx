@@ -1,6 +1,12 @@
+import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { Package, Store } from 'lucide-react';
+
+export const metadata: Metadata = {
+  title: 'Orders',
+  robots: { index: false, follow: false },
+};
 import { getSession } from '@/lib/session';
 import AccountShell from '@/components/account/AccountShell';
 
