@@ -50,15 +50,21 @@ export default function ScrollFrameSequence({
     ctx.drawImage(img, (cW - dW) / 2, (cH - dH) / 2, dW, dH);
   }, []); // intentionally empty — only touches refs
 
-  // Match canvas bitmap to its rendered size; re-acquire context after each resize
+  // Match canvas bitmap to its rendered size; re-acquire context after each resize.
   // (canvas state resets when width/height attributes change)
+  // Bitmap is scaled by devicePixelRatio (capped at 2) so the image stays sharp on
+  // Retina/HiDPI displays. drawFrame uses canvas.width/height directly, so the
+  // cover-scale math automatically operates at full bitmap resolution.
   useEffect(() => {
     const resize = () => {
       const canvas = canvasRef.current;
       if (!canvas) return;
 
-      const w = canvas.clientWidth || window.innerWidth;
-      const h = canvas.clientHeight || window.innerHeight;
+      const cssW = canvas.clientWidth || window.innerWidth;
+      const cssH = canvas.clientHeight || window.innerHeight;
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const w = Math.round(cssW * dpr);
+      const h = Math.round(cssH * dpr);
 
       if (canvas.width !== w || canvas.height !== h) {
         canvas.width = w;
