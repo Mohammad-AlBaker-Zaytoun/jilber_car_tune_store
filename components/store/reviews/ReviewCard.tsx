@@ -1,3 +1,5 @@
+'use client';
+
 import { Star, Pencil, Trash2 } from 'lucide-react';
 import type { PublicReview } from '@/lib/reviews.dev';
 
@@ -42,10 +44,12 @@ export default function ReviewCard({
     .join('')
     .toUpperCase();
 
+  // Use UTC to guarantee identical output on server and client, preventing hydration mismatches.
   const date = new Date(review.createdAt).toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
+    timeZone: 'UTC',
   });
 
   return (
@@ -114,6 +118,11 @@ export default function ReviewCard({
       {isOwn && review.status === 'pending' && (
         <p className="text-[10px] text-amber-400/80 font-medium tracking-wide">
           Your review is awaiting approval and is not yet visible to other customers.
+        </p>
+      )}
+      {isOwn && review.status === 'hidden' && (
+        <p className="text-[10px] text-zinc-500 font-medium tracking-wide">
+          Your review has been hidden by a moderator and is not visible to other customers.
         </p>
       )}
     </article>

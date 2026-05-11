@@ -147,14 +147,14 @@ export default function ProductReviewsSection({
   const handleCreateSuccess = (review: PublicReview) => {
     setUserReview(review);
     if (review.status === 'approved') {
-      refreshReviews();
+      void refreshReviews();
     }
   };
 
   const handleEditSuccess = (review: PublicReview) => {
     setUserReview(review);
     setIsEditMode(false);
-    refreshReviews();
+    void refreshReviews();
   };
 
   const handleDelete = async () => {
@@ -170,7 +170,7 @@ export default function ProductReviewsSection({
       }
       setUserReview(null);
       setIsEditMode(false);
-      refreshReviews();
+      void refreshReviews();
     } catch {
       setDeleteError('Something went wrong. Please try again.');
     } finally {

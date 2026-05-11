@@ -102,7 +102,10 @@ export default function ReviewForm({
         return;
       }
 
+      // Show the success banner first, then notify the parent after a short pause so
+      // the message is actually visible before the parent unmounts this form.
       setSuccess(true);
+      await new Promise<void>((resolve) => setTimeout(resolve, 900));
       onSuccess(data as PublicReview);
     } catch {
       setServerError('Something went wrong. Please try again.');
@@ -111,12 +114,14 @@ export default function ReviewForm({
     }
   };
 
-  if (success && mode === 'create') {
+  if (success) {
     return (
       <div className="flex items-center gap-3 p-4 border border-cyan-400/30 bg-cyan-400/5 text-cyan-400">
         <CheckCircle size={14} aria-hidden="true" />
         <p className="text-xs font-semibold">
-          Your review was submitted successfully.
+          {mode === 'create'
+            ? 'Your review was submitted successfully.'
+            : 'Your review has been updated.'}
         </p>
       </div>
     );

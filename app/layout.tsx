@@ -4,6 +4,7 @@ import "./globals.css";
 import { ToastProvider } from "@/components/ui/Toast";
 import { CartHydrate } from "@/lib/cartHydrate";
 import { AuthProvider } from "@/components/auth/AuthProvider";
+import { PageTransitionProvider } from "@/components/transition/PageTransitionProvider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -29,8 +30,10 @@ export default function RootLayout({
       <body className="min-h-full bg-zinc-950 text-zinc-100 overflow-x-hidden">
         <AuthProvider>
           <ToastProvider>
-            <CartHydrate />
-            {children}
+            <PageTransitionProvider>
+              <CartHydrate />
+              {children}
+            </PageTransitionProvider>
           </ToastProvider>
         </AuthProvider>
       </body>

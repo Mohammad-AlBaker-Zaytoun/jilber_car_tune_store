@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import Link from 'next/link';
+import TransitionLink from '@/components/transition/TransitionLink';
 import { Menu, X, Gauge, ShoppingCart, LogIn, LayoutDashboard, LogOut, Shield } from 'lucide-react';
 import { useCartStore } from '@/lib/cart';
 import { useAuth } from '@/components/auth/AuthProvider';
@@ -41,7 +41,7 @@ export default function Navbar() {
       <div className="max-w-7xl mx-auto px-6 lg:px-8">
         <div className="flex items-center justify-between h-16 lg:h-20">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-2.5 group">
+          <TransitionLink href="/" className="flex items-center gap-2.5 group">
             <div className="relative flex items-center justify-center w-9 h-9 border border-cyan-400/30 bg-cyan-400/5 group-hover:bg-cyan-400/10 transition-colors">
               <Gauge
                 className="w-5 h-5 text-cyan-400 group-hover:rotate-45 transition-transform duration-500"
@@ -56,7 +56,7 @@ export default function Navbar() {
                 Performance
               </span>
             </div>
-          </Link>
+          </TransitionLink>
 
           {/* Desktop nav */}
           <nav className="hidden lg:flex items-center gap-8" aria-label="Main navigation">
@@ -70,19 +70,19 @@ export default function Navbar() {
                 <span className="absolute -bottom-0.5 left-0 w-0 h-px bg-cyan-400 group-hover:w-full transition-all duration-300" />
               </a>
             ))}
-            <Link
+            <TransitionLink
               href="/store"
               className="text-xs text-zinc-400 hover:text-cyan-400 transition-colors duration-200 tracking-[0.15em] uppercase font-semibold relative group"
             >
               Store
               <span className="absolute -bottom-0.5 left-0 w-0 h-px bg-cyan-400 group-hover:w-full transition-all duration-300" />
-            </Link>
+            </TransitionLink>
           </nav>
 
           {/* Desktop right */}
           <div className="hidden lg:flex items-center gap-3">
             {/* Cart */}
-            <Link
+            <TransitionLink
               href="/cart"
               className="relative flex items-center justify-center w-10 h-10 border border-zinc-800 hover:border-cyan-400/40 text-zinc-400 hover:text-cyan-400 transition-all duration-200 bg-zinc-900/40 hover:bg-cyan-400/5"
               aria-label="Cart"
@@ -93,7 +93,7 @@ export default function Navbar() {
                   {itemCount > 9 ? '9+' : itemCount}
                 </span>
               )}
-            </Link>
+            </TransitionLink>
 
             {/* Auth area */}
             {!loading && (
@@ -101,13 +101,13 @@ export default function Navbar() {
                 {user ? (
                   <UserMenu />
                 ) : (
-                  <Link
+                  <TransitionLink
                     href="/signin"
                     className="inline-flex items-center gap-1.5 px-4 py-2.5 text-xs font-black text-zinc-300 border border-zinc-700 hover:border-cyan-400/40 hover:text-cyan-400 tracking-[0.15em] uppercase transition-all duration-200"
                   >
                     <LogIn size={12} aria-hidden="true" />
                     Sign In
-                  </Link>
+                  </TransitionLink>
                 )}
               </>
             )}
@@ -122,7 +122,7 @@ export default function Navbar() {
 
           {/* Mobile: cart + hamburger */}
           <div className="flex items-center gap-2 lg:hidden">
-            <Link
+            <TransitionLink
               href="/cart"
               className="relative flex items-center justify-center w-9 h-9 text-zinc-400 hover:text-cyan-400 transition-colors"
               aria-label="Cart"
@@ -133,7 +133,7 @@ export default function Navbar() {
                   {itemCount > 9 ? '9+' : itemCount}
                 </span>
               )}
-            </Link>
+            </TransitionLink>
             <button
               onClick={() => setMenuOpen(!menuOpen)}
               className="p-2 text-zinc-400 hover:text-cyan-400 transition-colors"
@@ -167,14 +167,14 @@ export default function Navbar() {
               {link.label}
             </a>
           ))}
-          <Link
+          <TransitionLink
             href="/store"
             onClick={() => setMenuOpen(false)}
             className="py-3 text-xs text-zinc-400 hover:text-cyan-400 transition-colors tracking-[0.2em] uppercase font-semibold border-b border-white/5"
           >
             Store
-          </Link>
-          <Link
+          </TransitionLink>
+          <TransitionLink
             href="/cart"
             onClick={() => setMenuOpen(false)}
             className="py-3 text-xs text-zinc-400 hover:text-cyan-400 transition-colors tracking-[0.2em] uppercase font-semibold border-b border-white/5 flex items-center justify-between"
@@ -185,7 +185,7 @@ export default function Navbar() {
                 {itemCount > 9 ? '9+' : itemCount}
               </span>
             )}
-          </Link>
+          </TransitionLink>
 
           {/* Auth links */}
           {!loading && (
@@ -193,23 +193,23 @@ export default function Navbar() {
               {user ? (
                 <>
                   {user.role === 'admin' && (
-                    <Link
+                    <TransitionLink
                       href="/admin"
                       onClick={() => setMenuOpen(false)}
                       className="py-3 text-xs text-cyan-400 hover:text-cyan-300 transition-colors tracking-[0.2em] uppercase font-semibold border-b border-white/5 flex items-center gap-2"
                     >
                       <Shield size={12} aria-hidden="true" />
                       Admin Panel
-                    </Link>
+                    </TransitionLink>
                   )}
-                  <Link
+                  <TransitionLink
                     href="/account"
                     onClick={() => setMenuOpen(false)}
                     className="py-3 text-xs text-zinc-400 hover:text-cyan-400 transition-colors tracking-[0.2em] uppercase font-semibold border-b border-white/5 flex items-center gap-2"
                   >
                     <LayoutDashboard size={12} aria-hidden="true" />
                     My Account
-                  </Link>
+                  </TransitionLink>
                   <button
                     onClick={() => { setMenuOpen(false); signOut(); }}
                     className="py-3 text-xs text-zinc-400 hover:text-red-400 transition-colors tracking-[0.2em] uppercase font-semibold border-b border-white/5 text-left flex items-center gap-2"
@@ -219,14 +219,14 @@ export default function Navbar() {
                   </button>
                 </>
               ) : (
-                <Link
+                <TransitionLink
                   href="/signin"
                   onClick={() => setMenuOpen(false)}
                   className="py-3 text-xs text-zinc-400 hover:text-cyan-400 transition-colors tracking-[0.2em] uppercase font-semibold border-b border-white/5 flex items-center gap-2"
                 >
                   <LogIn size={12} aria-hidden="true" />
                   Sign In
-                </Link>
+                </TransitionLink>
               )}
             </>
           )}
