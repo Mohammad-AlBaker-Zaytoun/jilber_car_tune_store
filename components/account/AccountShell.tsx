@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, User, Package, ShoppingCart, Store, LogOut, Shield } from 'lucide-react';
+import { LayoutDashboard, User, Package, ShoppingCart, Store, LogOut, Shield, FileQuestion } from 'lucide-react';
 import { useAuth } from '@/components/auth/AuthProvider';
 import type { SessionUser } from '@/lib/session';
 
@@ -10,6 +10,7 @@ const NAV = [
   { href: '/account', label: 'Overview', icon: LayoutDashboard, exact: true },
   { href: '/account/profile', label: 'Profile', icon: User, exact: false },
   { href: '/account/orders', label: 'Orders', icon: Package, exact: false },
+  { href: '/account/quotes', label: 'Quotes', icon: FileQuestion, exact: false },
   { href: '/cart', label: 'Cart', icon: ShoppingCart, exact: false },
   { href: '/store', label: 'Store', icon: Store, exact: false },
 ];

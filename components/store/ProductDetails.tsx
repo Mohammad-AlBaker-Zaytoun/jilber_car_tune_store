@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { CheckCircle, XCircle, ChevronRight, Package, Wrench, Users } from 'lucide-react';
+import { CheckCircle, XCircle, ChevronRight, Package, Wrench, Users, FileQuestion } from 'lucide-react';
 import type { Product } from '@/data/products';
 import { getRelatedProducts } from '@/data/products';
 import type { SessionUser } from '@/lib/auth';
@@ -208,6 +208,18 @@ export default function ProductDetails({
                 quantity={quantity}
                 size="lg"
               />
+            </div>
+
+            {/* Quote CTA */}
+            <div className="flex items-center gap-3 pt-1">
+              <Link
+                href={`/quote?product=${encodeURIComponent(product.slug)}`}
+                className="inline-flex items-center gap-2 px-5 py-2.5 border border-zinc-700 bg-zinc-900/40 hover:border-cyan-400/40 hover:text-cyan-400 text-zinc-400 font-black text-[10px] tracking-[0.2em] uppercase transition-all duration-200"
+              >
+                <FileQuestion size={12} aria-hidden="true" />
+                Request a Quote
+              </Link>
+              <span className="text-[10px] text-zinc-600">Need installation? Ask us.</span>
             </div>
 
             {/* Trust badges */}
