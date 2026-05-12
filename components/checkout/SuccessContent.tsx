@@ -2,11 +2,13 @@
 
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { CheckCircle, Home, ShoppingBag, Calendar, Mail } from 'lucide-react';
+import { CheckCircle, Home, ShoppingBag, Calendar, Mail, Package } from 'lucide-react';
+import { useAuth } from '@/components/auth/AuthProvider';
 
 export default function SuccessContent() {
   const params = useSearchParams();
   const ref = params.get('ref') ?? `TUNE-${Math.floor(10000 + Math.random() * 90000)}`;
+  const { user } = useAuth();
 
   return (
     <div className="bg-zinc-950 min-h-screen pt-28 lg:pt-36 pb-24">
@@ -75,13 +77,23 @@ export default function SuccessContent() {
 
         {/* CTAs */}
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
-          <Link
-            href="/"
-            className="inline-flex items-center justify-center gap-2 px-6 py-3.5 bg-cyan-400 hover:bg-cyan-300 text-black font-black text-xs tracking-[0.2em] uppercase transition-all duration-200 hover:shadow-[0_0_24px_rgba(0,212,255,0.5)]"
-          >
-            <Home size={13} aria-hidden="true" />
-            Back to Home
-          </Link>
+          {user ? (
+            <Link
+              href="/account/orders"
+              className="inline-flex items-center justify-center gap-2 px-6 py-3.5 bg-cyan-400 hover:bg-cyan-300 text-black font-black text-xs tracking-[0.2em] uppercase transition-all duration-200 hover:shadow-[0_0_24px_rgba(0,212,255,0.5)]"
+            >
+              <Package size={13} aria-hidden="true" />
+              View My Orders
+            </Link>
+          ) : (
+            <Link
+              href="/"
+              className="inline-flex items-center justify-center gap-2 px-6 py-3.5 bg-cyan-400 hover:bg-cyan-300 text-black font-black text-xs tracking-[0.2em] uppercase transition-all duration-200 hover:shadow-[0_0_24px_rgba(0,212,255,0.5)]"
+            >
+              <Home size={13} aria-hidden="true" />
+              Back to Home
+            </Link>
+          )}
           <Link
             href="/store"
             className="inline-flex items-center justify-center gap-2 px-6 py-3.5 border border-zinc-700 hover:border-cyan-400/40 text-zinc-300 hover:text-cyan-400 font-black text-xs tracking-[0.2em] uppercase transition-all duration-200"

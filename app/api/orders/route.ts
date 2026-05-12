@@ -5,9 +5,9 @@ import { createOrder } from '@/lib/orders.dev';
 import { getSession } from '@/lib/session';
 import { getProductBySlug } from '@/lib/products.dev';
 import { getSettings } from '@/lib/settings.dev';
+import { notifyOrderCreated } from '@/lib/order-notifications';
+import type { PaymentStatus } from '@/types/admin';
 
-// Only accept fields the client legitimately controls.
-// Prices, totals, and ref are derived server-side.
 const itemSchema = z.object({
   slug: z.string().min(1),
   quantity: z.number().int().positive().max(99),
@@ -33,9 +33,19 @@ const schema = z.object({
 });
 
 function generateRef(): string {
-  // Use crypto.randomBytes for better randomness than Math.random
-  const n = (randomBytes(3).readUIntBE(0, 3) % 900000) + 100000;
-  return `TUNE-${n}`;
+  const date = new Date();
+  const yyyymmdd = `${date.getFullYear()}${String(date.getMonth() + 1).padStart(2, '0')}${String(date.getDate()).padStart(2, '0')}`;
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  const bytes = randomBytes(5);
+  const code = Array.from(bytes)
+    .map((b) => chars[b % chars.length])
+    .join('');
+  return `TUNE-${yyyymmdd}-${code}`;
+}
+
+function initialPaymentStatus(payment: 'shop' | 'bank' | 'card'): PaymentStatus {
+  if (payment === 'bank') return 'deposit_pending';
+  return 'unpaid';
 }
 
 export async function POST(request: Request) {
@@ -49,7 +59,6 @@ export async function POST(request: Request) {
 
     const { customer, vehicle, items, payment } = result.data;
 
-    // Validate each slug against the product store and build server-authoritative items
     const resolvedItems = [];
     for (const item of items) {
       const product = getProductBySlug(item.slug);
@@ -71,8 +80,7 @@ export async function POST(request: Request) {
       });
     }
 
-    // Recalculate totals from server-side product prices and configured tax rate
-    const { taxRate } = getSettings();
+    const { taxRate, currency } = getSettings();
     const clampedRate = Math.min(Math.max(taxRate, 0), 100) / 100;
     const subtotal = Math.round(
       resolvedItems.reduce((s, i) => s + i.price * i.quantity, 0) * 100
@@ -82,17 +90,30 @@ export async function POST(request: Request) {
 
     const session = await getSession();
     const ref = generateRef();
+
     const order = createOrder({
       ref,
       customer,
       vehicle,
       items: resolvedItems,
       payment,
+      paymentStatus: initialPaymentStatus(payment),
       subtotal,
       tax,
       total,
+      currency: currency ?? 'USD',
       userId: session?.id,
+      initialHistoryEntry: {
+        fromStatus: null,
+        toStatus: 'pending',
+        changedByUserId: session?.id ?? 'guest',
+        changedByName: session?.name ?? customer.fullName,
+        note: 'Order placed by customer',
+        createdAt: new Date().toISOString(),
+      },
     });
+
+    notifyOrderCreated(order);
 
     return NextResponse.json({ orderId: order.id, ref: order.ref }, { status: 201 });
   } catch (err) {

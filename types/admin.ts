@@ -3,9 +3,30 @@ export type UserRole = 'user' | 'admin';
 export type OrderStatus =
   | 'pending'
   | 'confirmed'
-  | 'in-progress'
+  | 'awaiting_vehicle'
+  | 'in_progress'
+  | 'ready_for_pickup'
   | 'completed'
   | 'cancelled';
+
+export type PaymentStatus =
+  | 'unpaid'
+  | 'deposit_pending'
+  | 'deposit_paid'
+  | 'paid'
+  | 'refunded'
+  | 'not_required';
+
+export interface OrderStatusHistoryEntry {
+  id: string;
+  orderId: string;
+  fromStatus: OrderStatus | null;
+  toStatus: OrderStatus;
+  changedByUserId: string;
+  changedByName: string;
+  note?: string;
+  createdAt: string;
+}
 
 export interface OrderItem {
   id: string;
@@ -22,7 +43,11 @@ export interface Order {
   id: string;
   ref: string;
   status: OrderStatus;
+  paymentStatus: PaymentStatus;
   createdAt: string;
+  updatedAt: string;
+  completedAt?: string;
+  cancelledAt?: string;
   userId?: string;
   customer: {
     fullName: string;
@@ -43,7 +68,10 @@ export interface Order {
   subtotal: number;
   tax: number;
   total: number;
-  notes?: string;
+  currency: string;
+  adminNotes?: string;
+  customerNotes?: string;
+  statusHistory: OrderStatusHistoryEntry[];
 }
 
 export interface StoredCategory {
