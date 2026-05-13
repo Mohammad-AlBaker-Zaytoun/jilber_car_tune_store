@@ -2,10 +2,12 @@
 
 import { useState, useEffect } from 'react';
 import TransitionLink from '@/components/transition/TransitionLink';
-import { Menu, X, Gauge, ShoppingCart, LogIn, LayoutDashboard, LogOut, Shield } from 'lucide-react';
+import { Menu, X, Gauge, ShoppingCart, LogIn, LayoutDashboard, LogOut, Shield, Phone, MessageCircle } from 'lucide-react';
 import { useCartStore } from '@/lib/cart';
 import { useAuth } from '@/components/auth/AuthProvider';
 import UserMenu from '@/components/auth/UserMenu';
+import { useContactInfo } from '@/lib/useContactInfo';
+import { buildWhatsAppUrl, buildTelUrl } from '@/lib/contact';
 
 const NAV_LINKS = [
   { label: 'Services', href: '/#services' },
@@ -22,6 +24,12 @@ export default function Navbar() {
 
   const itemCount = useCartStore((s) => s.itemCount());
   const { user, loading, signOut } = useAuth();
+  const { info: contactInfo } = useContactInfo();
+
+  const mobileWaUrl = mounted
+    ? buildWhatsAppUrl(contactInfo.whatsappNumber, contactInfo.defaultWhatsAppMessage || undefined)
+    : null;
+  const mobileTelUrl = mounted ? buildTelUrl(contactInfo.contactPhone) : null;
 
   useEffect(() => {
     setMounted(true);
@@ -152,8 +160,8 @@ export default function Navbar() {
 
       {/* Mobile menu */}
       <div
-        className={`lg:hidden overflow-hidden transition-all duration-300 ${
-          menuOpen ? 'max-h-160' : 'max-h-0'
+        className={`lg:hidden transition-all duration-300 ${
+          menuOpen ? 'max-h-[90dvh] overflow-y-auto' : 'max-h-0 overflow-hidden'
         } bg-black/95 backdrop-blur-xl border-t border-white/5`}
       >
         <nav className="flex flex-col px-6 py-5 gap-1" aria-label="Mobile navigation">
@@ -229,6 +237,32 @@ export default function Navbar() {
                 </TransitionLink>
               )}
             </>
+          )}
+
+          {/* Contact actions — only renders when numbers are configured */}
+          {mobileWaUrl && (
+            <a
+              href={mobileWaUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => setMenuOpen(false)}
+              data-contact-action="whatsapp-click"
+              className="py-3 text-xs text-zinc-400 hover:text-cyan-400 transition-colors tracking-[0.2em] uppercase font-semibold border-b border-white/5 flex items-center gap-2"
+            >
+              <MessageCircle size={12} aria-hidden="true" />
+              WhatsApp
+            </a>
+          )}
+          {mobileTelUrl && (
+            <a
+              href={mobileTelUrl}
+              onClick={() => setMenuOpen(false)}
+              data-contact-action="phone-click"
+              className="py-3 text-xs text-zinc-400 hover:text-cyan-400 transition-colors tracking-[0.2em] uppercase font-semibold border-b border-white/5 flex items-center gap-2"
+            >
+              <Phone size={12} aria-hidden="true" />
+              Call Us
+            </a>
           )}
 
           <a

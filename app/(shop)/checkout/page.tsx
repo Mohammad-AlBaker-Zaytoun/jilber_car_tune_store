@@ -8,6 +8,7 @@ import { useCartStore } from '@/lib/cart';
 import { useAuth } from '@/components/auth/AuthProvider';
 import OrderSummary from '@/components/cart/OrderSummary';
 import EmptyState from '@/components/store/EmptyState';
+import SupportCtaCard from '@/components/contact/SupportCtaCard';
 
 type PaymentMethod = 'shop' | 'card' | 'bank';
 
@@ -414,6 +415,11 @@ export default function CheckoutPage() {
                 showItems
                 onCheckout={placeOrder}
                 isSubmitting={submitting}
+              />
+              <SupportCtaCard
+                heading="Need help completing your order?"
+                body="Our team can walk you through the checkout process or answer any questions."
+                whatsappMessage="Hello, I need help completing my order on your website."
               />
             </div>
           </div>

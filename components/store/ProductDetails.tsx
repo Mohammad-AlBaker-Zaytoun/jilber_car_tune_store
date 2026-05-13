@@ -14,6 +14,7 @@ import QuantitySelector from './QuantitySelector';
 import ProductCard from './ProductCard';
 import StarRating from './StarRating';
 import ProductReviewsSection from './reviews/ProductReviewsSection';
+import ProductContactActions from '@/components/contact/ProductContactActions';
 
 interface Props {
   product: Product;
@@ -221,6 +222,16 @@ export default function ProductDetails({
               </Link>
               <span className="text-[10px] text-zinc-600">Need installation? Ask us.</span>
             </div>
+
+            {/* WhatsApp / Call CTAs */}
+            <ProductContactActions
+              product={{
+                name: product.name,
+                slug: product.slug,
+                price: product.price,
+                currency: product.currency,
+              }}
+            />
 
             {/* Trust badges */}
             <div className="grid grid-cols-3 gap-3 pt-2 border-t border-zinc-800/50">

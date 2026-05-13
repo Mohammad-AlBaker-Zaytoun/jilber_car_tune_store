@@ -1,8 +1,10 @@
 import type { Metadata } from 'next';
 import { getSession } from '@/lib/session';
 import { getProductBySlug } from '@/lib/products.dev';
+import { getSettings } from '@/lib/settings.dev';
 import QuoteRequestForm from '@/components/quotes/QuoteRequestForm';
-import { CheckCircle, Phone, Clock, Wrench } from 'lucide-react';
+import { CheckCircle, Phone, Clock, Wrench, MessageCircle } from 'lucide-react';
+import { buildWhatsAppUrl, buildTelUrl } from '@/lib/contact';
 
 export const metadata: Metadata = {
   title: 'Request a Performance Quote',
@@ -15,7 +17,7 @@ export default async function QuotePage({
 }: {
   searchParams: Promise<{ product?: string }>;
 }) {
-  const [session, sp] = await Promise.all([getSession(), searchParams]);
+  const [session, sp, settings] = await Promise.all([getSession(), searchParams, Promise.resolve(getSettings())]);
 
   const productSlug = sp.product ?? '';
   let prefillProductName: string | undefined;
@@ -152,6 +154,45 @@ export default async function QuotePage({
                 ))}
               </ul>
             </div>
+            {/* WhatsApp / Call CTA */}
+            {(settings.whatsappNumber || settings.contactPhone) && (() => {
+              const waUrl = buildWhatsAppUrl(settings.whatsappNumber, settings.quoteWhatsAppMessage || undefined);
+              const telUrl = buildTelUrl(settings.contactPhone);
+              return (
+                <div className="border border-zinc-800/50 bg-zinc-900/20 p-6">
+                  <h2 className="text-xs font-black text-white tracking-[0.25em] uppercase mb-2">
+                    Prefer to Message Us?
+                  </h2>
+                  <p className="text-[11px] text-zinc-500 leading-relaxed mb-4">
+                    Skip the form and reach us directly on WhatsApp or by phone.
+                  </p>
+                  <div className="flex flex-col gap-2">
+                    {waUrl && (
+                      <a
+                        href={waUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        data-contact-action="quote-whatsapp-inquiry"
+                        className="flex items-center gap-2 px-4 py-3 border border-zinc-700 hover:border-cyan-400/40 text-zinc-400 hover:text-cyan-400 text-[10px] font-black tracking-[0.15em] uppercase transition-all duration-200"
+                      >
+                        <MessageCircle size={12} aria-hidden="true" />
+                        Quote on WhatsApp
+                      </a>
+                    )}
+                    {telUrl && (
+                      <a
+                        href={telUrl}
+                        data-contact-action="phone-click"
+                        className="flex items-center gap-2 px-4 py-3 border border-zinc-700 hover:border-cyan-400/40 text-zinc-400 hover:text-cyan-400 text-[10px] font-black tracking-[0.15em] uppercase transition-all duration-200"
+                      >
+                        <Phone size={12} aria-hidden="true" />
+                        Call Us
+                      </a>
+                    )}
+                  </div>
+                </div>
+              );
+            })()}
           </aside>
         </div>
       </div>

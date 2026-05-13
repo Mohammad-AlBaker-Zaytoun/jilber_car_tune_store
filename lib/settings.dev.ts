@@ -11,13 +11,21 @@ const DB_PATH = path.join(process.cwd(), '.dev-settings.json');
 
 const DEFAULTS: AdminSettings = {
   shopName: 'JILBER Performance',
-  contactEmail: 'info@jilber.com',
-  contactPhone: '+1 555 000 0000',
-  address: '42 Performance Drive, Motorsport Park, CA 90210',
+  contactEmail: '',
+  contactPhone: '',
+  address: '',
   currency: 'USD',
   taxRate: 10,
   bookingMessage:
     'Thank you for booking with JILBER. Our team will contact you within 24 hours to confirm your appointment.',
+  whatsappNumber: '',
+  googleMapsUrl: '',
+  workingHours: 'Mon–Fri 8 am–7 pm · Sat 9 am–5 pm · Sun Closed',
+  enableFloatingWhatsApp: true,
+  enableFloatingCall: true,
+  defaultWhatsAppMessage: 'Hello, I would like to get more information about your services.',
+  quoteWhatsAppMessage: 'Hello, I want to request a quote for my vehicle.',
+  productWhatsAppMessage: 'Hello, I am interested in {productName}. Can you provide more details?',
 };
 
 export function getSettings(): AdminSettings {

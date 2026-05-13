@@ -34,21 +34,31 @@ export function buildBreadcrumbJsonLd(crumbs: Crumb[]) {
   };
 }
 
-export function buildOrganizationJsonLd() {
-  return {
+interface OrgContactOverrides {
+  telephone?: string;
+  email?: string;
+  address?: string;
+}
+
+/**
+ * Pass real values from getSettings() at call-site so search engines never
+ * receive the siteConfig placeholder strings.
+ */
+export function buildOrganizationJsonLd(contact: OrgContactOverrides = {}) {
+  const ld: Record<string, unknown> = {
     '@context': 'https://schema.org',
     '@type': 'AutoRepair',
     name: siteConfig.businessName,
     url: siteConfig.siteUrl,
-    telephone: siteConfig.phone,
-    email: siteConfig.email,
-    address: {
-      '@type': 'PostalAddress',
-      streetAddress: siteConfig.address,
-    },
     image: absoluteUrl(siteConfig.defaultOgImage),
     description: siteConfig.siteDescription,
   };
+  if (contact.telephone) ld.telephone = contact.telephone;
+  if (contact.email) ld.email = contact.email;
+  if (contact.address) {
+    ld.address = { '@type': 'PostalAddress', streetAddress: contact.address };
+  }
+  return ld;
 }
 
 export interface EffectiveRating {

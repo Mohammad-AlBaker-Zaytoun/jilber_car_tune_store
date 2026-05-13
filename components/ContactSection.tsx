@@ -1,10 +1,10 @@
 'use client';
 
 import { useState, type FormEvent } from 'react';
-import { Phone, Mail, MapPin, CheckCircle } from 'lucide-react';
+import { Phone, Mail, MapPin, Clock, MessageCircle, ExternalLink, CheckCircle } from 'lucide-react';
 import SectionHeader from '@/components/SectionHeader';
-
-// ── Static data lifted out of the component to avoid recreation on every render ──
+import { useContactInfo } from '@/lib/useContactInfo';
+import { buildWhatsAppUrl, buildTelUrl, buildMailtoUrl } from '@/lib/contact';
 
 const SERVICES_LIST = [
   'ECU Tuning',
@@ -17,35 +17,6 @@ const SERVICES_LIST = [
   'Track Upgrades',
   'Other / Unsure',
 ] as const;
-
-const CONTACT_ITEMS = [
-  {
-    Icon: Phone,
-    label: 'Call Us',
-    value: '+1 (555) 000-0000',
-    sub: 'Mon–Sat, 8 am – 7 pm',
-  },
-  {
-    Icon: Mail,
-    label: 'Email',
-    value: 'builds@jilber.com',
-    sub: 'We reply within 24 hours',
-  },
-  {
-    Icon: MapPin,
-    label: 'Workshop',
-    value: '14 Industrial Way, Unit 6',
-    sub: 'Open by appointment',
-  },
-] as const;
-
-const HOURS = [
-  { day: 'Monday – Friday', time: '8:00 am – 7:00 pm' },
-  { day: 'Saturday', time: '9:00 am – 5:00 pm' },
-  { day: 'Sunday', time: 'Closed' },
-] as const;
-
-// ── Types ──
 
 type FormState = {
   name: string;
@@ -65,13 +36,13 @@ const INITIAL_FORM: FormState = {
   message: '',
 };
 
-// Shared input/textarea/select styling
 const inputCls =
   'w-full bg-zinc-900 border border-zinc-800 focus:border-cyan-400/50 text-zinc-100 text-sm px-4 py-3 outline-none transition-colors duration-200 placeholder:text-zinc-600 focus:bg-zinc-900/80';
 
 export default function ContactSection() {
   const [form, setForm] = useState<FormState>(INITIAL_FORM);
   const [submitted, setSubmitted] = useState(false);
+  const { info } = useContactInfo();
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
@@ -88,6 +59,13 @@ export default function ContactSection() {
     setForm(INITIAL_FORM);
     setSubmitted(false);
   };
+
+  const waUrl = buildWhatsAppUrl(
+    info.whatsappNumber,
+    info.defaultWhatsAppMessage || undefined
+  );
+  const telUrl = buildTelUrl(info.contactPhone);
+  const mailUrl = buildMailtoUrl(info.contactEmail);
 
   return (
     <section id="contact" className="relative py-24 lg:py-32 bg-black">
@@ -118,44 +96,130 @@ export default function ContactSection() {
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.5fr] gap-10 lg:gap-16">
           {/* ── Left: contact info ── */}
           <div className="flex flex-col gap-4 lg:gap-5">
-            {CONTACT_ITEMS.map(({ Icon, label, value, sub }) => (
-              <div
-                key={label}
-                className="flex items-start gap-4 p-5 border border-zinc-800/50 bg-zinc-900/20"
-              >
+            {/* Phone */}
+            {info.contactPhone && (
+              <div className="flex items-start gap-4 p-5 border border-zinc-800/50 bg-zinc-900/20">
                 <div className="w-9 h-9 shrink-0 flex items-center justify-center border border-zinc-700/50 bg-zinc-900">
-                  <Icon className="text-cyan-400" size={16} aria-hidden="true" />
+                  <Phone className="text-cyan-400" size={16} aria-hidden="true" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[10px] text-zinc-500 tracking-[0.2em] uppercase font-bold mb-0.5">
+                    Call Us
+                  </p>
+                  {telUrl ? (
+                    <a
+                      href={telUrl}
+                      data-contact-action="phone-click"
+                      className="text-sm font-semibold text-white hover:text-cyan-400 transition-colors"
+                    >
+                      {info.contactPhone}
+                    </a>
+                  ) : (
+                    <p className="text-sm font-semibold text-white">{info.contactPhone}</p>
+                  )}
+                  {info.workingHours && (
+                    <p className="text-xs text-zinc-500 mt-0.5">{info.workingHours}</p>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* WhatsApp */}
+            {waUrl && (
+              <div className="flex items-start gap-4 p-5 border border-zinc-800/50 bg-zinc-900/20">
+                <div className="w-9 h-9 shrink-0 flex items-center justify-center border border-zinc-700/50 bg-zinc-900">
+                  <MessageCircle className="text-cyan-400" size={16} aria-hidden="true" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[10px] text-zinc-500 tracking-[0.2em] uppercase font-bold mb-0.5">
+                    WhatsApp
+                  </p>
+                  <a
+                    href={waUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    data-contact-action="whatsapp-click"
+                    className="text-sm font-semibold text-white hover:text-cyan-400 transition-colors"
+                  >
+                    Message Us Directly
+                  </a>
+                  <p className="text-xs text-zinc-500 mt-0.5">Fastest way to reach us</p>
+                </div>
+              </div>
+            )}
+
+            {/* Email */}
+            {info.contactEmail && (
+              <div className="flex items-start gap-4 p-5 border border-zinc-800/50 bg-zinc-900/20">
+                <div className="w-9 h-9 shrink-0 flex items-center justify-center border border-zinc-700/50 bg-zinc-900">
+                  <Mail className="text-cyan-400" size={16} aria-hidden="true" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[10px] text-zinc-500 tracking-[0.2em] uppercase font-bold mb-0.5">
+                    Email
+                  </p>
+                  {mailUrl ? (
+                    <a
+                      href={mailUrl}
+                      data-contact-action="email-click"
+                      className="text-sm font-semibold text-white hover:text-cyan-400 transition-colors break-all"
+                    >
+                      {info.contactEmail}
+                    </a>
+                  ) : (
+                    <p className="text-sm font-semibold text-white break-all">{info.contactEmail}</p>
+                  )}
+                  <p className="text-xs text-zinc-500 mt-0.5">We reply within 24 hours</p>
+                </div>
+              </div>
+            )}
+
+            {/* Address */}
+            {info.address && (
+              <div className="flex items-start gap-4 p-5 border border-zinc-800/50 bg-zinc-900/20">
+                <div className="w-9 h-9 shrink-0 flex items-center justify-center border border-zinc-700/50 bg-zinc-900">
+                  <MapPin className="text-cyan-400" size={16} aria-hidden="true" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[10px] text-zinc-500 tracking-[0.2em] uppercase font-bold mb-0.5">
+                    Workshop
+                  </p>
+                  <p className="text-sm font-semibold text-white">{info.address}</p>
+                  {info.googleMapsUrl && (
+                    <a
+                      href={info.googleMapsUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-xs text-cyan-400 hover:text-cyan-300 mt-1 transition-colors"
+                    >
+                      <ExternalLink size={10} aria-hidden="true" />
+                      Get Directions
+                    </a>
+                  )}
+                  <p className="text-xs text-zinc-500 mt-0.5">Open by appointment</p>
+                </div>
+              </div>
+            )}
+
+            {/* Working hours */}
+            {info.workingHours && (
+              <div className="p-5 border border-zinc-800/50 bg-zinc-900/20 flex items-start gap-4">
+                <div className="w-9 h-9 shrink-0 flex items-center justify-center border border-zinc-700/50 bg-zinc-900">
+                  <Clock className="text-cyan-400" size={16} aria-hidden="true" />
                 </div>
                 <div>
-                  <p className="text-[10px] text-zinc-500 tracking-[0.2em] uppercase font-bold mb-0.5">
-                    {label}
+                  <p className="text-[10px] text-zinc-500 tracking-[0.2em] uppercase font-bold mb-1">
+                    Working Hours
                   </p>
-                  <p className="text-sm font-semibold text-white">{value}</p>
-                  <p className="text-xs text-zinc-500 mt-0.5">{sub}</p>
+                  <p className="text-sm text-zinc-300 leading-relaxed">{info.workingHours}</p>
                 </div>
               </div>
-            ))}
-
-            {/* Hours */}
-            <div className="p-5 border border-zinc-800/50 bg-zinc-900/20">
-              <h4 className="text-[10px] text-zinc-500 tracking-[0.25em] uppercase font-bold mb-4">
-                Workshop Hours
-              </h4>
-              <div className="flex flex-col gap-2.5">
-                {HOURS.map(({ day, time }) => (
-                  <div key={day} className="flex items-center justify-between text-sm">
-                    <span className="text-zinc-400">{day}</span>
-                    <span className="text-zinc-300 font-medium">{time}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
+            )}
           </div>
 
           {/* ── Right: form ── */}
           <div className="border border-zinc-800/50 bg-zinc-900/20 p-7 lg:p-9">
             {submitted ? (
-              /* Success state */
               <div className="h-full flex flex-col items-center justify-center text-center py-12 gap-0">
                 <div className="w-14 h-14 flex items-center justify-center border border-cyan-400/30 bg-cyan-400/5 mb-6">
                   <CheckCircle className="text-cyan-400" size={24} aria-hidden="true" />
@@ -174,7 +238,6 @@ export default function ContactSection() {
               </div>
             ) : (
               <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
-                {/* Row 1 */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="flex flex-col gap-1.5">
                     <label
@@ -216,7 +279,6 @@ export default function ContactSection() {
                   </div>
                 </div>
 
-                {/* Row 2 */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="flex flex-col gap-1.5">
                     <label
@@ -257,7 +319,6 @@ export default function ContactSection() {
                   </div>
                 </div>
 
-                {/* Service dropdown */}
                 <div className="flex flex-col gap-1.5">
                   <label
                     htmlFor="service"
@@ -284,7 +345,6 @@ export default function ContactSection() {
                   </select>
                 </div>
 
-                {/* Goals textarea */}
                 <div className="flex flex-col gap-1.5">
                   <label
                     htmlFor="message"
@@ -303,6 +363,23 @@ export default function ContactSection() {
                   />
                 </div>
 
+                {/* WhatsApp shortcut */}
+                {waUrl && (
+                  <div className="flex items-center gap-3 py-3 border-t border-zinc-800/50">
+                    <p className="text-[10px] text-zinc-600">Prefer instant messaging?</p>
+                    <a
+                      href={waUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      data-contact-action="whatsapp-click"
+                      className="inline-flex items-center gap-1.5 text-[10px] font-bold text-cyan-400 hover:text-cyan-300 uppercase tracking-wider transition-colors"
+                    >
+                      <MessageCircle size={10} aria-hidden="true" />
+                      Message on WhatsApp
+                    </a>
+                  </div>
+                )}
+
                 <button
                   type="submit"
                   className="mt-2 w-full py-4 bg-cyan-400 hover:bg-cyan-300 text-black font-black text-xs tracking-[0.25em] uppercase transition-all duration-200 hover:shadow-[0_0_30px_rgba(0,212,255,0.5)]"
@@ -311,8 +388,7 @@ export default function ContactSection() {
                 </button>
 
                 <p className="text-[10px] text-zinc-600 text-center leading-relaxed">
-                  We never share your details with third parties. All data is
-                  treated with strict confidence.
+                  We never share your details with third parties. All data is treated with strict confidence.
                 </p>
               </form>
             )}

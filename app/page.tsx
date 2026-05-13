@@ -10,6 +10,7 @@ import ContactSection from "@/components/ContactSection";
 import Footer from "@/components/Footer";
 import { buildOrganizationJsonLd, safeJsonLd } from "@/lib/seo/helpers";
 import { siteConfig } from "@/lib/seo/site-config";
+import { getSettings } from "@/lib/settings.dev";
 
 export const metadata: Metadata = {
   title: {
@@ -30,7 +31,12 @@ export const metadata: Metadata = {
 };
 
 export default function Home() {
-  const orgJsonLd = buildOrganizationJsonLd();
+  const s = getSettings();
+  const orgJsonLd = buildOrganizationJsonLd({
+    telephone: s.contactPhone || undefined,
+    email: s.contactEmail || undefined,
+    address: s.address || undefined,
+  });
 
   return (
     <>

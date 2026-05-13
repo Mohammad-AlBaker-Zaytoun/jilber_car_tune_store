@@ -14,6 +14,7 @@ const COMPANY_LINKS = [
   { label: 'Build Packages', href: '/#packages' },
   { label: 'Why JILBER', href: '/#why-us' },
   { label: 'Gallery', href: '/#gallery' },
+  { label: 'Contact Us', href: '/contact' },
   { label: 'Book Consultation', href: '/#contact' },
 ];
 

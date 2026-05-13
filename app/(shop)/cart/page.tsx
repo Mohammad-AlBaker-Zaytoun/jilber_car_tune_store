@@ -4,6 +4,7 @@ import { useCartStore } from '@/lib/cart';
 import CartItemRow from '@/components/cart/CartItemRow';
 import OrderSummary from '@/components/cart/OrderSummary';
 import EmptyState from '@/components/store/EmptyState';
+import SupportCtaCard from '@/components/contact/SupportCtaCard';
 
 
 export default function CartPage() {
@@ -50,7 +51,14 @@ export default function CartPage() {
             </div>
 
             {/* Summary */}
-            <OrderSummary />
+            <div className="flex flex-col gap-4">
+              <OrderSummary />
+              <SupportCtaCard
+                heading="Need help before checkout?"
+                body="Our team is ready to assist with product questions or order details."
+                whatsappMessage="Hello, I need help with my cart before checkout."
+              />
+            </div>
           </div>
         )}
       </div>

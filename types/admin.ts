@@ -90,6 +90,15 @@ export interface AdminSettings {
   currency: string;
   taxRate: number;
   bookingMessage: string;
+  // Contact & Conversion
+  whatsappNumber: string;
+  googleMapsUrl: string;
+  workingHours: string;
+  enableFloatingWhatsApp: boolean;
+  enableFloatingCall: boolean;
+  defaultWhatsAppMessage: string;
+  quoteWhatsAppMessage: string;
+  productWhatsAppMessage: string;
 }
 
 export interface AdminStats {

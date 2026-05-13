@@ -1,5 +1,6 @@
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
+import FloatingContactButtons from '@/components/contact/FloatingContactButtons';
 import type { ReactNode } from 'react';
 
 export default function ShopLayout({ children }: { children: ReactNode }) {
@@ -8,6 +9,7 @@ export default function ShopLayout({ children }: { children: ReactNode }) {
       <Navbar />
       <main className="min-h-screen">{children}</main>
       <Footer />
+      <FloatingContactButtons />
     </>
   );
 }
