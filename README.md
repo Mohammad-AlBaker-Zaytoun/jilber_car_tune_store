@@ -22,6 +22,63 @@ Built with **Next.js 16 · React 19 · TypeScript 5 · Tailwind CSS v4**
 
 ---
 
+## Application Architecture
+
+```mermaid
+graph TD
+    subgraph Public["Public Routes"]
+        HOME[/ — Home]
+        STORE[/store — Catalog]
+        SLUG[/store/:slug — Product]
+        CART[/cart]
+        CHECKOUT[/checkout]
+        QUOTE[/quote]
+        CONTACT[/contact]
+    end
+
+    subgraph Auth["Auth Routes (auth)"]
+        SIGNIN[/signin]
+        SIGNUP[/signup]
+    end
+
+    subgraph Account["Account Routes (shop)"]
+        ACC[/account]
+        ORD[/account/orders]
+        ORDID[/account/orders/:id]
+        QUO[/account/quotes]
+        QUOID[/account/quotes/:id]
+    end
+
+    subgraph Admin["Admin Routes (admin) — role: admin only"]
+        ADASH[/admin — Dashboard]
+        APROD[/admin/products]
+        ACAT[/admin/categories]
+        AORD[/admin/orders]
+        AQUO[/admin/quotes]
+        AUSR[/admin/users]
+        AREV[/admin/reviews]
+        ASET[/admin/settings]
+    end
+
+    HOME --> STORE
+    STORE --> SLUG
+    SLUG --> CART
+    CART --> CHECKOUT
+    SLUG --> QUOTE
+    SIGNIN --> ACC
+    SIGNUP --> SIGNIN
+    ACC --> ORD & QUO
+    ORD --> ORDID
+    QUO --> QUOID
+
+    style Admin fill:#1a0a00,stroke:#f97316,color:#fed7aa
+    style Auth fill:#0a001a,stroke:#a855f7,color:#e9d5ff
+    style Account fill:#001a0a,stroke:#22c55e,color:#bbf7d0
+    style Public fill:#00101a,stroke:#00d4ff,color:#bae6fd
+```
+
+---
+
 ## Features
 
 ### Storefront
@@ -78,6 +135,188 @@ Built with **Next.js 16 · React 19 · TypeScript 5 · Tailwind CSS v4**
 - JWT sessions stored in HTTP-only cookies (24-hour expiry)
 - Role-based access control (user / admin)
 - Admin-only middleware protection on all `/admin` routes
+
+---
+
+## Order Status Diagram
+
+```mermaid
+stateDiagram-v2
+    [*] --> pending : Customer places order
+
+    pending --> confirmed : Admin confirms
+    pending --> cancelled
+
+    confirmed --> awaiting_vehicle : Vehicle drop-off scheduled
+    confirmed --> in_progress : Skip drop-off step
+    confirmed --> cancelled
+
+    awaiting_vehicle --> in_progress : Work started
+    awaiting_vehicle --> cancelled
+
+    in_progress --> ready_for_pickup : Work complete
+    in_progress --> cancelled
+
+    ready_for_pickup --> completed : Customer collects
+    ready_for_pickup --> in_progress : Revert — more work needed
+
+    completed --> [*]
+    cancelled --> [*]
+
+    note right of pending
+        Payment: unpaid
+        or deposit_pending
+    end note
+    note right of completed
+        Payment: paid
+    end note
+```
+
+---
+
+## Quote Lifecycle
+
+> No hard transition enforcement — admin can set any status freely.
+> The flow below shows the typical progression.
+
+```mermaid
+stateDiagram-v2
+    [*] --> new : Customer submits form
+
+    new --> reviewing : Admin opens quote
+    new --> closed
+
+    reviewing --> contacted : Admin reaches out
+    reviewing --> closed
+
+    contacted --> quoted : Price sent to customer
+    contacted --> closed
+
+    quoted --> accepted : Customer accepts
+    quoted --> rejected : Customer declines
+    quoted --> closed
+
+    accepted --> converted_to_order : Order created from quote
+    accepted --> rejected
+
+    converted_to_order --> [*]
+    rejected --> [*]
+    closed --> [*]
+
+    note right of new
+        Priority: low / normal
+        high / urgent
+    end note
+```
+
+---
+
+## Auth Flow
+
+```mermaid
+sequenceDiagram
+    participant Browser
+    participant API
+    participant FileStore as .dev-users.json
+
+    Note over Browser,API: Registration (no session created)
+    Browser->>API: POST /api/auth/register {name, email, phone, password}
+    API->>FileStore: createUser (bcrypt hash, role: 'user')
+    API-->>Browser: 201 {success: true}  ← no cookie yet
+
+    Note over Browser,API: Login
+    Browser->>API: POST /api/auth/login {email, password}
+    API->>FileStore: findUserByEmail → bcrypt.compare
+    API-->>Browser: 200 {user} + Set-Cookie: session=JWT (httpOnly, 24h)
+
+    Note over Browser,API: Admin route protection (per-handler, not middleware)
+    Browser->>API: GET /admin/orders  (or any /api/admin/* route)
+    API->>API: requireAdmin() — verify JWT from cookie
+    API->>FileStore: findUserById — re-check live role (demotion takes effect immediately)
+    API-->>Browser: 403 {error: Forbidden} if not admin
+
+    Note over Browser,API: Session check
+    Browser->>API: GET /api/auth/me
+    API->>API: getSession() — verify JWT from cookie
+    API-->>Browser: {id, email, name, role}
+```
+
+---
+
+## Shopping Cart Flow
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant ProductPage
+    participant CartStore as Zustand Cart (localStorage)
+    participant CheckoutPage
+    participant API
+
+    User->>ProductPage: Click "Add to Cart"
+    ProductPage->>CartStore: addItem(product, qty)
+    CartStore->>CartStore: persist to localStorage
+
+    User->>CheckoutPage: Review cart + enter details
+    CheckoutPage->>CheckoutPage: validate with Zod
+    CheckoutPage->>API: POST /api/orders {cart, customer, vehicle}
+    API->>API: create order record
+    API-->>CheckoutPage: {orderId}
+    CheckoutPage->>CartStore: clearCart()
+    CheckoutPage-->>User: Redirect /checkout/success
+```
+
+---
+
+## Scroll Hero Pipeline
+
+```mermaid
+sequenceDiagram
+    participant Browser
+    participant ScrollFrameHero
+    participant ImageCache
+    participant Canvas
+
+    Browser->>ScrollFrameHero: mount
+    ScrollFrameHero->>ImageCache: preload frames 1–30 (eager)
+    ScrollFrameHero->>ImageCache: preload frames 31–241 (background)
+    ImageCache-->>ScrollFrameHero: onload × 30 → hide overlay
+    Browser->>ScrollFrameHero: scroll event
+    ScrollFrameHero->>ScrollFrameHero: compute frameIndex from scrollY
+    ScrollFrameHero->>Canvas: requestAnimationFrame → drawImage()
+    Note over Canvas: cover-scale via Math.max(cW/iW, cH/iH)
+    Browser->>ScrollFrameHero: resize event
+    ScrollFrameHero->>Canvas: re-acquire ctx, set imageSmoothingQuality=high
+```
+
+---
+
+## Rendering Model
+
+```mermaid
+flowchart LR
+    subgraph Server["Server Components (SSR / SSG)"]
+        LAY[layout.tsx]
+        HOME_S[Home sections]
+        STORE_S[Store catalog]
+        ADMIN_S[Admin pages]
+        SEO[Metadata + JSON-LD]
+    end
+
+    subgraph Client["Client Components ('use client')"]
+        NAV[Navbar]
+        HERO[ScrollFrameHero]
+        CART_C[Cart store — Zustand]
+        AUTH_C[AuthProvider]
+        FORMS[Checkout / Quote / Review forms]
+        FLOAT[FloatingContactButtons]
+    end
+
+    Server -->|static HTML| Client
+
+    style Server fill:#0d1117,stroke:#374151,color:#9ca3af
+    style Client fill:#0a1a2e,stroke:#00d4ff40,color:#00d4ff
+```
 
 ---
 
@@ -236,51 +475,6 @@ The project uses **file-based JSON stores** for development (`.dev-*.json` files
 | `.dev-settings.json` | Admin shop settings |
 
 **For production:** replace the `lib/*.dev.ts` files with a proper database client (PostgreSQL + Prisma is recommended). All API routes call these files through stable function signatures, so the routes themselves do not need to change.
-
----
-
-## Page Architecture
-
-```text
-/ (home)
-├── Navbar
-├── ScrollFrameHero       ← 241-frame canvas animation (scroll-driven)
-├── ServicesSection
-├── PackagesSection
-├── WhyChooseUsSection
-├── GallerySection
-├── ProcessSection
-├── ContactSection
-└── Footer
-
-/store                    product catalog
-/store/[slug]             product detail + reviews + add to cart
-/cart                     cart with line items and totals
-/checkout                 customer + vehicle info + payment method
-/checkout/success         order confirmation
-
-/quote                    custom service quote request
-/quote/success            submission confirmation
-
-/contact                  contact info + WhatsApp + map
-
-/account                  user dashboard
-/account/orders           order history
-/account/orders/[id]      order detail with status timeline
-/account/quotes           quote history
-/account/quotes/[id]      quote detail
-
-/admin                    dashboard stats
-/admin/products           product management
-/admin/categories         category management
-/admin/orders             order management
-/admin/quotes             quote management
-/admin/users              user management
-/admin/reviews            review moderation
-/admin/settings           shop settings
-
-/signin  /signup          authentication
-```
 
 ---
 
