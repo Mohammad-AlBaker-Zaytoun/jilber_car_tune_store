@@ -27,37 +27,37 @@ Built with **Next.js 16 · React 19 · TypeScript 5 · Tailwind CSS v4**
 ```mermaid
 graph TD
     subgraph Public["Public Routes"]
-        HOME[/ — Home]
-        STORE[/store — Catalog]
-        SLUG[/store/:slug — Product]
-        CART[/cart]
-        CHECKOUT[/checkout]
-        QUOTE[/quote]
-        CONTACT[/contact]
+        HOME["/ Home"]
+        STORE["/store Catalog"]
+        SLUG["/store/:slug Product"]
+        CART["/cart"]
+        CHECKOUT["/checkout"]
+        QUOTE["/quote"]
+        CONTACT["/contact"]
     end
 
-    subgraph Auth["Auth Routes (auth)"]
-        SIGNIN[/signin]
-        SIGNUP[/signup]
+    subgraph Auth["Auth Routes"]
+        SIGNIN["/signin"]
+        SIGNUP["/signup"]
     end
 
-    subgraph Account["Account Routes (shop)"]
-        ACC[/account]
-        ORD[/account/orders]
-        ORDID[/account/orders/:id]
-        QUO[/account/quotes]
-        QUOID[/account/quotes/:id]
+    subgraph Account["Account Routes"]
+        ACC["/account"]
+        ORD["/account/orders"]
+        ORDID["/account/orders/:id"]
+        QUO["/account/quotes"]
+        QUOID["/account/quotes/:id"]
     end
 
-    subgraph Admin["Admin Routes (admin) — role: admin only"]
-        ADASH[/admin — Dashboard]
-        APROD[/admin/products]
-        ACAT[/admin/categories]
-        AORD[/admin/orders]
-        AQUO[/admin/quotes]
-        AUSR[/admin/users]
-        AREV[/admin/reviews]
-        ASET[/admin/settings]
+    subgraph Admin["Admin Routes - admin only"]
+        ADASH["/admin Dashboard"]
+        APROD["/admin/products"]
+        ACAT["/admin/categories"]
+        AORD["/admin/orders"]
+        AQUO["/admin/quotes"]
+        AUSR["/admin/users"]
+        AREV["/admin/reviews"]
+        ASET["/admin/settings"]
     end
 
     HOME --> STORE
@@ -158,7 +158,7 @@ stateDiagram-v2
     in_progress --> cancelled
 
     ready_for_pickup --> completed : Customer collects
-    ready_for_pickup --> in_progress : Revert — more work needed
+    ready_for_pickup --> in_progress : Revert - more work needed
 
     completed --> [*]
     cancelled --> [*]
@@ -231,13 +231,13 @@ sequenceDiagram
 
     Note over Browser,API: Admin route protection (per-handler, not middleware)
     Browser->>API: GET /admin/orders  (or any /api/admin/* route)
-    API->>API: requireAdmin() — verify JWT from cookie
-    API->>FileStore: findUserById — re-check live role (demotion takes effect immediately)
+    API->>API: requireAdmin() - verify JWT from cookie
+    API->>FileStore: findUserById - re-check live role (demotion takes effect immediately)
     API-->>Browser: 403 {error: Forbidden} if not admin
 
     Note over Browser,API: Session check
     Browser->>API: GET /api/auth/me
-    API->>API: getSession() — verify JWT from cookie
+    API->>API: getSession() - verify JWT from cookie
     API-->>Browser: {id, email, name, role}
 ```
 
@@ -306,7 +306,7 @@ flowchart LR
     subgraph Client["Client Components ('use client')"]
         NAV[Navbar]
         HERO[ScrollFrameHero]
-        CART_C[Cart store — Zustand]
+        CART_C["Cart store - Zustand"]
         AUTH_C[AuthProvider]
         FORMS[Checkout / Quote / Review forms]
         FLOAT[FloatingContactButtons]
