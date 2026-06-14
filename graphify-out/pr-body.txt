@@ -1,0 +1,38 @@
+## Summary
+
+Adds a graphify knowledge graph built from the full Next.js project source.
+
+- 261 nodes (229 from AST structural extraction + 32 from semantic doc analysis)
+- 382 edges covering imports, references, calls, and semantic relationships
+- 6 named communities detected by Louvain clustering:
+  - Cart & Platform Core
+  - Admin & Order Management
+  - Next.js Framework & Rendering
+  - Auth & Session System
+  - User Domain Types
+  - Contact & WhatsApp
+
+### God nodes (highest degree / most connected)
+- JILBER Performance Engineering Platform (degree 16) — README hub
+- Auth Flow (degree 6) — bridges JWT, session, and admin auth
+- Quote Status Lifecycle (degree 6) — cross-cuts admin + account views
+
+### Surprising connections
+- SessionUser → UserRole (auth.ts ↔ types/admin.ts) — cross-file type coupling
+- StoredUser → UserRole (users.dev.ts ↔ types/admin.ts) — dev store shares admin type
+- Next.js Breaking Changes Warning ↔ Next.js 16 App Router (AGENTS.md ↔ README.md)
+
+## Outputs
+
+| File | Description |
+|------|-------------|
+| graphify-out/graph.html | Interactive graph — open in any browser |
+| graphify-out/GRAPH_REPORT.md | Audit report with community analysis |
+| graphify-out/graph.json | Raw GraphRAG-ready JSON |
+| graphify-out/manifest.json | File manifest for incremental --update runs |
+
+## Test plan
+
+- [ ] Open `graphify-out/graph.html` in a browser — graph renders and is navigable
+- [ ] Check `graphify-out/GRAPH_REPORT.md` — communities and god nodes look accurate
+- [ ] Run `graphify query "how does auth work"` to verify query mode works against the saved graph
