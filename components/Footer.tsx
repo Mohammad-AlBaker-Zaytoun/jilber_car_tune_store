@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { Gauge } from 'lucide-react';
 
 const SERVICES_LINKS = [
@@ -94,7 +95,7 @@ export default function Footer() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[2fr_1fr_1fr_1fr] gap-12 lg:gap-8">
           {/* Brand */}
           <div className="col-span-1 sm:col-span-2 lg:col-span-1">
-            <a href="/" className="flex items-center gap-2.5 mb-6 group w-fit">
+            <Link href="/" className="flex items-center gap-2.5 mb-6 group w-fit">
               <div className="w-9 h-9 flex items-center justify-center border border-cyan-400/30 bg-cyan-400/5 group-hover:bg-cyan-400/10 transition-colors">
                 <Gauge
                   className="w-5 h-5 text-cyan-400 group-hover:rotate-45 transition-transform duration-500"
@@ -109,7 +110,7 @@ export default function Footer() {
                   Performance
                 </span>
               </div>
-            </a>
+            </Link>
 
             <p className="text-sm text-zinc-500 leading-relaxed max-w-xs mb-6">
               Certified performance engineering for drivers who demand more.

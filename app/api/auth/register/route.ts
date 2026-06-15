@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import bcrypt from 'bcryptjs';
 import { findUserByEmail, createUser } from '@/lib/users.dev';
+import { rateLimit, getClientIp, tooManyRequests } from '@/lib/rate-limit';
 
 const schema = z
   .object({
@@ -23,6 +24,9 @@ const schema = z
 
 export async function POST(request: Request) {
   try {
+    const rl = rateLimit('register:' + getClientIp(request), 5, 600_000);
+    if (!rl.ok) return tooManyRequests(rl.retryAfter);
+
     const body: unknown = await request.json();
     const result = schema.safeParse(body);
 

@@ -1,0 +1,37 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      # `npm ci` runs the postinstall `prisma generate` (no DB needed).
+      - name: Install
+        run: npm ci
+
+      - name: Type-check
+        run: npx tsc --noEmit
+
+      - name: Test
+        run: npm test
+
+      # Lint is informational until the pre-existing react-hooks debt (TASKS.md Q7)
+      # is cleared; flip to a hard gate afterwards.
+      - name: Lint
+        run: npx eslint .
+        continue-on-error: true
+
+# Note: `next build` is intentionally not run here — it prerenders pages that read
+# from MSSQL, so it needs a live database. The production build runs on the deploy
+# platform (e.g. Vercel) with real DATABASE_URL. CI gates on type-check + tests.

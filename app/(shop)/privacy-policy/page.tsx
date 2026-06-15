@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 
 export const metadata: Metadata = {
   title: 'Privacy Policy | JILBER Performance',
@@ -197,9 +198,9 @@ export default function PrivacyPolicyPage() {
               </ul>
               <p>
                 To exercise any of these rights, contact us through our{' '}
-                <a href="/#contact" className="text-cyan-400 hover:text-cyan-300 transition-colors">
+                <Link href="/#contact" className="text-cyan-400 hover:text-cyan-300 transition-colors">
                   contact form
-                </a>
+                </Link>
                 . We will respond within 30 days.
               </p>
             </div>
@@ -230,9 +231,9 @@ export default function PrivacyPolicyPage() {
             <p>
               For any privacy-related questions or to exercise your rights, please contact us
               through the{' '}
-              <a href="/#contact" className="text-cyan-400 hover:text-cyan-300 transition-colors">
+              <Link href="/#contact" className="text-cyan-400 hover:text-cyan-300 transition-colors">
                 contact form
-              </a>{' '}
+              </Link>{' '}
               on our homepage.
             </p>
           </Section>

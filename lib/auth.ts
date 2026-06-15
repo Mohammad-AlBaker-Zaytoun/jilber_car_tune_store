@@ -27,10 +27,19 @@ export interface SessionUser {
   name: string;
   phone?: string;
   role: UserRole;
+  /** ISO timestamp of account creation — used for "member since". */
+  createdAt?: string;
 }
 
 export async function createToken(user: SessionUser): Promise<string> {
-  return new SignJWT({ id: user.id, email: user.email, name: user.name, phone: user.phone, role: user.role })
+  return new SignJWT({
+    id: user.id,
+    email: user.email,
+    name: user.name,
+    phone: user.phone,
+    role: user.role,
+    createdAt: user.createdAt,
+  })
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
     .setExpirationTime('24h')
@@ -40,7 +49,7 @@ export async function createToken(user: SessionUser): Promise<string> {
 export async function verifyToken(token: string): Promise<SessionUser | null> {
   try {
     const { payload } = await jwtVerify(token, getSecret());
-    const { id, email, name, phone, role } = payload;
+    const { id, email, name, phone, role, createdAt } = payload;
     if (typeof id !== 'string' || typeof email !== 'string' || typeof name !== 'string') {
       return null;
     }
@@ -48,6 +57,7 @@ export async function verifyToken(token: string): Promise<SessionUser | null> {
       id, email, name,
       phone: typeof phone === 'string' ? phone : undefined,
       role: role === 'admin' ? 'admin' : 'user',
+      createdAt: typeof createdAt === 'string' ? createdAt : undefined,
     };
   } catch {
     return null;

@@ -4,6 +4,7 @@ import { createQuote } from '@/lib/quotes.dev';
 import { getSession } from '@/lib/session';
 import { getProductBySlug } from '@/lib/products.dev';
 import { notifyQuoteSubmitted, notifyAdminNewQuote } from '@/lib/quote-notifications';
+import { rateLimit, getClientIp, tooManyRequests } from '@/lib/rate-limit';
 import { SERVICE_CATEGORIES } from '@/types/quotes';
 import type { ServiceCategory, PreferredContactMethod } from '@/types/quotes';
 
@@ -48,6 +49,9 @@ const schema = z.object({
 
 export async function POST(request: Request) {
   try {
+    const rl = rateLimit('quotes:' + getClientIp(request), 8, 60_000);
+    if (!rl.ok) return tooManyRequests(rl.retryAfter);
+
     const body: unknown = await request.json();
     const result = schema.safeParse(body);
 
