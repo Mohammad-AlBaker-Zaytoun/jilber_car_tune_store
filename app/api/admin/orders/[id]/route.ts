@@ -7,7 +7,7 @@ import {
   updateOrderAdminNotes,
   updateOrderCustomerNotes,
   updatePaymentStatus,
-} from '@/lib/orders.dev';
+} from '@/lib/orders';
 import { canTransition } from '@/components/admin/orderStatus';
 import {
   notifyOrderStatusChanged,

@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { Trash2 } from 'lucide-react';
 import type { CartItem } from '@/lib/cart';
 import { useCartStore } from '@/lib/cart';
@@ -15,16 +16,18 @@ export default function CartItemRow({ item }: { item: CartItem }) {
     <div className="flex gap-4 py-5 border-b border-zinc-800/50 last:border-0">
       {/* Thumbnail */}
       <div
-        className="shrink-0 w-16 h-16 sm:w-20 sm:h-20 border border-zinc-800 overflow-hidden"
+        className="relative shrink-0 w-16 h-16 sm:w-20 sm:h-20 border border-zinc-800 overflow-hidden"
         style={thumb ? undefined : {
           background: `radial-gradient(ellipse at 30% 30%, ${item.visualColor}20, transparent 70%), #0d1117`,
         }}
       >
         {thumb ? (
-          <img
+          <Image
             src={thumb}
             alt={item.name}
-            className="w-full h-full object-cover"
+            fill
+            sizes="80px"
+            className="object-cover"
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center">

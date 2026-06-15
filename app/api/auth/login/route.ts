@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import bcrypt from 'bcryptjs';
-import { findUserByEmail } from '@/lib/users.dev';
+import { findUserByEmail } from '@/lib/users';
 import { createToken, setSessionCookie, type SessionUser } from '@/lib/auth';
 import { rateLimit, getClientIp, tooManyRequests } from '@/lib/rate-limit';
 

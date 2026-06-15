@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
 import { requireAdmin, handleAdminError } from '@/lib/admin';
-import { countProducts } from '@/lib/products.dev';
-import { countOrders, estimatedRevenue } from '@/lib/orders.dev';
-import { countUsers } from '@/lib/users.dev';
+import { countProducts } from '@/lib/products';
+import { countOrders, estimatedRevenue } from '@/lib/orders';
+import { countUsers } from '@/lib/users';
 
 export async function GET() {
   try {

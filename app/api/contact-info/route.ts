@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getSettings } from '@/lib/settings.dev';
+import { getSettings } from '@/lib/settings';
 import type { PublicContactInfo } from '@/lib/contact';
 
 export async function GET() {

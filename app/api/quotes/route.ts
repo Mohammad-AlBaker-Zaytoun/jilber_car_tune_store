@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { createQuote } from '@/lib/quotes.dev';
+import { createQuote } from '@/lib/quotes';
 import { getSession } from '@/lib/session';
-import { getProductBySlug } from '@/lib/products.dev';
+import { getProductBySlug } from '@/lib/products';
 import { notifyQuoteSubmitted, notifyAdminNewQuote } from '@/lib/quote-notifications';
 import { rateLimit, getClientIp, tooManyRequests } from '@/lib/rate-limit';
 import { SERVICE_CATEGORIES } from '@/types/quotes';

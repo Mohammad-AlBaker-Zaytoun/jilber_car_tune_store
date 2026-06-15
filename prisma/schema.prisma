@@ -31,6 +31,21 @@ model User {
   @@map("users")
 }
 
+// Single-use, expiring tokens for the forgot/reset-password flow. Only the
+// SHA-256 hash of the raw token is stored, so a DB leak cannot be used to reset
+// accounts. The raw token is emailed to the user once.
+model PasswordResetToken {
+  id        String    @id @db.NVarChar(64)
+  userId    String    @db.NVarChar(64)
+  tokenHash String    @unique @db.NVarChar(191)
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
+  @@map("password_reset_tokens")
+}
+
 model Category {
   id          String   @id @db.NVarChar(64)
   name        String

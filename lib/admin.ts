@@ -5,7 +5,7 @@
 
 import { Prisma } from '@prisma/client';
 import { getSession } from './session';
-import { findUserById } from './users.dev';
+import { findUserById } from './users';
 import type { SessionUser } from './auth';
 
 export class AdminError extends Error {

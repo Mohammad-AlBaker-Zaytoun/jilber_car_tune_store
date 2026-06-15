@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getSession } from '@/lib/session';
-import { getOrderById, sanitizeOrderForCustomer } from '@/lib/orders.dev';
+import { getOrderById, sanitizeOrderForCustomer } from '@/lib/orders';
 
 export async function GET(
   _req: Request,

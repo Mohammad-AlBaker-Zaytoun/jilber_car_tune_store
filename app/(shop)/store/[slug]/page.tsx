@@ -1,9 +1,9 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import { getProductBySlug } from '@/lib/products.dev';
+import { getProductBySlug } from '@/lib/products';
 import { getSession } from '@/lib/session';
-import { getApprovedReviewsForProduct, getUserReviewForProduct } from '@/lib/reviews.dev';
-import type { PublicReview } from '@/lib/reviews.dev';
+import { getApprovedReviewsForProduct, getUserReviewForProduct } from '@/lib/reviews';
+import type { PublicReview } from '@/lib/reviews';
 import ProductDetails from '@/components/store/ProductDetails';
 import { getEffectiveRating } from '@/lib/rating';
 import {

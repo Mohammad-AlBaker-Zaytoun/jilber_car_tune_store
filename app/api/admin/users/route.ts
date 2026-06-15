@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { requireAdmin, handleAdminError } from '@/lib/admin';
-import { listUsers } from '@/lib/users.dev';
+import { listUsers } from '@/lib/users';
 
 export async function GET() {
   try {

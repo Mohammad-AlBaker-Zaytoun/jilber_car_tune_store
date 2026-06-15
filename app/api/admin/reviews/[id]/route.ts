@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { requireAdmin, handleAdminError } from '@/lib/admin';
-import { getReviewById, updateReview, deleteReview } from '@/lib/reviews.dev';
+import { getReviewById, updateReview, deleteReview } from '@/lib/reviews';
 
 const statusSchema = z.object({
   status: z.enum(['pending', 'approved', 'hidden']),

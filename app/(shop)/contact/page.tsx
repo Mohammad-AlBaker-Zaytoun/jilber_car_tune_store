@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { getSettings } from '@/lib/settings.dev';
+import { getSettings } from '@/lib/settings';
 import { siteConfig } from '@/lib/seo/site-config';
 import { buildWhatsAppUrl, buildTelUrl, buildMailtoUrl } from '@/lib/contact';
 import { safeJsonLd } from '@/lib/seo/helpers';

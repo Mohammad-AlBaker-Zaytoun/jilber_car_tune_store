@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { randomBytes } from 'crypto';
-import { createOrder } from '@/lib/orders.dev';
+import { createOrder } from '@/lib/orders';
 import { getSession } from '@/lib/session';
-import { getProductBySlug } from '@/lib/products.dev';
-import { getSettings } from '@/lib/settings.dev';
+import { getProductBySlug } from '@/lib/products';
+import { getSettings } from '@/lib/settings';
 import { notifyOrderCreated } from '@/lib/order-notifications';
 import { rateLimit, getClientIp, tooManyRequests } from '@/lib/rate-limit';
 import type { PaymentStatus } from '@/types/admin';

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { requireAdmin, handleAdminError } from '@/lib/admin';
-import { updateCategory, deleteCategory } from '@/lib/categories.dev';
+import { updateCategory, deleteCategory } from '@/lib/categories';
 
 const schema = z.object({
   name: z.string().min(1).optional(),

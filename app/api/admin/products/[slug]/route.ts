@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { requireAdmin, handleAdminError } from '@/lib/admin';
-import { getProductBySlug, updateProduct, deleteProduct } from '@/lib/products.dev';
+import { getProductBySlug, updateProduct, deleteProduct } from '@/lib/products';
 
 const specSchema = z.object({ label: z.string(), value: z.string() });
 

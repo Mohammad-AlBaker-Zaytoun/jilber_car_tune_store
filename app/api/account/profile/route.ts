@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { getSession } from '@/lib/session';
-import { findUserById, updateUser } from '@/lib/users.dev';
+import { findUserById, updateUser } from '@/lib/users';
 import { createToken, setSessionCookie, type SessionUser } from '@/lib/auth';
 
 const schema = z.object({

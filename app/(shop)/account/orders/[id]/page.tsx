@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { redirect, notFound } from 'next/navigation';
 import { getSession } from '@/lib/session';
-import { getOrderById, sanitizeOrderForCustomer } from '@/lib/orders.dev';
+import { getOrderById, sanitizeOrderForCustomer } from '@/lib/orders';
 import AccountShell from '@/components/account/AccountShell';
 import AccountOrderDetailClient from '@/components/account/orders/AccountOrderDetailClient';
 

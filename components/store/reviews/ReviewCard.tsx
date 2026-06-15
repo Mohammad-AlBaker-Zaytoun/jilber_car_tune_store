@@ -1,7 +1,7 @@
 'use client';
 
 import { Star, Pencil, Trash2 } from 'lucide-react';
-import type { PublicReview } from '@/lib/reviews.dev';
+import type { PublicReview } from '@/lib/reviews';
 
 interface Props {
   review: PublicReview;

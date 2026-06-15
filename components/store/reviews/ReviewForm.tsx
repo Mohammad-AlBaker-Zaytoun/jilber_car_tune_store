@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { AlertCircle, CheckCircle } from 'lucide-react';
 import StarSelector from './StarSelector';
-import type { PublicReview } from '@/lib/reviews.dev';
+import type { PublicReview } from '@/lib/reviews';
 
 interface CreatePayload {
   productId: string;

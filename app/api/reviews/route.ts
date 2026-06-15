@@ -6,8 +6,8 @@ import {
   getUserReviewForProduct,
   createReview,
   AUTO_APPROVE_REVIEWS,
-} from '@/lib/reviews.dev';
-import { getProducts } from '@/lib/products.dev';
+} from '@/lib/reviews';
+import { getProducts } from '@/lib/products';
 import { isUniqueConstraintError } from '@/lib/admin';
 
 /** GET /api/reviews?productId=X — public, returns approved reviews only (email stripped) */

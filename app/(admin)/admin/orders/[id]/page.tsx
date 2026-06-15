@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation';
-import { getOrderById } from '@/lib/orders.dev';
+import { getOrderById } from '@/lib/orders';
 import AdminPageHeader from '@/components/admin/AdminPageHeader';
 import OrderDetailClient from '@/components/admin/orders/OrderDetailClient';
 

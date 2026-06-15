@@ -10,7 +10,7 @@ import ContactSection from "@/components/ContactSection";
 import Footer from "@/components/Footer";
 import { buildOrganizationJsonLd, safeJsonLd } from "@/lib/seo/helpers";
 import { siteConfig } from "@/lib/seo/site-config";
-import { getSettings } from "@/lib/settings.dev";
+import { getSettings } from "@/lib/settings";
 
 export const metadata: Metadata = {
   title: {

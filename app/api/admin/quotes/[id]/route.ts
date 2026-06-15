@@ -7,7 +7,7 @@ import {
   updateQuotePriority,
   updateQuoteAdminNotes,
   updateQuoteCustomerReply,
-} from '@/lib/quotes.dev';
+} from '@/lib/quotes';
 import { notifyCustomerQuoteUpdated } from '@/lib/quote-notifications';
 import type { QuoteStatus, QuotePriority } from '@/types/quotes';
 

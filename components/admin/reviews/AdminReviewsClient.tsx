@@ -11,7 +11,7 @@ import {
   ExternalLink,
   ChevronDown,
 } from 'lucide-react';
-import type { Review, ReviewStatus } from '@/lib/reviews.dev';
+import type { Review, ReviewStatus } from '@/lib/reviews';
 import ConfirmDialog from '@/components/admin/ConfirmDialog';
 
 function StatusBadge({ status }: { status: ReviewStatus }) {
@@ -35,6 +35,15 @@ function StatusBadge({ status }: { status: ReviewStatus }) {
       {label}
     </span>
   );
+}
+
+async function fetchReviews(): Promise<Review[]> {
+  const res = await fetch('/api/admin/reviews');
+  if (!res.ok) throw new Error('Failed to load reviews.');
+  const data = (await res.json()) as Review[];
+  // Newest first
+  data.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  return data;
 }
 
 function StarRow({ rating }: { rating: number }) {
@@ -65,27 +74,14 @@ export default function AdminReviewsClient() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [actingId, setActingId] = useState<string | null>(null);
 
-  const load = async () => {
-    setFetchError('');
-    try {
-      const res = await fetch('/api/admin/reviews');
-      if (!res.ok) {
-        setFetchError('Failed to load reviews.');
-        return;
-      }
-      const data = (await res.json()) as Review[];
-      // Newest first
-      data.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-      setReviews(data);
-    } catch {
-      setFetchError('Failed to load reviews.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
-    void load();
+    fetchReviews()
+      .then((data) => {
+        setReviews(data);
+        setFetchError('');
+      })
+      .catch(() => setFetchError('Failed to load reviews.'))
+      .finally(() => setLoading(false));
   }, []);
 
   const filtered = useMemo(() => {

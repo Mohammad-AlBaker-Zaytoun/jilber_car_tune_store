@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import { Cpu, Wind, Settings2, Circle, Disc3, Zap, Activity, Wrench } from 'lucide-react';
 import type { Category } from '@/data/products';
 
@@ -40,10 +41,12 @@ export default function ProductVisual({
   if (imageUrl) {
     return (
       <div className={`relative group/visual w-full ${heights[size]} overflow-hidden`}>
-        <img
+        <Image
           src={imageUrl}
           alt={productName ?? category}
-          className="w-full h-full object-cover transition-transform duration-500 group-hover/visual:scale-105"
+          fill
+          sizes="(max-width: 1024px) 100vw, 50vw"
+          className="object-cover transition-transform duration-500 group-hover/visual:scale-105"
         />
         <div
           aria-hidden="true"

@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import bcrypt from 'bcryptjs';
 import { getSession } from '@/lib/session';
-import { findUserById, updateUserPassword } from '@/lib/users.dev';
+import { findUserById, updateUserPassword } from '@/lib/users';
 import { rateLimit, getClientIp, tooManyRequests } from '@/lib/rate-limit';
 
 const schema = z

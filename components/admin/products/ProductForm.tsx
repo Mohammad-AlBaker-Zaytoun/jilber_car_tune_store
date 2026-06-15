@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, type ChangeEvent } from 'react';
+import { useState, type ChangeEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { Plus, Trash2, AlertCircle, CheckCircle } from 'lucide-react';
 import type { Product } from '@/data/products';
@@ -82,20 +82,20 @@ export default function ProductForm({ initial, mode }: Props) {
   const [success, setSuccess] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
-  // Auto-generate slug from name
-  useEffect(() => {
-    if (!slugManual && mode === 'new') {
-      setForm((prev) => ({ ...prev, slug: slugify(prev.name) }));
-    }
-  }, [form.name, slugManual, mode]);
-
   const set = (key: keyof FormProduct) => (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const value = e.target.type === 'checkbox'
       ? (e.target as HTMLInputElement).checked
       : e.target.type === 'number'
       ? parseFloat(e.target.value) || 0
       : e.target.value;
-    setForm((prev) => ({ ...prev, [key]: value }));
+    setForm((prev) => {
+      const next = { ...prev, [key]: value };
+      // Auto-generate slug from name (until the slug field is edited manually).
+      if (key === 'name' && !slugManual && mode === 'new') {
+        next.slug = slugify(typeof value === 'string' ? value : prev.name);
+      }
+      return next;
+    });
     setErrors((prev) => ({ ...prev, [key]: undefined }));
   };
 

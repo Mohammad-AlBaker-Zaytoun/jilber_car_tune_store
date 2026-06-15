@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
-import { getProducts } from '@/lib/products.dev';
-import { getReviews } from '@/lib/reviews.dev';
+import { getProducts } from '@/lib/products';
+import { getReviews } from '@/lib/reviews';
 import { buildRatingsMap } from '@/lib/rating';
 import StoreScrollHero from '@/components/store/StoreScrollHero';
 import StoreContent from '@/components/store/StoreContent';

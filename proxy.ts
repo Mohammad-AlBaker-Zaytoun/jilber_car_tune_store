@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { getSessionFromRequest, createToken, setSessionCookie } from '@/lib/auth';
+import { isSameOriginRequest } from '@/lib/csrf';
 
 // ---------------------------------------------------------------------------
 // In-memory rate limiter
@@ -35,6 +36,15 @@ const AUTH_ONLY = ['/signin', '/signup'];
 export default async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  // CSRF: reject cross-origin state-changing requests to the API before they
+  // reach any handler. Read-only methods and same-origin requests pass through.
+  if (pathname.startsWith('/api/') && !isSameOriginRequest(request)) {
+    return NextResponse.json(
+      { error: 'Cross-origin request blocked.' },
+      { status: 403 }
+    );
+  }
+
   // Rate-limit sensitive mutation endpoints before doing anything else
   const rl = RATE_LIMITS.find((r) => r.path === pathname && r.method === request.method);
   if (rl) {
@@ -45,6 +55,12 @@ export default async function proxy(request: NextRequest) {
         { status: 429 }
       );
     }
+  }
+
+  // API routes only need the CSRF + rate-limit gates above; the auth/redirect
+  // and sliding-session logic below applies to page navigations only.
+  if (pathname.startsWith('/api/')) {
+    return NextResponse.next();
   }
 
   const isProtected = PROTECTED.some((p) => pathname.startsWith(p));
@@ -91,8 +107,7 @@ export const config = {
     '/signin',
     '/signup',
     '/admin/:path*',
-    // API routes that need rate limiting
-    '/api/auth/:path*',
-    '/api/orders',
+    // All API routes — rate limiting (subset) + CSRF origin check (all mutations)
+    '/api/:path*',
   ],
 };

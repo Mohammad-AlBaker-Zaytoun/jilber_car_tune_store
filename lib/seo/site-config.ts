@@ -5,7 +5,7 @@ export const siteConfig = {
   siteDescription:
     'Premium car tuning, performance hardware, diagnostics, custom builds, exhaust systems, suspension upgrades, and automotive performance services.',
   siteUrl,
-  // TODO: Add the default OG image at public/og/default-og.jpg (1200×630 px, JPEG)
+  // Default social-share image — public/og/default-og.jpg (1200×630 px, JPEG)
   defaultOgImage: '/og/default-og.jpg',
   businessName: 'JILBER Performance Engineering',
   // Placeholders — update with real values before production

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useCallback, type DragEvent, type ChangeEvent } from 'react';
+import Image from 'next/image';
 import { Upload, X, ImageIcon, Star } from 'lucide-react';
 
 interface Props {
@@ -169,10 +170,12 @@ export default function ProductImageUploader({ images, onChange }: Props) {
               key={src + i}
               className="relative group/img aspect-square border border-zinc-800 overflow-hidden bg-zinc-900"
             >
-              <img
+              <Image
                 src={src}
                 alt={`Product image ${i + 1}`}
-                className="w-full h-full object-cover"
+                fill
+                sizes="(max-width: 768px) 50vw, 200px"
+                className="object-cover"
               />
 
               {/* Main badge (first image) */}

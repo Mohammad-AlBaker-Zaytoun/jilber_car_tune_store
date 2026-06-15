@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { redirect, notFound } from 'next/navigation';
 import { getSession } from '@/lib/session';
-import { getQuoteById, sanitizeQuoteForCustomer } from '@/lib/quotes.dev';
+import { getQuoteById, sanitizeQuoteForCustomer } from '@/lib/quotes';
 import AccountShell from '@/components/account/AccountShell';
 import AccountQuoteDetailClient from '@/components/account/quotes/AccountQuoteDetailClient';
 

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { requireAdmin, handleAdminError } from '@/lib/admin';
-import { getProducts, createProduct } from '@/lib/products.dev';
+import { getProducts, createProduct } from '@/lib/products';
 import { CATEGORIES, type Product } from '@/data/products';
 
 const specSchema = z.object({ label: z.string(), value: z.string() });

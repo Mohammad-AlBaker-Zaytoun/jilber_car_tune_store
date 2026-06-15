@@ -1,13 +1,16 @@
 'use client';
 
 import { useSearchParams } from 'next/navigation';
+import { useState } from 'react';
 import Link from 'next/link';
 import { CheckCircle, Home, ShoppingBag, Calendar, Mail, Package } from 'lucide-react';
 import { useAuth } from '@/components/auth/AuthProvider';
 
 export default function SuccessContent() {
   const params = useSearchParams();
-  const ref = params.get('ref') ?? `TUNE-${Math.floor(10000 + Math.random() * 90000)}`;
+  // Lazy initializer runs once — keeps Math.random out of the render body (purity).
+  const [fallbackRef] = useState(() => `TUNE-${Math.floor(10000 + Math.random() * 90000)}`);
+  const ref = params.get('ref') ?? fallbackRef;
   const { user } = useAuth();
 
   return (

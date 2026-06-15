@@ -1,5 +1,5 @@
 import type { Product } from '@/data/products';
-import type { Review } from './reviews.dev';
+import type { Review } from './reviews';
 
 export interface EffectiveRating {
   rating: number;

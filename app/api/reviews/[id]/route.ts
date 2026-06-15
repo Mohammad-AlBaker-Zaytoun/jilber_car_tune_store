@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { getSession } from '@/lib/session';
-import { getReviewById, updateReview, deleteReview } from '@/lib/reviews.dev';
+import { getReviewById, updateReview, deleteReview } from '@/lib/reviews';
 
 const updateSchema = z.object({
   rating: z.number().int().min(1).max(5).optional(),

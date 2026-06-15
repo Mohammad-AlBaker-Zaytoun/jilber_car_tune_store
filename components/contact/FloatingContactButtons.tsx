@@ -1,4 +1,4 @@
-import { getSettings } from '@/lib/settings.dev';
+import { getSettings } from '@/lib/settings';
 import type { PublicContactInfo } from '@/lib/contact';
 import FloatingContactButtonsClient from './FloatingContactButtonsClient';
 

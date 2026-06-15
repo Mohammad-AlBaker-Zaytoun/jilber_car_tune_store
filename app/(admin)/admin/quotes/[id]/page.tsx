@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation';
-import { getQuoteById } from '@/lib/quotes.dev';
+import { getQuoteById } from '@/lib/quotes';
 import AdminPageHeader from '@/components/admin/AdminPageHeader';
 import AdminQuoteDetailClient from '@/components/admin/quotes/AdminQuoteDetailClient';
 

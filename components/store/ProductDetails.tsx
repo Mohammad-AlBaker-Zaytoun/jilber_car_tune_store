@@ -2,11 +2,12 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { CheckCircle, XCircle, ChevronRight, Package, Wrench, Users, FileQuestion } from 'lucide-react';
 import type { Product } from '@/data/products';
 import { getRelatedProducts } from '@/data/products';
 import type { SessionUser } from '@/lib/auth';
-import type { PublicReview } from '@/lib/reviews.dev';
+import type { PublicReview } from '@/lib/reviews';
 import ProductVisual from './ProductVisual';
 import ProductBadge from './ProductBadge';
 import AddToCartButton from './AddToCartButton';
@@ -66,10 +67,13 @@ export default function ProductDetails({
             <div className="border border-zinc-800/50 overflow-hidden">
               {hasImages ? (
                 <div className="relative h-72 overflow-hidden group/main">
-                  <img
+                  <Image
                     src={images[activeIdx]}
                     alt={`${product.name} — image ${activeIdx + 1}`}
-                    className="w-full h-full object-cover transition-transform duration-500 group-hover/main:scale-105"
+                    fill
+                    sizes="(max-width: 1024px) 100vw, 50vw"
+                    priority
+                    className="object-cover transition-transform duration-500 group-hover/main:scale-105"
                   />
                   <div
                     aria-hidden="true"
@@ -108,10 +112,12 @@ export default function ProductDetails({
                     aria-label={`View image ${i + 1}`}
                     aria-pressed={i === activeIdx}
                   >
-                    <img
+                    <Image
                       src={src}
                       alt={`${product.name} thumbnail ${i + 1}`}
-                      className="w-full h-full object-cover"
+                      fill
+                      sizes="64px"
+                      className="object-cover"
                     />
                   </button>
                 ))}

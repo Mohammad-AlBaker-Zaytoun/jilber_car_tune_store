@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { requireAdmin, handleAdminError } from '@/lib/admin';
-import { findUserById, listUsers, updateUser } from '@/lib/users.dev';
+import { findUserById, listUsers, updateUser } from '@/lib/users';
 
 const schema = z.object({
   role: z.enum(['user', 'admin']).optional(),

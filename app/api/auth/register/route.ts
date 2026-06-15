@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import bcrypt from 'bcryptjs';
-import { findUserByEmail, createUser } from '@/lib/users.dev';
+import { findUserByEmail, createUser } from '@/lib/users';
 import { rateLimit, getClientIp, tooManyRequests } from '@/lib/rate-limit';
 
 const schema = z

@@ -3,7 +3,7 @@
 import { useState, useCallback } from 'react';
 import Link from 'next/link';
 import { Star, MessageSquare, Lock } from 'lucide-react';
-import type { PublicReview } from '@/lib/reviews.dev';
+import type { PublicReview } from '@/lib/reviews';
 import type { SessionUser } from '@/lib/auth';
 import ReviewCard from './ReviewCard';
 import ReviewForm from './ReviewForm';

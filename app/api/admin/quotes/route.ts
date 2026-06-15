@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { requireAdmin, handleAdminError } from '@/lib/admin';
-import { getQuotes } from '@/lib/quotes.dev';
+import { getQuotes } from '@/lib/quotes';
 
 export async function GET() {
   try {

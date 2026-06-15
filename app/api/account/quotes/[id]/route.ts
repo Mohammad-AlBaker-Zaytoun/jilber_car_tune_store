@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getSession } from '@/lib/session';
-import { getQuoteById, sanitizeQuoteForCustomer } from '@/lib/quotes.dev';
+import { getQuoteById, sanitizeQuoteForCustomer } from '@/lib/quotes';
 
 export async function GET(
   _request: Request,

@@ -57,13 +57,13 @@ export async function getSettings(): Promise<AdminSettings> {
 }
 
 export async function updateSettings(data: Partial<AdminSettings>): Promise<AdminSettings> {
-  const current = await getSettings();
-  const updated: AdminSettings = { ...current, ...data };
-
-  await prisma.setting.upsert({
+  // Atomic: upsert writes only the provided fields in a single statement.
+  // No read-merge-write, so concurrent updates to disjoint fields no longer
+  // clobber each other (last-write-wins only on the same field).
+  const row = await prisma.setting.upsert({
     where: { id: SETTINGS_ID },
-    create: { id: SETTINGS_ID, ...updated },
-    update: updated,
+    create: { id: SETTINGS_ID, ...DEFAULTS, ...data },
+    update: data,
   });
-  return updated;
+  return { ...DEFAULTS, ...rowToSettings(row) };
 }

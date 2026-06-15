@@ -132,6 +132,15 @@ export default function SignInForm() {
           error={errors.password}
         />
 
+        <div className="-mt-2 text-right">
+          <Link
+            href="/forgot-password"
+            className="text-[11px] text-zinc-500 hover:text-cyan-400 transition-colors"
+          >
+            Forgot password?
+          </Link>
+        </div>
+
         <button
           type="submit"
           disabled={loading}

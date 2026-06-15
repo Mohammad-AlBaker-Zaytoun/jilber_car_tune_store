@@ -26,8 +26,6 @@ export default function DashboardClient() {
   const [retryCount, setRetryCount] = useState(0);
 
   useEffect(() => {
-    setLoading(true);
-    setFetchError(null);
     Promise.all([
       fetch('/api/admin/stats').then((r) => {
         if (!r.ok) throw new Error('Failed to load stats');
@@ -67,7 +65,11 @@ export default function DashboardClient() {
         </div>
         <p className="text-sm text-red-400 text-center max-w-xs">{fetchError}</p>
         <button
-          onClick={() => setRetryCount((n) => n + 1)}
+          onClick={() => {
+            setLoading(true);
+            setFetchError(null);
+            setRetryCount((n) => n + 1);
+          }}
           className="inline-flex items-center gap-2 px-5 py-2.5 border border-zinc-700 hover:border-cyan-400/40 text-zinc-400 hover:text-cyan-400 text-xs font-black tracking-widest uppercase transition-all duration-200"
         >
           <RefreshCw size={11} aria-hidden="true" />

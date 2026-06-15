@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { requireAdmin, handleAdminError } from '@/lib/admin';
-import { getSettings, updateSettings } from '@/lib/settings.dev';
+import { getSettings, updateSettings } from '@/lib/settings';
 
 const phoneRegex = /^[+\d\s\-().]*$/;
 

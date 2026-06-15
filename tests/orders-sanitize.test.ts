@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { sanitizeOrderForCustomer, generateOrderRef } from '@/lib/orders.dev';
+import { sanitizeOrderForCustomer, generateOrderRef } from '@/lib/orders';
 import type { Order } from '@/types/admin';
 
 function makeOrder(): Order {

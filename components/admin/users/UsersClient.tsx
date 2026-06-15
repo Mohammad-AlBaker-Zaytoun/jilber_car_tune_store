@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Search, Shield, User, Users, AlertCircle } from 'lucide-react';
 import ConfirmDialog from '@/components/admin/ConfirmDialog';
-import type { StoredUser } from '@/lib/users.dev';
+import type { StoredUser } from '@/lib/users';
 import { useAuth } from '@/components/auth/AuthProvider';
 
 type SafeUser = Omit<StoredUser, 'passwordHash'>;

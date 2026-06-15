@@ -23,6 +23,46 @@ import {
 import QuoteStatusBadge from '@/components/quotes/QuoteStatusBadge';
 import QuotePriorityBadge from '@/components/quotes/QuotePriorityBadge';
 
+async function fetchQuotes(): Promise<QuoteRequest[]> {
+  const r = await fetch('/api/admin/quotes');
+  if (!r.ok) throw new Error(`${r.status}`);
+  const data = (await r.json()) as QuoteRequest[];
+  return Array.isArray(data) ? data : [];
+}
+
+function StatCard({
+  label,
+  value,
+  filterValue,
+  icon: Icon,
+  color,
+  active,
+  onSelect,
+}: {
+  label: string;
+  value: number;
+  filterValue: QuoteStatus | '';
+  icon: React.ElementType;
+  color: string;
+  active: boolean;
+  onSelect: (v: QuoteStatus | '') => void;
+}) {
+  return (
+    <button
+      onClick={() => onSelect(filterValue)}
+      className={`border border-zinc-800/50 bg-zinc-900/20 p-4 text-left hover:border-zinc-700 transition-colors ${
+        active ? 'border-zinc-600' : ''
+      }`}
+    >
+      <div className="flex items-center justify-between mb-2">
+        <p className="text-[9px] text-zinc-600 tracking-[0.2em] uppercase font-bold">{label}</p>
+        <Icon size={12} className={color} aria-hidden="true" />
+      </div>
+      <p className={`text-xl font-black ${color}`}>{value}</p>
+    </button>
+  );
+}
+
 export default function AdminQuotesClient() {
   const [quotes, setQuotes] = useState<QuoteRequest[]>([]);
   const [loading, setLoading] = useState(true);
@@ -35,12 +75,8 @@ export default function AdminQuotesClient() {
   const load = () => {
     setLoading(true);
     setFetchError('');
-    fetch('/api/admin/quotes')
-      .then(async (r) => {
-        if (!r.ok) throw new Error(`${r.status}`);
-        return r.json() as Promise<QuoteRequest[]>;
-      })
-      .then((data) => setQuotes(Array.isArray(data) ? data : []))
+    fetchQuotes()
+      .then((data) => setQuotes(data))
       .catch((err: unknown) => {
         console.error('[AdminQuotesClient]', err);
         setFetchError('Failed to load quotes. Check your connection and try again.');
@@ -48,8 +84,15 @@ export default function AdminQuotesClient() {
       .finally(() => setLoading(false));
   };
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(load, []);
+  useEffect(() => {
+    fetchQuotes()
+      .then((data) => setQuotes(data))
+      .catch((err: unknown) => {
+        console.error('[AdminQuotesClient]', err);
+        setFetchError('Failed to load quotes. Check your connection and try again.');
+      })
+      .finally(() => setLoading(false));
+  }, []);
 
   const stats = useMemo(
     () => ({
@@ -81,33 +124,6 @@ export default function AdminQuotesClient() {
       );
   }, [quotes, search, statusFilter, priorityFilter, categoryFilter]);
 
-  const StatCard = ({
-    label,
-    value,
-    filterValue,
-    icon: Icon,
-    color,
-  }: {
-    label: string;
-    value: number;
-    filterValue: QuoteStatus | '';
-    icon: React.ElementType;
-    color: string;
-  }) => (
-    <button
-      onClick={() => setStatusFilter(filterValue)}
-      className={`border border-zinc-800/50 bg-zinc-900/20 p-4 text-left hover:border-zinc-700 transition-colors ${
-        statusFilter === filterValue ? 'border-zinc-600' : ''
-      }`}
-    >
-      <div className="flex items-center justify-between mb-2">
-        <p className="text-[9px] text-zinc-600 tracking-[0.2em] uppercase font-bold">{label}</p>
-        <Icon size={12} className={color} aria-hidden="true" />
-      </div>
-      <p className={`text-xl font-black ${color}`}>{value}</p>
-    </button>
-  );
-
   if (loading) {
     return <div className="py-20 text-center text-xs text-zinc-600 animate-pulse">Loading…</div>;
   }
@@ -134,12 +150,12 @@ export default function AdminQuotesClient() {
     <>
       {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-8">
-        <StatCard label="Total" value={stats.total} filterValue="" icon={FileQuestion} color="text-zinc-400" />
-        <StatCard label="New" value={stats.new} filterValue="new" icon={AlertCircle} color="text-cyan-400" />
-        <StatCard label="Reviewing" value={stats.reviewing} filterValue="reviewing" icon={Eye} color="text-blue-400" />
-        <StatCard label="Quoted" value={stats.quoted} filterValue="quoted" icon={Star} color="text-amber-400" />
-        <StatCard label="Accepted" value={stats.accepted} filterValue="accepted" icon={CheckSquare} color="text-emerald-400" />
-        <StatCard label="Converted" value={stats.converted} filterValue="converted_to_order" icon={ArrowUpDown} color="text-teal-400" />
+        <StatCard label="Total" value={stats.total} filterValue="" icon={FileQuestion} color="text-zinc-400" active={statusFilter === ''} onSelect={setStatusFilter} />
+        <StatCard label="New" value={stats.new} filterValue="new" icon={AlertCircle} color="text-cyan-400" active={statusFilter === 'new'} onSelect={setStatusFilter} />
+        <StatCard label="Reviewing" value={stats.reviewing} filterValue="reviewing" icon={Eye} color="text-blue-400" active={statusFilter === 'reviewing'} onSelect={setStatusFilter} />
+        <StatCard label="Quoted" value={stats.quoted} filterValue="quoted" icon={Star} color="text-amber-400" active={statusFilter === 'quoted'} onSelect={setStatusFilter} />
+        <StatCard label="Accepted" value={stats.accepted} filterValue="accepted" icon={CheckSquare} color="text-emerald-400" active={statusFilter === 'accepted'} onSelect={setStatusFilter} />
+        <StatCard label="Converted" value={stats.converted} filterValue="converted_to_order" icon={ArrowUpDown} color="text-teal-400" active={statusFilter === 'converted_to_order'} onSelect={setStatusFilter} />
       </div>
 
       {/* Filters */}

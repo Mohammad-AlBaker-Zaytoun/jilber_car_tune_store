@@ -1,5 +1,5 @@
 import type { MetadataRoute } from 'next';
-import { getProducts } from '@/lib/products.dev';
+import { getProducts } from '@/lib/products';
 import { siteConfig } from '@/lib/seo/site-config';
 import { absoluteUrl } from '@/lib/seo/helpers';
 

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { requireAdmin, handleAdminError } from '@/lib/admin';
-import { getOrders } from '@/lib/orders.dev';
+import { getOrders } from '@/lib/orders';
 
 export async function GET() {
   try {

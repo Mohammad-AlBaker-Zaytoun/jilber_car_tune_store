@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, type ChangeEvent } from 'react';
-import { CheckCircle, AlertCircle, Phone, MessageCircle, Mail, MapPin, Clock, ExternalLink, Eye, EyeOff } from 'lucide-react';
+import { CheckCircle, AlertCircle, Phone, MessageCircle, MapPin, Clock, ExternalLink, Eye, EyeOff } from 'lucide-react';
 import type { AdminSettings } from '@/types/admin';
 import { buildWhatsAppUrl, buildTelUrl, normalizeWhatsAppNumber } from '@/lib/contact';
 

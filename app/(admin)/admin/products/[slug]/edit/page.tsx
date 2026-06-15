@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation';
-import { getProductBySlug } from '@/lib/products.dev';
+import { getProductBySlug } from '@/lib/products';
 import AdminPageHeader from '@/components/admin/AdminPageHeader';
 import ProductForm from '@/components/admin/products/ProductForm';
 

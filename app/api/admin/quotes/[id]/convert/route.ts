@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server';
 import { requireAdmin, handleAdminError } from '@/lib/admin';
-import { getQuoteById, convertQuoteToOrder } from '@/lib/quotes.dev';
-import { createOrder, generateOrderRef } from '@/lib/orders.dev';
-import { getProductBySlug } from '@/lib/products.dev';
-import { getSettings } from '@/lib/settings.dev';
+import { getQuoteById, convertQuoteToOrder } from '@/lib/quotes';
+import { createOrder, generateOrderRef } from '@/lib/orders';
+import { getProductBySlug } from '@/lib/products';
+import { getSettings } from '@/lib/settings';
 import { notifyQuoteConvertedToOrder } from '@/lib/quote-notifications';
 import type { OrderItem } from '@/types/admin';
 

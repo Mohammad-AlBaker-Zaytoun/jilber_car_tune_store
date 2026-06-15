@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { useCartStore } from '@/lib/cart';
 
 interface Props {
@@ -38,16 +39,18 @@ export default function OrderSummary({
             return (
               <div key={item.id} className="flex items-center gap-3">
                 <div
-                  className="shrink-0 w-10 h-10 border border-zinc-800 overflow-hidden"
+                  className="relative shrink-0 w-10 h-10 border border-zinc-800 overflow-hidden"
                   style={thumb ? undefined : {
                     background: `radial-gradient(ellipse at 30% 30%, ${item.visualColor}20, transparent 70%), #0d1117`,
                   }}
                 >
                   {thumb ? (
-                    <img
+                    <Image
                       src={thumb}
                       alt={item.name}
-                      className="w-full h-full object-cover"
+                      fill
+                      sizes="40px"
+                      className="object-cover"
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center">

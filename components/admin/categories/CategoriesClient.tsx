@@ -11,6 +11,11 @@ function slugify(s: string) {
 
 const inputCls = 'w-full bg-zinc-900 border border-zinc-800 focus:border-cyan-400/50 text-zinc-100 text-xs px-3 py-2 outline-none transition-colors placeholder:text-zinc-600';
 
+async function fetchCategories(): Promise<StoredCategory[]> {
+  const r = await fetch('/api/admin/categories');
+  return (await r.json()) as StoredCategory[];
+}
+
 export default function CategoriesClient() {
   const [cats, setCats] = useState<StoredCategory[]>([]);
   const [loading, setLoading] = useState(true);
@@ -29,14 +34,18 @@ export default function CategoriesClient() {
 
   const load = () => {
     setLoading(true);
-    fetch('/api/admin/categories')
-      .then((r) => r.json())
-      .then((data: StoredCategory[]) => setCats(data))
+    fetchCategories()
+      .then((data) => setCats(data))
       .catch(console.error)
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    fetchCategories()
+      .then((data) => setCats(data))
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }, []);
 
   const handleAdd = async () => {
     setError('');

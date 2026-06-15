@@ -25,30 +25,32 @@ const AuthContext = createContext<AuthContextValue>({
   signOut: async () => {},
 });
 
+async function fetchMe(): Promise<AuthUser | null> {
+  try {
+    const res = await fetch('/api/auth/me', { cache: 'no-store' });
+    if (!res.ok) return null;
+    const data = (await res.json()) as { user: AuthUser };
+    return data.user;
+  } catch {
+    return null;
+  }
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
   const refresh = useCallback(async () => {
-    try {
-      const res = await fetch('/api/auth/me', { cache: 'no-store' });
-      if (res.ok) {
-        const data = (await res.json()) as { user: AuthUser };
-        setUser(data.user);
-      } else {
-        setUser(null);
-      }
-    } catch {
-      setUser(null);
-    } finally {
-      setLoading(false);
-    }
+    setUser(await fetchMe());
+    setLoading(false);
   }, []);
 
   useEffect(() => {
-    refresh();
-  }, [refresh]);
+    fetchMe()
+      .then((u) => setUser(u))
+      .finally(() => setLoading(false));
+  }, []);
 
   const signOut = useCallback(async () => {
     await fetch('/api/auth/logout', { method: 'POST' });

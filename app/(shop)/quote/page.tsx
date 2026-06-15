@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { getSession } from '@/lib/session';
-import { getProductBySlug } from '@/lib/products.dev';
-import { getSettings } from '@/lib/settings.dev';
+import { getProductBySlug } from '@/lib/products';
+import { getSettings } from '@/lib/settings';
 import QuoteRequestForm from '@/components/quotes/QuoteRequestForm';
 import { CheckCircle, Phone, Clock, Wrench, MessageCircle } from 'lucide-react';
 import { buildWhatsAppUrl, buildTelUrl } from '@/lib/contact';

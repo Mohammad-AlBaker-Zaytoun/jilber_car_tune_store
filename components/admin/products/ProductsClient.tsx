@@ -2,10 +2,16 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { Plus, Search, Pencil, Trash2, Star, Package, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
 import ConfirmDialog from '@/components/admin/ConfirmDialog';
 import type { Product } from '@/data/products';
 import { CATEGORIES } from '@/data/products';
+
+async function fetchProducts(): Promise<Product[]> {
+  const r = await fetch('/api/admin/products');
+  return (await r.json()) as Product[];
+}
 
 export default function ProductsClient() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -19,14 +25,18 @@ export default function ProductsClient() {
 
   const load = () => {
     setLoading(true);
-    fetch('/api/admin/products')
-      .then((r) => r.json())
-      .then((data: Product[]) => setProducts(data))
+    fetchProducts()
+      .then((data) => setProducts(data))
       .catch(console.error)
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    fetchProducts()
+      .then((data) => setProducts(data))
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }, []);
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
@@ -174,15 +184,17 @@ export default function ProductsClient() {
                   <td className="px-5 py-3.5">
                     <div className="flex items-center gap-3">
                       <div
-                        className="w-9 h-9 shrink-0 border border-zinc-800 overflow-hidden"
+                        className="relative w-9 h-9 shrink-0 border border-zinc-800 overflow-hidden"
                         style={p.images?.[0] ? undefined : { background: `linear-gradient(135deg, ${p.visualColor}22, ${p.visualColor2}22)` }}
                         aria-hidden="true"
                       >
                         {p.images?.[0] ? (
-                          <img
+                          <Image
                             src={p.images[0]}
                             alt=""
-                            className="w-full h-full object-cover"
+                            fill
+                            sizes="36px"
+                            className="object-cover"
                           />
                         ) : null}
                       </div>

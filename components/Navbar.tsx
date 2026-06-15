@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useSyncExternalStore } from 'react';
 import Link from 'next/link';
 import TransitionLink from '@/components/transition/TransitionLink';
 import { Menu, X, Gauge, ShoppingCart, LogIn, LayoutDashboard, LogOut, Shield, Phone, MessageCircle } from 'lucide-react';
@@ -18,10 +18,14 @@ const NAV_LINKS = [
   { label: 'Contact', href: '/#contact' },
 ];
 
+const emptySubscribe = () => () => {};
+
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [mounted, setMounted] = useState(false);
+  // Hydration guard: false on server, true after client mount — without a
+  // setState-in-effect. Avoids SSR/client markup mismatch for client-only URLs.
+  const mounted = useSyncExternalStore(emptySubscribe, () => true, () => false);
 
   const itemCount = useCartStore((s) => s.itemCount());
   const { user, loading, signOut } = useAuth();
@@ -33,7 +37,6 @@ export default function Navbar() {
   const mobileTelUrl = mounted ? buildTelUrl(contactInfo.contactPhone) : null;
 
   useEffect(() => {
-    setMounted(true);
     const onScroll = () => setScrolled(window.scrollY > 60);
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);

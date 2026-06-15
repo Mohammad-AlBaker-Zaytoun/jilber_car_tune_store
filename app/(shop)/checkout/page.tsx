@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, type FormEvent } from 'react';
+import { useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { CreditCard, Banknote, Store, ChevronRight } from 'lucide-react';
@@ -96,18 +96,19 @@ export default function CheckoutPage() {
   const clearCart = useCartStore((s) => s.clearCart);
   const { user } = useAuth();
   const [form, setForm] = useState<FormData>(INITIAL_FORM);
-
-  // Prefill contact fields from the signed-in user on mount
-  useEffect(() => {
-    if (user) {
-      setForm((prev) => ({
-        ...prev,
-        fullName: prev.fullName || user.name,
-        email: prev.email || user.email,
-        phone: prev.phone || (user.phone ?? ''),
-      }));
-    }
-  }, [user]);
+  // Prefill contact fields once the signed-in user resolves (arrives async from
+  // AuthProvider). Adjusting state during render — guarded so it runs once per
+  // user — is React's recommended alternative to a setState-in-effect.
+  const [prefilledFor, setPrefilledFor] = useState<string | null>(null);
+  if (user && prefilledFor !== user.id) {
+    setPrefilledFor(user.id);
+    setForm((prev) => ({
+      ...prev,
+      fullName: prev.fullName || user.name,
+      email: prev.email || user.email,
+      phone: prev.phone || (user.phone ?? ''),
+    }));
+  }
   const [payment, setPayment] = useState<PaymentMethod>('shop');
   const [errors, setErrors] = useState<Partial<FormData>>({});
   const [submitting, setSubmitting] = useState(false);
