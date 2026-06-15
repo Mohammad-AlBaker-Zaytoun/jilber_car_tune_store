@@ -1,81 +1,71 @@
 /**
- * DEV-ONLY category store — JSON file on disk.
- * Seeds from CATEGORIES constant in data/products.ts on first run.
+ * Category repository — MSSQL via Prisma.
+ * Public function names/signatures unchanged from the old JSON store.
  */
 
-import fs from 'fs';
-import path from 'path';
 import { randomUUID } from 'crypto';
-import { CATEGORIES } from '@/data/products';
+import { prisma } from '@/lib/db/prisma';
+import type { Category as CategoryRow } from '@prisma/client';
 import type { StoredCategory } from '@/types/admin';
 
 export type { StoredCategory };
 
-const DB_PATH = path.join(process.cwd(), '.dev-categories.json');
+function rowToCategory(row: CategoryRow): StoredCategory {
+  return {
+    id: row.id,
+    name: row.name,
+    slug: row.slug,
+    description: row.description ?? undefined,
+    createdAt: row.createdAt.toISOString(),
+  };
+}
 
-const SEED: StoredCategory[] = CATEGORIES.map((name) => ({
-  id: randomUUID(),
-  name,
-  slug: name.toLowerCase().replace(/\s+/g, '-'),
-  createdAt: new Date().toISOString(),
-}));
+export async function getCategories(): Promise<StoredCategory[]> {
+  const rows = await prisma.category.findMany({ orderBy: { createdAt: 'asc' } });
+  return rows.map(rowToCategory);
+}
 
-function readStore(): StoredCategory[] {
+export async function getCategoryBySlug(slug: string): Promise<StoredCategory | null> {
+  const row = await prisma.category.findUnique({ where: { slug } });
+  return row ? rowToCategory(row) : null;
+}
+
+export async function createCategory(
+  data: Omit<StoredCategory, 'id' | 'createdAt'>
+): Promise<StoredCategory> {
+  const existing = await prisma.category.findUnique({ where: { slug: data.slug } });
+  if (existing) throw new Error('A category with this slug already exists');
+
+  const row = await prisma.category.create({
+    data: { id: randomUUID(), name: data.name, slug: data.slug, description: data.description },
+  });
+  return rowToCategory(row);
+}
+
+export async function updateCategory(
+  id: string,
+  data: Partial<Omit<StoredCategory, 'id' | 'createdAt'>>
+): Promise<StoredCategory | null> {
+  const current = await prisma.category.findUnique({ where: { id } });
+  if (!current) return null;
+
+  if (data.slug && data.slug !== current.slug) {
+    const conflict = await prisma.category.findUnique({ where: { slug: data.slug } });
+    if (conflict) throw new Error('A category with this slug already exists');
+  }
+
+  const row = await prisma.category.update({
+    where: { id },
+    data: { name: data.name, slug: data.slug, description: data.description },
+  });
+  return rowToCategory(row);
+}
+
+export async function deleteCategory(id: string): Promise<boolean> {
   try {
-    if (!fs.existsSync(DB_PATH)) {
-      writeStore(SEED);
-      return SEED;
-    }
-    const raw = fs.readFileSync(DB_PATH, 'utf-8');
-    const parsed = JSON.parse(raw) as StoredCategory[];
-    if (!Array.isArray(parsed) || parsed.length === 0) {
-      writeStore(SEED);
-      return SEED;
-    }
-    return parsed;
+    await prisma.category.delete({ where: { id } });
+    return true;
   } catch {
-    return SEED;
+    return false;
   }
-}
-
-function writeStore(cats: StoredCategory[]): void {
-  fs.writeFileSync(DB_PATH, JSON.stringify(cats, null, 2), 'utf-8');
-}
-
-export function getCategories(): StoredCategory[] {
-  return readStore();
-}
-
-export function getCategoryBySlug(slug: string): StoredCategory | null {
-  return readStore().find((c) => c.slug === slug) ?? null;
-}
-
-export function createCategory(data: Omit<StoredCategory, 'id' | 'createdAt'>): StoredCategory {
-  const cats = readStore();
-  if (cats.some((c) => c.slug === data.slug)) {
-    throw new Error('A category with this slug already exists');
-  }
-  const cat: StoredCategory = { ...data, id: randomUUID(), createdAt: new Date().toISOString() };
-  writeStore([...cats, cat]);
-  return cat;
-}
-
-export function updateCategory(id: string, data: Partial<Omit<StoredCategory, 'id' | 'createdAt'>>): StoredCategory | null {
-  const cats = readStore();
-  const idx = cats.findIndex((c) => c.id === id);
-  if (idx === -1) return null;
-  if (data.slug && data.slug !== cats[idx].slug && cats.some((c) => c.slug === data.slug)) {
-    throw new Error('A category with this slug already exists');
-  }
-  cats[idx] = { ...cats[idx], ...data };
-  writeStore(cats);
-  return cats[idx];
-}
-
-export function deleteCategory(id: string): boolean {
-  const cats = readStore();
-  const filtered = cats.filter((c) => c.id !== id);
-  if (filtered.length === cats.length) return false;
-  writeStore(filtered);
-  return true;
 }

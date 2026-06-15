@@ -1,0 +1,50 @@
+[
+  {
+    "id": "a324aa91-9303-43ce-8f3f-31fbea8fac48",
+    "name": "ECU Tuning",
+    "slug": "ecu-tuning",
+    "createdAt": "2026-05-10T22:22:30.405Z"
+  },
+  {
+    "id": "a644d878-7bb1-4c96-9bb3-012d9407e8ef",
+    "name": "Exhaust",
+    "slug": "exhaust",
+    "createdAt": "2026-05-10T22:22:30.405Z"
+  },
+  {
+    "id": "23d27bdb-d2f8-4011-b0a0-3bc2b5d0b466",
+    "name": "Suspension",
+    "slug": "suspension",
+    "createdAt": "2026-05-10T22:22:30.405Z"
+  },
+  {
+    "id": "7cabd3a2-f225-46d4-96e9-dc6850663e8f",
+    "name": "Wheels",
+    "slug": "wheels",
+    "createdAt": "2026-05-10T22:22:30.405Z"
+  },
+  {
+    "id": "9f5074f9-9120-4923-bf40-04124d68936d",
+    "name": "Brakes",
+    "slug": "brakes",
+    "createdAt": "2026-05-10T22:22:30.405Z"
+  },
+  {
+    "id": "7087097a-e352-41b2-a953-9ed0f610b757",
+    "name": "Aero",
+    "slug": "aero",
+    "createdAt": "2026-05-10T22:22:30.405Z"
+  },
+  {
+    "id": "636635c3-bca8-421c-9435-09cdecd39393",
+    "name": "Diagnostics",
+    "slug": "diagnostics",
+    "createdAt": "2026-05-10T22:22:30.405Z"
+  },
+  {
+    "id": "5ebf2b35-7803-48a1-8cc1-41494d1ec5e1",
+    "name": "Maintenance",
+    "slug": "maintenance",
+    "createdAt": "2026-05-10T22:22:30.405Z"
+  }
+]

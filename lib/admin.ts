@@ -24,7 +24,7 @@ export async function requireAdmin(): Promise<SessionUser> {
 
   // Re-verify the current role from the live store so a demotion takes effect
   // immediately, without waiting for the JWT to expire (up to 24 hours).
-  const live = findUserById(session.id);
+  const live = await findUserById(session.id);
   if (!live || live.role !== 'admin') {
     throw new AdminError('Forbidden — admin access required', 403);
   }

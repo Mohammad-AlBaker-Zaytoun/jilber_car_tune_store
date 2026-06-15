@@ -22,18 +22,18 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
       return NextResponse.json({ error: 'Validation failed' }, { status: 400 });
     }
 
-    const target = findUserById(id);
+    const target = await findUserById(id);
     if (!target) return NextResponse.json({ error: 'User not found' }, { status: 404 });
 
     // Prevent demoting the last admin
     if (result.data.role === 'user' && target.role === 'admin') {
-      const adminCount = listUsers().filter((u) => u.role === 'admin').length;
+      const adminCount = (await listUsers()).filter((u) => u.role === 'admin').length;
       if (adminCount <= 1) {
         return NextResponse.json({ error: 'Cannot demote the last admin' }, { status: 400 });
       }
     }
 
-    const updated = updateUser(id, result.data);
+    const updated = await updateUser(id, result.data);
     if (!updated) return NextResponse.json({ error: 'User not found' }, { status: 404 });
     return NextResponse.json(updated);
   } catch (err) {

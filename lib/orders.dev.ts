@@ -1,213 +1,284 @@
 /**
- * DEV-ONLY order store — JSON file on disk.
- * Replace with a real database before production.
+ * Order repository — MSSQL via Prisma.
+ *
+ * Public function names/signatures unchanged from the old JSON store. Orders own
+ * two child tables (items, statusHistory); creating an order and changing its
+ * status are wrapped so the parent row and its history row are written together.
+ * The customer/vehicle value objects are stored as flat columns and reassembled
+ * here so the returned objects satisfy the `Order` type.
  */
 
-import fs from 'fs';
-import path from 'path';
 import { randomUUID } from 'crypto';
+import { prisma } from '@/lib/db/prisma';
+import type {
+  Order as OrderRow,
+  OrderItem as OrderItemRow,
+  OrderStatusHistory as HistoryRow,
+} from '@prisma/client';
 import type { Order, OrderStatus, PaymentStatus, OrderStatusHistoryEntry } from '@/types/admin';
 
 export type { Order, OrderStatus, PaymentStatus, OrderStatusHistoryEntry };
 
-const DB_PATH = path.join(process.cwd(), '.dev-orders.json');
+type OrderRowFull = OrderRow & { items: OrderItemRow[]; statusHistory: HistoryRow[] };
 
-// ---------------------------------------------------------------------------
-// Migration: normalize legacy JSON records to the current Order shape
-// ---------------------------------------------------------------------------
-function migrateOrder(raw: Record<string, unknown>): Order {
-  // Handle legacy status 'in-progress' → 'in_progress'
-  let status = raw.status as string;
-  if (status === 'in-progress') status = 'in_progress';
+const includeChildren = { items: true, statusHistory: { orderBy: { createdAt: 'asc' as const } } };
 
-  // Handle legacy 'notes' field → 'adminNotes'
-  const adminNotes =
-    (raw.adminNotes as string | undefined) ??
-    (raw.notes as string | undefined);
-
-  const now = (raw.createdAt as string) ?? new Date().toISOString();
-
+function rowToOrder(row: OrderRowFull): Order {
   return {
-    id: raw.id as string,
-    ref: raw.ref as string,
-    status: status as OrderStatus,
-    paymentStatus: (raw.paymentStatus as PaymentStatus | undefined) ?? 'unpaid',
-    createdAt: now,
-    updatedAt: (raw.updatedAt as string | undefined) ?? now,
-    completedAt: raw.completedAt as string | undefined,
-    cancelledAt: raw.cancelledAt as string | undefined,
-    userId: raw.userId as string | undefined,
-    customer: raw.customer as Order['customer'],
-    vehicle: raw.vehicle as Order['vehicle'],
-    items: raw.items as Order['items'],
-    payment: raw.payment as string,
-    subtotal: raw.subtotal as number,
-    tax: raw.tax as number,
-    total: raw.total as number,
-    currency: (raw.currency as string | undefined) ?? 'USD',
-    adminNotes,
-    customerNotes: raw.customerNotes as string | undefined,
-    statusHistory: (raw.statusHistory as OrderStatusHistoryEntry[] | undefined) ?? [],
+    id: row.id,
+    ref: row.ref,
+    status: row.status as OrderStatus,
+    paymentStatus: row.paymentStatus as PaymentStatus,
+    createdAt: row.createdAt.toISOString(),
+    updatedAt: row.updatedAt.toISOString(),
+    completedAt: row.completedAt?.toISOString(),
+    cancelledAt: row.cancelledAt?.toISOString(),
+    userId: row.userId ?? undefined,
+    customer: {
+      fullName: row.customerFullName,
+      email: row.customerEmail,
+      phone: row.customerPhone,
+      address: row.customerAddress,
+    },
+    vehicle: {
+      make: row.vehicleMake,
+      model: row.vehicleModel,
+      year: row.vehicleYear,
+      engine: row.vehicleEngine,
+      currentMods: row.vehicleCurrentMods,
+      serviceDate: row.vehicleServiceDate,
+    },
+    items: row.items.map((i) => ({
+      id: i.id,
+      slug: i.slug,
+      name: i.name,
+      category: i.category,
+      price: Number(i.price),
+      currency: i.currency,
+      quantity: i.quantity,
+      visualColor: i.visualColor,
+    })),
+    payment: row.payment,
+    subtotal: Number(row.subtotal),
+    tax: Number(row.tax),
+    total: Number(row.total),
+    currency: row.currency,
+    adminNotes: row.adminNotes ?? undefined,
+    customerNotes: row.customerNotes ?? undefined,
+    statusHistory: row.statusHistory.map((h) => ({
+      id: h.id,
+      orderId: h.orderId,
+      fromStatus: (h.fromStatus as OrderStatus | null) ?? null,
+      toStatus: h.toStatus as OrderStatus,
+      changedByUserId: h.changedByUserId,
+      changedByName: h.changedByName,
+      note: h.note ?? undefined,
+      createdAt: h.createdAt.toISOString(),
+    })),
   };
-}
-
-function readStore(): Order[] {
-  try {
-    if (!fs.existsSync(DB_PATH)) return [];
-    const raw = JSON.parse(fs.readFileSync(DB_PATH, 'utf-8')) as Record<string, unknown>[];
-    return raw.map(migrateOrder);
-  } catch {
-    return [];
-  }
-}
-
-function writeStore(orders: Order[]): void {
-  fs.writeFileSync(DB_PATH, JSON.stringify(orders, null, 2), 'utf-8');
 }
 
 // ---------------------------------------------------------------------------
 // Reads
 // ---------------------------------------------------------------------------
 
-export function getOrders(): Order[] {
-  return readStore().sort(
-    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-  );
+export async function getOrders(): Promise<Order[]> {
+  const rows = await prisma.order.findMany({
+    include: includeChildren,
+    orderBy: { createdAt: 'desc' },
+  });
+  return rows.map(rowToOrder);
 }
 
-export function getOrderById(id: string): Order | null {
-  return readStore().find((o) => o.id === id) ?? null;
+export async function getOrderById(id: string): Promise<Order | null> {
+  const row = await prisma.order.findUnique({ where: { id }, include: includeChildren });
+  return row ? rowToOrder(row) : null;
 }
 
-export function getOrderByRef(ref: string): Order | null {
-  return readStore().find((o) => o.ref === ref) ?? null;
+export async function getOrderByRef(ref: string): Promise<Order | null> {
+  const row = await prisma.order.findUnique({ where: { ref }, include: includeChildren });
+  return row ? rowToOrder(row) : null;
 }
 
-export function getOrdersByUserId(userId: string): Order[] {
-  return readStore()
-    .filter((o) => o.userId === userId)
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+export async function getOrdersByUserId(userId: string): Promise<Order[]> {
+  const rows = await prisma.order.findMany({
+    where: { userId },
+    include: includeChildren,
+    orderBy: { createdAt: 'desc' },
+  });
+  return rows.map(rowToOrder);
 }
 
-export function countOrders(): { total: number; pending: number } {
-  const all = readStore();
-  return {
-    total: all.length,
-    pending: all.filter((o) => o.status === 'pending').length,
-  };
+export async function countOrders(): Promise<{ total: number; pending: number }> {
+  const [total, pending] = await Promise.all([
+    prisma.order.count(),
+    prisma.order.count({ where: { status: 'pending' } }),
+  ]);
+  return { total, pending };
 }
 
-export function estimatedRevenue(): number {
-  return readStore()
-    .filter((o) => o.status !== 'cancelled')
-    .reduce((sum, o) => sum + o.total, 0);
+export async function estimatedRevenue(): Promise<number> {
+  const agg = await prisma.order.aggregate({
+    where: { status: { not: 'cancelled' } },
+    _sum: { total: true },
+  });
+  return Number(agg._sum.total ?? 0);
 }
 
 // ---------------------------------------------------------------------------
 // Writes
 // ---------------------------------------------------------------------------
 
-export function createOrder(
+export async function createOrder(
   data: Omit<Order, 'id' | 'createdAt' | 'updatedAt' | 'status' | 'statusHistory'> & {
     initialHistoryEntry?: Omit<OrderStatusHistoryEntry, 'id' | 'orderId'>;
   }
-): Order {
-  const orders = readStore();
+): Promise<Order> {
   const id = randomUUID();
-  const now = new Date().toISOString();
+  const { initialHistoryEntry, customer, vehicle, items, ...rest } = data;
 
-  const { initialHistoryEntry, ...rest } = data;
-
-  const historyEntry: OrderStatusHistoryEntry = {
-    id: randomUUID(),
-    orderId: id,
-    fromStatus: null,
-    toStatus: 'pending',
-    changedByUserId: initialHistoryEntry?.changedByUserId ?? 'system',
-    changedByName: initialHistoryEntry?.changedByName ?? 'System',
-    note: initialHistoryEntry?.note ?? 'Order placed',
-    createdAt: now,
-  };
-
-  const order: Order = {
-    ...rest,
-    id,
-    status: 'pending',
-    createdAt: now,
-    updatedAt: now,
-    statusHistory: [historyEntry],
-  };
-
-  writeStore([...orders, order]);
-  return order;
+  const row = await prisma.order.create({
+    data: {
+      id,
+      ref: rest.ref,
+      status: 'pending',
+      paymentStatus: rest.paymentStatus,
+      userId: rest.userId,
+      customerFullName: customer.fullName,
+      customerEmail: customer.email,
+      customerPhone: customer.phone,
+      customerAddress: customer.address,
+      vehicleMake: vehicle.make,
+      vehicleModel: vehicle.model,
+      vehicleYear: vehicle.year,
+      vehicleEngine: vehicle.engine,
+      vehicleCurrentMods: vehicle.currentMods,
+      vehicleServiceDate: vehicle.serviceDate,
+      payment: rest.payment,
+      subtotal: rest.subtotal,
+      tax: rest.tax,
+      total: rest.total,
+      currency: rest.currency,
+      adminNotes: rest.adminNotes,
+      customerNotes: rest.customerNotes,
+      completedAt: rest.completedAt ? new Date(rest.completedAt) : null,
+      cancelledAt: rest.cancelledAt ? new Date(rest.cancelledAt) : null,
+      items: {
+        // Always generate a fresh row id — OrderItem.id is a primary key in a
+        // shared table, so it must be unique across all orders (the incoming
+        // i.id is the product id and would collide when a product is reordered).
+        create: items.map((i) => ({
+          id: randomUUID(),
+          slug: i.slug,
+          name: i.name,
+          category: i.category,
+          price: i.price,
+          currency: i.currency,
+          quantity: i.quantity,
+          visualColor: i.visualColor,
+        })),
+      },
+      statusHistory: {
+        create: [
+          {
+            id: randomUUID(),
+            fromStatus: null,
+            toStatus: 'pending',
+            changedByUserId: initialHistoryEntry?.changedByUserId ?? 'system',
+            changedByName: initialHistoryEntry?.changedByName ?? 'System',
+            note: initialHistoryEntry?.note ?? 'Order placed',
+          },
+        ],
+      },
+    },
+    include: includeChildren,
+  });
+  return rowToOrder(row);
 }
 
-export function updateOrderStatus(
+export async function updateOrderStatus(
   id: string,
   status: OrderStatus,
   actor: { userId: string; name: string },
   note?: string
-): Order | null {
-  const orders = readStore();
-  const idx = orders.findIndex((o) => o.id === id);
-  if (idx === -1) return null;
+): Promise<Order | null> {
+  const prev = await prisma.order.findUnique({ where: { id } });
+  if (!prev) return null;
 
-  const prev = orders[idx];
-  const now = new Date().toISOString();
-
-  const historyEntry: OrderStatusHistoryEntry = {
-    id: randomUUID(),
-    orderId: id,
-    fromStatus: prev.status,
-    toStatus: status,
-    changedByUserId: actor.userId,
-    changedByName: actor.name,
-    note,
-    createdAt: now,
-  };
-
-  orders[idx] = {
-    ...prev,
-    status,
-    updatedAt: now,
-    completedAt: status === 'completed' ? now : prev.completedAt,
-    cancelledAt: status === 'cancelled' ? now : prev.cancelledAt,
-    statusHistory: [...(prev.statusHistory ?? []), historyEntry],
-  };
-
-  writeStore(orders);
-  return orders[idx];
+  const now = new Date();
+  const row = await prisma.order.update({
+    where: { id },
+    data: {
+      status,
+      updatedAt: now,
+      completedAt: status === 'completed' ? now : prev.completedAt,
+      cancelledAt: status === 'cancelled' ? now : prev.cancelledAt,
+      statusHistory: {
+        create: {
+          id: randomUUID(),
+          fromStatus: prev.status,
+          toStatus: status,
+          changedByUserId: actor.userId,
+          changedByName: actor.name,
+          note,
+        },
+      },
+    },
+    include: includeChildren,
+  });
+  return rowToOrder(row);
 }
 
-export function updateOrderAdminNotes(id: string, adminNotes: string): Order | null {
-  const orders = readStore();
-  const idx = orders.findIndex((o) => o.id === id);
-  if (idx === -1) return null;
-  orders[idx] = { ...orders[idx], adminNotes, updatedAt: new Date().toISOString() };
-  writeStore(orders);
-  return orders[idx];
+export async function updateOrderAdminNotes(
+  id: string,
+  adminNotes: string
+): Promise<Order | null> {
+  try {
+    const row = await prisma.order.update({
+      where: { id },
+      data: { adminNotes, updatedAt: new Date() },
+      include: includeChildren,
+    });
+    return rowToOrder(row);
+  } catch {
+    return null;
+  }
 }
 
-export function updateOrderCustomerNotes(id: string, customerNotes: string): Order | null {
-  const orders = readStore();
-  const idx = orders.findIndex((o) => o.id === id);
-  if (idx === -1) return null;
-  orders[idx] = { ...orders[idx], customerNotes, updatedAt: new Date().toISOString() };
-  writeStore(orders);
-  return orders[idx];
+export async function updateOrderCustomerNotes(
+  id: string,
+  customerNotes: string
+): Promise<Order | null> {
+  try {
+    const row = await prisma.order.update({
+      where: { id },
+      data: { customerNotes, updatedAt: new Date() },
+      include: includeChildren,
+    });
+    return rowToOrder(row);
+  } catch {
+    return null;
+  }
 }
 
-export function updatePaymentStatus(id: string, paymentStatus: PaymentStatus): Order | null {
-  const orders = readStore();
-  const idx = orders.findIndex((o) => o.id === id);
-  if (idx === -1) return null;
-  orders[idx] = { ...orders[idx], paymentStatus, updatedAt: new Date().toISOString() };
-  writeStore(orders);
-  return orders[idx];
+export async function updatePaymentStatus(
+  id: string,
+  paymentStatus: PaymentStatus
+): Promise<Order | null> {
+  try {
+    const row = await prisma.order.update({
+      where: { id },
+      data: { paymentStatus, updatedAt: new Date() },
+      include: includeChildren,
+    });
+    return rowToOrder(row);
+  } catch {
+    return null;
+  }
 }
 
 // Legacy compat — kept so any existing call sites don't break during migration
-export function updateOrderNotes(id: string, notes: string): Order | null {
+export async function updateOrderNotes(id: string, notes: string): Promise<Order | null> {
   return updateOrderAdminNotes(id, notes);
 }
 
@@ -218,10 +289,6 @@ export function updateOrderNotes(id: string, notes: string): Order | null {
 /**
  * Strip adminNotes and anonymise admin identities in statusHistory before
  * sending an order to a customer API route or server component.
- *
- * The customer's own history entries (e.g. "Order placed" with their userId)
- * are left with their real name. All other actors are replaced with 'Workshop'
- * so that internal staff names and UUIDs are never exposed.
  */
 export function sanitizeOrderForCustomer(
   order: Order,
@@ -234,9 +301,7 @@ export function sanitizeOrderForCustomer(
       ...entry,
       changedByUserId: '',
       changedByName:
-        entry.changedByUserId === sessionUserId
-          ? entry.changedByName
-          : 'Workshop',
+        entry.changedByUserId === sessionUserId ? entry.changedByName : 'Workshop',
     })),
   };
 }

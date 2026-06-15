@@ -18,7 +18,7 @@ export default async function AccountQuoteDetailPage({
   const [user, { id }] = await Promise.all([getSession(), params]);
   if (!user) redirect('/signin?redirect=/account/quotes');
 
-  const quote = getQuoteById(id);
+  const quote = await getQuoteById(id);
   if (!quote) notFound();
 
   // Security: users can only view their own quotes

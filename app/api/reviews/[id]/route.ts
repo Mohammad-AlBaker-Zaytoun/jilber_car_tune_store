@@ -20,7 +20,7 @@ export async function PUT(
   }
 
   const { id } = await params;
-  const review = getReviewById(id);
+  const review = await getReviewById(id);
   if (!review) {
     return NextResponse.json({ error: 'Review not found' }, { status: 404 });
   }
@@ -37,7 +37,7 @@ export async function PUT(
     );
   }
 
-  const updated = updateReview(id, result.data);
+  const updated = await updateReview(id, result.data);
   if (!updated) {
     return NextResponse.json({ error: 'Review not found' }, { status: 404 });
   }
@@ -56,7 +56,7 @@ export async function DELETE(
   }
 
   const { id } = await params;
-  const review = getReviewById(id);
+  const review = await getReviewById(id);
   if (!review) {
     return NextResponse.json({ error: 'Review not found' }, { status: 404 });
   }
@@ -64,6 +64,6 @@ export async function DELETE(
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
-  deleteReview(id);
+  await deleteReview(id);
   return NextResponse.json({ success: true });
 }

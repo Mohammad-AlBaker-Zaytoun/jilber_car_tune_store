@@ -67,7 +67,7 @@ export async function POST(request: Request) {
     let relatedProductSlug: string | undefined;
 
     if (data.relatedProductSlug) {
-      const product = getProductBySlug(data.relatedProductSlug);
+      const product = await getProductBySlug(data.relatedProductSlug);
       if (product) {
         relatedProductId = product.id;
         relatedProductName = product.name;
@@ -75,7 +75,7 @@ export async function POST(request: Request) {
       }
     }
 
-    const quote = createQuote({
+    const quote = await createQuote({
       userId: session?.id,
       customerName: data.customerName,
       customerEmail: data.customerEmail,

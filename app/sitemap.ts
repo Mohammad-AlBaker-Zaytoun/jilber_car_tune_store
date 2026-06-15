@@ -3,8 +3,8 @@ import { getProducts } from '@/lib/products.dev';
 import { siteConfig } from '@/lib/seo/site-config';
 import { absoluteUrl } from '@/lib/seo/helpers';
 
-export default function sitemap(): MetadataRoute.Sitemap {
-  const products = getProducts();
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  const products = await getProducts();
   const now = new Date();
 
   const staticRoutes: MetadataRoute.Sitemap = [

@@ -33,7 +33,7 @@ export async function POST(request: Request) {
 
     const { name, email, phone, password } = result.data;
 
-    if (findUserByEmail(email)) {
+    if (await findUserByEmail(email)) {
       return NextResponse.json(
         { error: 'An account with this email already exists' },
         { status: 409 }
@@ -41,7 +41,7 @@ export async function POST(request: Request) {
     }
 
     const passwordHash = await bcrypt.hash(password, 12);
-    createUser({ email, name, phone, passwordHash, role: 'user' });
+    await createUser({ email, name, phone, passwordHash, role: 'user' });
 
     return NextResponse.json({ success: true }, { status: 201 });
   } catch (err) {

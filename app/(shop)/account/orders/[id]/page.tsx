@@ -18,7 +18,7 @@ export default async function AccountOrderDetailPage({
   const [user, { id }] = await Promise.all([getSession(), params]);
   if (!user) redirect('/signin?redirect=/account/orders');
 
-  const order = getOrderById(id);
+  const order = await getOrderById(id);
   if (!order) notFound();
 
   // Security: users can only view their own orders (404 not 403 — avoids revealing order existence)

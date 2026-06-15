@@ -16,7 +16,7 @@ export async function GET(request: Request) {
   if (!productId) {
     return NextResponse.json({ error: 'productId is required' }, { status: 400 });
   }
-  const reviews = getApprovedReviewsForProduct(productId);
+  const reviews = await getApprovedReviewsForProduct(productId);
   // Strip email before sending to client
   const safe = reviews.map(({ userEmail: _e, ...r }) => r);
   return NextResponse.json(safe);
@@ -47,12 +47,12 @@ export async function POST(request: Request) {
 
   const { productId, rating, title, comment } = result.data;
 
-  const product = getProducts().find((p) => p.id === productId);
+  const product = (await getProducts()).find((p) => p.id === productId);
   if (!product) {
     return NextResponse.json({ error: 'Product not found' }, { status: 404 });
   }
 
-  const existing = getUserReviewForProduct(session.id, productId);
+  const existing = await getUserReviewForProduct(session.id, productId);
   if (existing) {
     return NextResponse.json(
       { error: 'You have already reviewed this product' },
@@ -61,7 +61,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const review = createReview({
+    const review = await createReview({
       productId,
       productSlug: product.slug,
       userId: session.id,

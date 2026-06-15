@@ -9,7 +9,7 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const quotes = getQuotesByUserId(session.id).map(sanitizeQuoteForCustomer);
+    const quotes = (await getQuotesByUserId(session.id)).map(sanitizeQuoteForCustomer);
     return NextResponse.json(quotes);
   } catch (err) {
     console.error('[account/quotes/GET]', err);

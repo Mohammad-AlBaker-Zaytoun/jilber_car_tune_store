@@ -1,13 +1,16 @@
 /**
- * DEV-ONLY settings store — JSON file on disk.
- * Replace with a real database before production.
+ * Settings repository — MSSQL via Prisma.
+ *
+ * Settings are a single row (id = 1). getSettings reads it, falling back to (and
+ * seeding) DEFAULTS when absent; updateSettings upserts. Public function
+ * names/signatures unchanged from the old JSON store.
  */
 
-import fs from 'fs';
-import path from 'path';
+import { prisma } from '@/lib/db/prisma';
+import type { Setting as SettingRow } from '@prisma/client';
 import type { AdminSettings } from '@/types/admin';
 
-const DB_PATH = path.join(process.cwd(), '.dev-settings.json');
+const SETTINGS_ID = 1;
 
 const DEFAULTS: AdminSettings = {
   shopName: 'JILBER Performance',
@@ -28,19 +31,39 @@ const DEFAULTS: AdminSettings = {
   productWhatsAppMessage: 'Hello, I am interested in {productName}. Can you provide more details?',
 };
 
-export function getSettings(): AdminSettings {
-  try {
-    if (!fs.existsSync(DB_PATH)) return DEFAULTS;
-    const raw = fs.readFileSync(DB_PATH, 'utf-8');
-    return { ...DEFAULTS, ...(JSON.parse(raw) as Partial<AdminSettings>) };
-  } catch {
-    return DEFAULTS;
-  }
+function rowToSettings(row: SettingRow): AdminSettings {
+  return {
+    shopName: row.shopName,
+    contactEmail: row.contactEmail,
+    contactPhone: row.contactPhone,
+    address: row.address,
+    currency: row.currency,
+    taxRate: row.taxRate,
+    bookingMessage: row.bookingMessage,
+    whatsappNumber: row.whatsappNumber,
+    googleMapsUrl: row.googleMapsUrl,
+    workingHours: row.workingHours,
+    enableFloatingWhatsApp: row.enableFloatingWhatsApp,
+    enableFloatingCall: row.enableFloatingCall,
+    defaultWhatsAppMessage: row.defaultWhatsAppMessage,
+    quoteWhatsAppMessage: row.quoteWhatsAppMessage,
+    productWhatsAppMessage: row.productWhatsAppMessage,
+  };
 }
 
-export function updateSettings(data: Partial<AdminSettings>): AdminSettings {
-  const current = getSettings();
-  const updated = { ...current, ...data };
-  fs.writeFileSync(DB_PATH, JSON.stringify(updated, null, 2), 'utf-8');
+export async function getSettings(): Promise<AdminSettings> {
+  const row = await prisma.setting.findUnique({ where: { id: SETTINGS_ID } });
+  return row ? { ...DEFAULTS, ...rowToSettings(row) } : DEFAULTS;
+}
+
+export async function updateSettings(data: Partial<AdminSettings>): Promise<AdminSettings> {
+  const current = await getSettings();
+  const updated: AdminSettings = { ...current, ...data };
+
+  await prisma.setting.upsert({
+    where: { id: SETTINGS_ID },
+    create: { id: SETTINGS_ID, ...updated },
+    update: updated,
+  });
   return updated;
 }

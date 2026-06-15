@@ -23,9 +23,9 @@ export const metadata: Metadata = {
   },
 };
 
-export default function StorePage() {
-  const products = getProducts();
-  const approvedReviews = getReviews().filter((r) => r.status === 'approved');
+export default async function StorePage() {
+  const [products, allReviews] = await Promise.all([getProducts(), getReviews()]);
+  const approvedReviews = allReviews.filter((r) => r.status === 'approved');
   const ratings = buildRatingsMap(products, approvedReviews);
 
   return (

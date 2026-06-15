@@ -1,91 +1,143 @@
 /**
- * DEV-ONLY product store — JSON file on disk.
- * Seeds from data/products.ts on first run.
- * Replace with a real database before production.
+ * Product repository — MSSQL via Prisma.
+ *
+ * Public function names/signatures are unchanged from the old JSON store; only
+ * the internals (and the now-async return types) differ. Array fields
+ * (specs/compatibility/includedItems/images) are stored as JSON strings and
+ * mapped back to arrays here so the returned objects satisfy the `Product` type.
  */
 
-import fs from 'fs';
-import path from 'path';
 import { randomUUID } from 'crypto';
-import { products as staticProducts } from '@/data/products';
-import type { Product } from '@/data/products';
+import { prisma } from '@/lib/db/prisma';
+import type { Product as ProductRow } from '@prisma/client';
+import type { Product, ProductSpec, Category } from '@/data/products';
 
 export type { Product };
 
-const DB_PATH = path.join(process.cwd(), '.dev-products.json');
+function rowToProduct(row: ProductRow): Product {
+  return {
+    id: row.id,
+    slug: row.slug,
+    name: row.name,
+    category: row.category as Category,
+    shortDescription: row.shortDescription,
+    description: row.description,
+    price: Number(row.price),
+    oldPrice: row.oldPrice == null ? undefined : Number(row.oldPrice),
+    currency: row.currency,
+    badge: row.badge ?? undefined,
+    rating: row.rating,
+    reviewCount: row.reviewCount,
+    inStock: row.inStock,
+    featured: row.featured,
+    images: JSON.parse(row.images) as string[],
+    visualColor: row.visualColor,
+    visualColor2: row.visualColor2,
+    specs: JSON.parse(row.specs) as ProductSpec[],
+    compatibility: JSON.parse(row.compatibility) as string[],
+    includedItems: JSON.parse(row.includedItems) as string[],
+  };
+}
 
-function readStore(): Product[] {
+/** Map the array fields of a Product to their JSON-string column form. */
+function productWriteData(data: Partial<Omit<Product, 'id'>>) {
+  const { specs, compatibility, includedItems, images, oldPrice, ...rest } = data;
+  return {
+    ...rest,
+    ...(oldPrice !== undefined ? { oldPrice } : {}),
+    ...(specs !== undefined ? { specs: JSON.stringify(specs) } : {}),
+    ...(compatibility !== undefined ? { compatibility: JSON.stringify(compatibility) } : {}),
+    ...(includedItems !== undefined ? { includedItems: JSON.stringify(includedItems) } : {}),
+    ...(images !== undefined ? { images: JSON.stringify(images) } : {}),
+  };
+}
+
+export async function getProducts(): Promise<Product[]> {
+  const rows = await prisma.product.findMany();
+  return rows.map(rowToProduct);
+}
+
+export async function getProductBySlug(slug: string): Promise<Product | undefined> {
+  const row = await prisma.product.findUnique({ where: { slug } });
+  return row ? rowToProduct(row) : undefined;
+}
+
+export async function getRelatedProducts(product: Product, count = 3): Promise<Product[]> {
+  const rows = await prisma.product.findMany({
+    where: { category: product.category, id: { not: product.id } },
+    take: count,
+  });
+  return rows.map(rowToProduct);
+}
+
+export async function getFeaturedProducts(): Promise<Product[]> {
+  const rows = await prisma.product.findMany({ where: { featured: true } });
+  return rows.map(rowToProduct);
+}
+
+export async function countProducts(): Promise<{ total: number; active: number }> {
+  const [total, active] = await Promise.all([
+    prisma.product.count(),
+    prisma.product.count({ where: { inStock: true } }),
+  ]);
+  return { total, active };
+}
+
+export async function createProduct(data: Omit<Product, 'id'>): Promise<Product> {
+  const existing = await prisma.product.findUnique({ where: { slug: data.slug } });
+  if (existing) throw new Error('A product with this slug already exists');
+
+  const row = await prisma.product.create({
+    data: {
+      id: `prod-${randomUUID().slice(0, 8)}`,
+      slug: data.slug,
+      name: data.name,
+      category: data.category,
+      shortDescription: data.shortDescription,
+      description: data.description,
+      price: data.price,
+      oldPrice: data.oldPrice ?? null,
+      currency: data.currency,
+      badge: data.badge ?? null,
+      rating: data.rating,
+      reviewCount: data.reviewCount,
+      inStock: data.inStock,
+      featured: data.featured,
+      visualColor: data.visualColor,
+      visualColor2: data.visualColor2,
+      specs: JSON.stringify(data.specs ?? []),
+      compatibility: JSON.stringify(data.compatibility ?? []),
+      includedItems: JSON.stringify(data.includedItems ?? []),
+      images: JSON.stringify(data.images ?? []),
+    },
+  });
+  return rowToProduct(row);
+}
+
+export async function updateProduct(
+  slug: string,
+  data: Partial<Omit<Product, 'id'>>
+): Promise<Product | null> {
+  const current = await prisma.product.findUnique({ where: { slug } });
+  if (!current) return null;
+
+  if (data.slug && data.slug !== slug) {
+    const conflict = await prisma.product.findUnique({ where: { slug: data.slug } });
+    if (conflict) throw new Error('A product with this slug already exists');
+  }
+
+  const row = await prisma.product.update({
+    where: { slug },
+    data: productWriteData(data),
+  });
+  return rowToProduct(row);
+}
+
+export async function deleteProduct(slug: string): Promise<boolean> {
   try {
-    if (!fs.existsSync(DB_PATH)) {
-      writeStore(staticProducts);
-      return staticProducts;
-    }
-    const raw = fs.readFileSync(DB_PATH, 'utf-8');
-    const parsed = JSON.parse(raw) as Product[];
-    if (!Array.isArray(parsed) || parsed.length === 0) {
-      writeStore(staticProducts);
-      return staticProducts;
-    }
-    return parsed;
+    await prisma.product.delete({ where: { slug } });
+    return true;
   } catch {
-    return staticProducts;
+    return false;
   }
-}
-
-function writeStore(products: Product[]): void {
-  fs.writeFileSync(DB_PATH, JSON.stringify(products, null, 2), 'utf-8');
-}
-
-export function getProducts(): Product[] {
-  return readStore();
-}
-
-export function getProductBySlug(slug: string): Product | undefined {
-  return readStore().find((p) => p.slug === slug);
-}
-
-export function getRelatedProducts(product: Product, count = 3): Product[] {
-  return readStore()
-    .filter((p) => p.id !== product.id && p.category === product.category)
-    .slice(0, count);
-}
-
-export function getFeaturedProducts(): Product[] {
-  return readStore().filter((p) => p.featured);
-}
-
-export function countProducts(): { total: number; active: number } {
-  const all = readStore();
-  return { total: all.length, active: all.filter((p) => p.inStock).length };
-}
-
-export function createProduct(data: Omit<Product, 'id'>): Product {
-  const prods = readStore();
-  if (prods.some((p) => p.slug === data.slug)) {
-    throw new Error('A product with this slug already exists');
-  }
-  const product: Product = { ...data, id: `prod-${randomUUID().slice(0, 8)}` };
-  writeStore([...prods, product]);
-  return product;
-}
-
-export function updateProduct(slug: string, data: Partial<Omit<Product, 'id'>>): Product | null {
-  const prods = readStore();
-  const idx = prods.findIndex((p) => p.slug === slug);
-  if (idx === -1) return null;
-  // If slug is changing, verify new slug doesn't conflict
-  if (data.slug && data.slug !== slug && prods.some((p) => p.slug === data.slug)) {
-    throw new Error('A product with this slug already exists');
-  }
-  prods[idx] = { ...prods[idx], ...data };
-  writeStore(prods);
-  return prods[idx];
-}
-
-export function deleteProduct(slug: string): boolean {
-  const prods = readStore();
-  const filtered = prods.filter((p) => p.slug !== slug);
-  if (filtered.length === prods.length) return false;
-  writeStore(filtered);
-  return true;
 }

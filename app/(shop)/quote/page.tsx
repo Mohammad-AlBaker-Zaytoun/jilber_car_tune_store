@@ -17,13 +17,13 @@ export default async function QuotePage({
 }: {
   searchParams: Promise<{ product?: string }>;
 }) {
-  const [session, sp, settings] = await Promise.all([getSession(), searchParams, Promise.resolve(getSettings())]);
+  const [session, sp, settings] = await Promise.all([getSession(), searchParams, getSettings()]);
 
   const productSlug = sp.product ?? '';
   let prefillProductName: string | undefined;
 
   if (productSlug) {
-    const product = getProductBySlug(productSlug);
+    const product = await getProductBySlug(productSlug);
     if (product) prefillProductName = product.name;
   }
 

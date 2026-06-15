@@ -34,7 +34,7 @@ const schema = z.object({
 export async function GET() {
   try {
     await requireAdmin();
-    return NextResponse.json(getSettings());
+    return NextResponse.json(await getSettings());
   } catch (err) {
     return handleAdminError(err);
   }
@@ -48,7 +48,7 @@ export async function PUT(request: Request) {
     if (!result.success) {
       return NextResponse.json({ error: 'Validation failed', issues: result.error.flatten() }, { status: 400 });
     }
-    const settings = updateSettings(result.data);
+    const settings = await updateSettings(result.data);
     return NextResponse.json(settings);
   } catch (err) {
     return handleAdminError(err);

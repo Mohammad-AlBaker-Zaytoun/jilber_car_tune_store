@@ -61,7 +61,7 @@ export async function POST(request: Request) {
 
     const resolvedItems = [];
     for (const item of items) {
-      const product = getProductBySlug(item.slug);
+      const product = await getProductBySlug(item.slug);
       if (!product) {
         return NextResponse.json(
           { error: `Product not found: ${item.slug}` },
@@ -80,7 +80,7 @@ export async function POST(request: Request) {
       });
     }
 
-    const { taxRate, currency } = getSettings();
+    const { taxRate, currency } = await getSettings();
     const clampedRate = Math.min(Math.max(taxRate, 0), 100) / 100;
     const subtotal = Math.round(
       resolvedItems.reduce((s, i) => s + i.price * i.quantity, 0) * 100
@@ -91,7 +91,7 @@ export async function POST(request: Request) {
     const session = await getSession();
     const ref = generateRef();
 
-    const order = createOrder({
+    const order = await createOrder({
       ref,
       customer,
       vehicle,

@@ -6,7 +6,7 @@ import { getReviews } from '@/lib/reviews.dev';
 export async function GET() {
   try {
     await requireAdmin();
-    return NextResponse.json(getReviews());
+    return NextResponse.json(await getReviews());
   } catch (err) {
     return handleAdminError(err);
   }

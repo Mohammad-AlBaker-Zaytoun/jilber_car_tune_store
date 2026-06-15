@@ -41,7 +41,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   try {
     await requireAdmin();
     const { id } = await params;
-    const order = getOrderById(id);
+    const order = await getOrderById(id);
     if (!order) return NextResponse.json({ error: 'Not found' }, { status: 404 });
     return NextResponse.json(order);
   } catch (err) {
@@ -60,7 +60,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
       return NextResponse.json({ error: 'Validation failed' }, { status: 400 });
     }
 
-    let order = getOrderById(id);
+    let order = await getOrderById(id);
     if (!order) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
     const { status, paymentStatus, adminNotes, customerNotes, statusNote } = result.data;
@@ -77,12 +77,12 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
       }
 
       order =
-        updateOrderStatus(
+        (await updateOrderStatus(
           id,
           status,
           { userId: admin.id, name: admin.name },
           statusNote
-        ) ?? order;
+        )) ?? order;
 
       // Fire notification hooks
       notifyOrderStatusChanged(order, status);
@@ -93,17 +93,17 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
 
     // Payment status change
     if (paymentStatus !== undefined) {
-      order = updatePaymentStatus(id, paymentStatus) ?? order;
+      order = (await updatePaymentStatus(id, paymentStatus)) ?? order;
     }
 
     // Admin notes (internal only — never sent to customer)
     if (adminNotes !== undefined) {
-      order = updateOrderAdminNotes(id, adminNotes) ?? order;
+      order = (await updateOrderAdminNotes(id, adminNotes)) ?? order;
     }
 
     // Customer-visible notes
     if (customerNotes !== undefined) {
-      order = updateOrderCustomerNotes(id, customerNotes) ?? order;
+      order = (await updateOrderCustomerNotes(id, customerNotes)) ?? order;
     }
 
     return NextResponse.json(order);
