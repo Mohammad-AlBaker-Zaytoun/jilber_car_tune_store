@@ -84,6 +84,16 @@ export async function updateUser(
   return stripHash(rowToUser(row));
 }
 
+/** Sets a new bcrypt password hash for a user. Returns false if the user is gone. */
+export async function updateUserPassword(id: string, passwordHash: string): Promise<boolean> {
+  try {
+    await prisma.user.update({ where: { id }, data: { passwordHash } });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export async function listUsers(): Promise<Omit<StoredUser, 'passwordHash'>[]> {
   const rows = await prisma.user.findMany({ orderBy: { createdAt: 'asc' } });
   return rows.map((r) => stripHash(rowToUser(r)));

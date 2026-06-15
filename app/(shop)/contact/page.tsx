@@ -258,7 +258,7 @@ export default async function ContactPage() {
                       <p className="text-[10px] text-zinc-600 mt-0.5">Tailored pricing for your build</p>
                     </div>
                   </Link>
-                  <a
+                  <Link
                     href="/#contact"
                     className="flex items-center gap-3 p-4 border border-zinc-700 hover:border-cyan-400/40 hover:bg-cyan-400/5 transition-all duration-200 group"
                   >
@@ -271,7 +271,7 @@ export default async function ContactPage() {
                       </p>
                       <p className="text-[10px] text-zinc-600 mt-0.5">Use the enquiry form on our home page</p>
                     </div>
-                  </a>
+                  </Link>
                 </div>
               </div>
 

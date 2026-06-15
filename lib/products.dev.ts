@@ -53,7 +53,7 @@ function productWriteData(data: Partial<Omit<Product, 'id'>>) {
 }
 
 export async function getProducts(): Promise<Product[]> {
-  const rows = await prisma.product.findMany();
+  const rows = await prisma.product.findMany({ orderBy: { name: 'asc' } });
   return rows.map(rowToProduct);
 }
 
@@ -71,7 +71,10 @@ export async function getRelatedProducts(product: Product, count = 3): Promise<P
 }
 
 export async function getFeaturedProducts(): Promise<Product[]> {
-  const rows = await prisma.product.findMany({ where: { featured: true } });
+  const rows = await prisma.product.findMany({
+    where: { featured: true },
+    orderBy: { name: 'asc' },
+  });
   return rows.map(rowToProduct);
 }
 

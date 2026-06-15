@@ -1,26 +1,61 @@
 /**
- * Quote notification hooks.
- * TODO: wire up a real email provider (Resend, SendGrid, etc.) before production.
+ * Quote notification hooks. Sends email via lib/email (env-gated by RESEND_API_KEY).
+ * Callers fire-and-forget — these never throw.
  */
 
 import type { QuoteRequest } from '@/types/quotes';
+import { sendEmail, adminEmail, emailLayout } from '@/lib/email';
 
-export function notifyQuoteSubmitted(_quote: QuoteRequest): void {
-  // TODO: send confirmation email to customer (_quote.customerEmail)
-  //   Include: quote number, vehicle summary, service category, expected response time
+function quoteSummary(q: QuoteRequest): string {
+  return `<p>Quote: <strong>${q.quoteNumber}</strong></p>
+    <p>Service: ${q.serviceCategory}</p>
+    <p>Vehicle: ${q.vehicleMake} ${q.vehicleModel} (${q.vehicleYear})</p>`;
 }
 
-export function notifyAdminNewQuote(_quote: QuoteRequest): void {
-  // TODO: send new quote alert to admin
-  //   Include: quote number, customer name, vehicle, service category, message
+export async function notifyQuoteSubmitted(quote: QuoteRequest): Promise<void> {
+  await sendEmail({
+    to: quote.customerEmail,
+    subject: `Quote request received — ${quote.quoteNumber}`,
+    html: emailLayout(
+      'We received your request',
+      `<p>Hi ${quote.customerName}, thanks for your quote request. Our team will review it and get back to you soon.</p>${quoteSummary(quote)}`
+    ),
+  });
 }
 
-export function notifyCustomerQuoteUpdated(_quote: QuoteRequest): void {
-  // TODO: send status update email to customer when status changes
-  //   Include: quote number, new status, customer reply if any
+export async function notifyAdminNewQuote(quote: QuoteRequest): Promise<void> {
+  const admin = adminEmail();
+  if (!admin) return;
+  await sendEmail({
+    to: admin,
+    subject: `New quote request — ${quote.quoteNumber}`,
+    html: emailLayout(
+      'New quote request',
+      `<p>${quote.customerName} (${quote.customerEmail}, ${quote.customerPhone})</p>${quoteSummary(quote)}
+       <p>${quote.message}</p>`
+    ),
+  });
 }
 
-export function notifyQuoteConvertedToOrder(_quote: QuoteRequest): void {
-  // TODO: send conversion confirmation to customer when quote becomes an order
-  //   Include: quote number, order reference
+export async function notifyCustomerQuoteUpdated(quote: QuoteRequest): Promise<void> {
+  await sendEmail({
+    to: quote.customerEmail,
+    subject: `Update on your quote — ${quote.quoteNumber}`,
+    html: emailLayout(
+      'Your quote was updated',
+      `<p>Hi ${quote.customerName}, there's an update on your quote request.</p>${quoteSummary(quote)}
+       ${quote.customerReply ? `<p>${quote.customerReply}</p>` : ''}`
+    ),
+  });
+}
+
+export async function notifyQuoteConvertedToOrder(quote: QuoteRequest): Promise<void> {
+  await sendEmail({
+    to: quote.customerEmail,
+    subject: `Your quote is now an order — ${quote.quoteNumber}`,
+    html: emailLayout(
+      'Quote converted to order',
+      `<p>Hi ${quote.customerName}, your quote has been converted into a service order. We'll be in touch with next steps.</p>${quoteSummary(quote)}`
+    ),
+  });
 }

@@ -8,6 +8,7 @@ import {
   AUTO_APPROVE_REVIEWS,
 } from '@/lib/reviews.dev';
 import { getProducts } from '@/lib/products.dev';
+import { isUniqueConstraintError } from '@/lib/admin';
 
 /** GET /api/reviews?productId=X — public, returns approved reviews only (email stripped) */
 export async function GET(request: Request) {
@@ -75,8 +76,14 @@ export async function POST(request: Request) {
     const { userEmail: _e, ...safe } = review;
     return NextResponse.json(safe, { status: 201 });
   } catch (err) {
-    if (err instanceof Error && err.message.includes('already reviewed')) {
-      return NextResponse.json({ error: err.message }, { status: 409 });
+    if (
+      isUniqueConstraintError(err) ||
+      (err instanceof Error && err.message.includes('already reviewed'))
+    ) {
+      return NextResponse.json(
+        { error: 'You have already reviewed this product' },
+        { status: 409 }
+      );
     }
     console.error('[reviews POST]', err);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

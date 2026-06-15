@@ -8,7 +8,7 @@
  * here so the returned objects satisfy the `Order` type.
  */
 
-import { randomUUID } from 'crypto';
+import { randomUUID, randomBytes } from 'crypto';
 import { prisma } from '@/lib/db/prisma';
 import type {
   Order as OrderRow,
@@ -22,6 +22,17 @@ export type { Order, OrderStatus, PaymentStatus, OrderStatusHistoryEntry };
 type OrderRowFull = OrderRow & { items: OrderItemRow[]; statusHistory: HistoryRow[] };
 
 const includeChildren = { items: true, statusHistory: { orderBy: { createdAt: 'asc' as const } } };
+
+/** Generates a human-friendly order reference like `TUNE-20260615-AB3KP`. */
+export function generateOrderRef(): string {
+  const date = new Date();
+  const yyyymmdd = `${date.getFullYear()}${String(date.getMonth() + 1).padStart(2, '0')}${String(date.getDate()).padStart(2, '0')}`;
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  const code = Array.from(randomBytes(5))
+    .map((b) => chars[b % chars.length])
+    .join('');
+  return `TUNE-${yyyymmdd}-${code}`;
+}
 
 function rowToOrder(row: OrderRowFull): Order {
   return {

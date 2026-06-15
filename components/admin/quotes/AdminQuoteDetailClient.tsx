@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
   ArrowLeft,
@@ -48,6 +49,28 @@ export default function AdminQuoteDetailClient({ quote: initialQuote }: Props) {
   const [saveError, setSaveError] = useState('');
   const [saveSuccess, setSaveSuccess] = useState<SaveField | null>(null);
   const [confirm, setConfirm] = useState<{ field: SaveField; label: string; danger?: boolean } | null>(null);
+
+  const router = useRouter();
+  const [converting, setConverting] = useState(false);
+  const [convertError, setConvertError] = useState('');
+
+  const convertToOrder = async () => {
+    setConverting(true);
+    setConvertError('');
+    try {
+      const res = await fetch(`/api/admin/quotes/${quote.id}/convert`, { method: 'POST' });
+      const data = (await res.json()) as { orderId?: string; error?: string };
+      if (!res.ok || !data.orderId) {
+        setConvertError(data.error ?? 'Conversion failed');
+        return;
+      }
+      router.push(`/admin/orders/${data.orderId}`);
+    } catch {
+      setConvertError('Something went wrong. Please try again.');
+    } finally {
+      setConverting(false);
+    }
+  };
 
   const statusChanged = pendingStatus !== quote.status;
   const priorityChanged = pendingPriority !== quote.priority;
@@ -493,15 +516,19 @@ export default function AdminQuoteDetailClient({ quote: initialQuote }: Props) {
                 </div>
               ) : (
                 <button
-                  disabled
-                  title="TODO: implement full order creation from quote"
-                  className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 border border-zinc-800 bg-zinc-900/30 opacity-40 cursor-not-allowed text-zinc-500 font-black text-[10px] tracking-[0.15em] uppercase"
+                  onClick={convertToOrder}
+                  disabled={converting}
+                  className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 border border-cyan-400/40 bg-cyan-400/10 hover:bg-cyan-400/20 disabled:opacity-40 disabled:cursor-not-allowed text-cyan-300 font-black text-[10px] tracking-[0.15em] uppercase transition-colors"
                 >
-                  Convert to Order
+                  {converting ? 'Converting…' : 'Convert to Order'}
                 </button>
               )}
+              {convertError && (
+                <p className="text-[10px] text-red-400 mt-2 leading-relaxed">{convertError}</p>
+              )}
               <p className="text-[9px] text-zinc-700 mt-2 leading-relaxed">
-                Full conversion flow: coming soon
+                Seeds a new order with the customer, vehicle, and (if any) the requested product.
+                Set final items and pricing on the order.
               </p>
             </div>
 

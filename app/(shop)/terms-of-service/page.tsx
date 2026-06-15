@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 
 export const metadata: Metadata = {
   title: 'Terms of Service | JILBER Performance',
@@ -233,9 +234,9 @@ export default function TermsOfServicePage() {
           <Section title="12. Contact Us">
             <p>
               If you have any questions about these Terms of Service, please contact us through the{' '}
-              <a href="/#contact" className="text-cyan-400 hover:text-cyan-300 transition-colors">
+              <Link href="/#contact" className="text-cyan-400 hover:text-cyan-300 transition-colors">
                 contact form
-              </a>{' '}
+              </Link>{' '}
               on our homepage or visit our workshop directly.
             </p>
           </Section>

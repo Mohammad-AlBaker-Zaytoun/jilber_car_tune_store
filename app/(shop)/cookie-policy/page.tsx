@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 
 export const metadata: Metadata = {
   title: 'Cookie Policy | JILBER Performance',
@@ -189,9 +190,9 @@ export default function CookiePolicyPage() {
           <Section title="6. Contact Us">
             <p>
               If you have questions about our use of cookies, please contact us through the{' '}
-              <a href="/#contact" className="text-cyan-400 hover:text-cyan-300 transition-colors">
+              <Link href="/#contact" className="text-cyan-400 hover:text-cyan-300 transition-colors">
                 contact form
-              </a>{' '}
+              </Link>{' '}
               on our homepage. You can also review our full{' '}
               <a href="/privacy-policy" className="text-cyan-400 hover:text-cyan-300 transition-colors">
                 Privacy Policy

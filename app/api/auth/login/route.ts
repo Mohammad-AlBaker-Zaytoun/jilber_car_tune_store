@@ -3,6 +3,7 @@ import { z } from 'zod';
 import bcrypt from 'bcryptjs';
 import { findUserByEmail } from '@/lib/users.dev';
 import { createToken, setSessionCookie, type SessionUser } from '@/lib/auth';
+import { rateLimit, getClientIp, tooManyRequests } from '@/lib/rate-limit';
 
 const schema = z.object({
   email: z.string().email(),
@@ -11,6 +12,9 @@ const schema = z.object({
 
 export async function POST(request: Request) {
   try {
+    const rl = rateLimit('login:' + getClientIp(request), 5, 60_000);
+    if (!rl.ok) return tooManyRequests(rl.retryAfter);
+
     const body: unknown = await request.json();
     const result = schema.safeParse(body);
 
@@ -36,6 +40,7 @@ export async function POST(request: Request) {
       name: user.name,
       phone: user.phone,
       role: user.role ?? 'user',
+      createdAt: user.createdAt,
     };
 
     const token = await createToken(sessionUser);

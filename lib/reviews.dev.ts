@@ -49,12 +49,15 @@ function rowToReview(row: ReviewRow): Review {
 }
 
 export async function getReviews(): Promise<Review[]> {
-  const rows = await prisma.review.findMany();
+  const rows = await prisma.review.findMany({ orderBy: { createdAt: 'desc' } });
   return rows.map(rowToReview);
 }
 
 export async function getApprovedReviewsForProduct(productId: string): Promise<Review[]> {
-  const rows = await prisma.review.findMany({ where: { productId, status: 'approved' } });
+  const rows = await prisma.review.findMany({
+    where: { productId, status: 'approved' },
+    orderBy: { createdAt: 'desc' },
+  });
   return rows.map(rowToReview);
 }
 

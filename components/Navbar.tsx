@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import TransitionLink from '@/components/transition/TransitionLink';
 import { Menu, X, Gauge, ShoppingCart, LogIn, LayoutDashboard, LogOut, Shield, Phone, MessageCircle } from 'lucide-react';
 import { useCartStore } from '@/lib/cart';
@@ -120,12 +121,12 @@ export default function Navbar() {
               </>
             )}
 
-            <a
+            <Link
               href="/#contact"
               className="inline-flex items-center px-5 py-2.5 text-xs font-black text-black bg-cyan-400 hover:bg-cyan-300 tracking-[0.2em] uppercase transition-all duration-200 hover:shadow-[0_0_24px_rgba(0,212,255,0.5)]"
             >
               Book Now
-            </a>
+            </Link>
           </div>
 
           {/* Mobile: cart + hamburger */}
@@ -265,13 +266,13 @@ export default function Navbar() {
             </a>
           )}
 
-          <a
+          <Link
             href="/#contact"
             onClick={() => setMenuOpen(false)}
             className="mt-4 py-3.5 text-xs font-black text-black bg-cyan-400 hover:bg-cyan-300 tracking-[0.2em] uppercase text-center transition-all duration-200"
           >
             Book Consultation
-          </a>
+          </Link>
         </nav>
       </div>
     </header>

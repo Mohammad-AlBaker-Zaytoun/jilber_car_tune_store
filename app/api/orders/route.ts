@@ -6,6 +6,7 @@ import { getSession } from '@/lib/session';
 import { getProductBySlug } from '@/lib/products.dev';
 import { getSettings } from '@/lib/settings.dev';
 import { notifyOrderCreated } from '@/lib/order-notifications';
+import { rateLimit, getClientIp, tooManyRequests } from '@/lib/rate-limit';
 import type { PaymentStatus } from '@/types/admin';
 
 const itemSchema = z.object({
@@ -15,18 +16,18 @@ const itemSchema = z.object({
 
 const schema = z.object({
   customer: z.object({
-    fullName: z.string().min(1),
-    email: z.string().email(),
-    phone: z.string().min(1),
-    address: z.string().default(''),
+    fullName: z.string().min(1).max(100),
+    email: z.string().email().max(200),
+    phone: z.string().min(1).max(30),
+    address: z.string().max(300).default(''),
   }),
   vehicle: z.object({
-    make: z.string().min(1),
-    model: z.string().min(1),
-    year: z.string().min(1),
-    engine: z.string().default(''),
-    currentMods: z.string().default(''),
-    serviceDate: z.string().default(''),
+    make: z.string().min(1).max(60),
+    model: z.string().min(1).max(60),
+    year: z.string().min(1).max(10),
+    engine: z.string().max(80).default(''),
+    currentMods: z.string().max(1000).default(''),
+    serviceDate: z.string().max(40).default(''),
   }),
   items: z.array(itemSchema).min(1).max(50),
   payment: z.enum(['shop', 'bank', 'card']),
@@ -50,6 +51,9 @@ function initialPaymentStatus(payment: 'shop' | 'bank' | 'card'): PaymentStatus 
 
 export async function POST(request: Request) {
   try {
+    const rl = rateLimit('orders:' + getClientIp(request), 8, 60_000);
+    if (!rl.ok) return tooManyRequests(rl.retryAfter);
+
     const body: unknown = await request.json();
     const result = schema.safeParse(body);
 
