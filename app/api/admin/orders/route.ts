@@ -5,7 +5,7 @@ import { getOrders } from '@/lib/orders.dev';
 export async function GET() {
   try {
     await requireAdmin();
-    return NextResponse.json(getOrders());
+    return NextResponse.json(await getOrders());
   } catch (err) {
     return handleAdminError(err);
   }

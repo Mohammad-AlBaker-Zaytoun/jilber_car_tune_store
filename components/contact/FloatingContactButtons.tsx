@@ -2,8 +2,8 @@ import { getSettings } from '@/lib/settings.dev';
 import type { PublicContactInfo } from '@/lib/contact';
 import FloatingContactButtonsClient from './FloatingContactButtonsClient';
 
-export default function FloatingContactButtons() {
-  const s = getSettings();
+export default async function FloatingContactButtons() {
+  const s = await getSettings();
   const info: PublicContactInfo = {
     contactPhone: s.contactPhone,
     contactEmail: s.contactEmail,

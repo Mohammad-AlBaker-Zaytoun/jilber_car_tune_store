@@ -12,7 +12,7 @@ const schema = z.object({
 export async function GET() {
   try {
     await requireAdmin();
-    return NextResponse.json(getCategories());
+    return NextResponse.json(await getCategories());
   } catch (err) {
     return handleAdminError(err);
   }
@@ -26,7 +26,7 @@ export async function POST(request: Request) {
     if (!result.success) {
       return NextResponse.json({ error: 'Validation failed', issues: result.error.flatten() }, { status: 400 });
     }
-    const cat = createCategory(result.data);
+    const cat = await createCategory(result.data);
     return NextResponse.json(cat, { status: 201 });
   } catch (err) {
     if (err instanceof Error && err.message.includes('slug')) {

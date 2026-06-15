@@ -8,6 +8,6 @@ export async function GET() {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const orders = getOrdersByUserId(session.id);
+  const orders = await getOrdersByUserId(session.id);
   return NextResponse.json(orders.map((o) => sanitizeOrderForCustomer(o, session.id)));
 }

@@ -8,10 +8,10 @@ export async function GET() {
   try {
     await requireAdmin();
 
-    const { total: totalProducts, active: activeProducts } = countProducts();
-    const { total: totalOrders, pending: pendingOrders } = countOrders();
-    const totalUsers = countUsers();
-    const revenue = estimatedRevenue();
+    const { total: totalProducts, active: activeProducts } = await countProducts();
+    const { total: totalOrders, pending: pendingOrders } = await countOrders();
+    const totalUsers = await countUsers();
+    const revenue = await estimatedRevenue();
 
     return NextResponse.json({
       totalProducts,

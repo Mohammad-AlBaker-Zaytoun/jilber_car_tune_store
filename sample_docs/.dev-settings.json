@@ -1,0 +1,9 @@
+{
+  "shopName": "JILBER Performance",
+  "contactEmail": "info@jilber.com",
+  "contactPhone": "+1 555 0100",
+  "address": "42 Performance Drive, Motorsport Park, CA 90210",
+  "currency": "USD",
+  "taxRate": 10,
+  "bookingMessage": "Thank you for booking with JILBER. Our team will contact you within 24 hours to confirm your appointment."
+}

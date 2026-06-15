@@ -1,18 +1,16 @@
 /**
- * DEV-ONLY: Promote a user to admin by email.
+ * Promote a user to admin by email — MSSQL via Prisma.
  *
  * Usage:
  *   node scripts/make-admin.mjs user@example.com
  *
- * The .dev-users.json file must exist (i.e., the user must have signed up first).
+ * The user must have signed up first (so a row exists in the users table).
+ * Requires DATABASE_URL to be set (reads .env via Prisma).
  */
 
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
+import { PrismaClient } from '@prisma/client';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const DB_PATH = path.join(__dirname, '..', '.dev-users.json');
+const prisma = new PrismaClient();
 
 const email = process.argv[2]?.trim().toLowerCase();
 if (!email) {
@@ -20,22 +18,21 @@ if (!email) {
   process.exit(1);
 }
 
-if (!fs.existsSync(DB_PATH)) {
-  console.error(`No .dev-users.json found. Have any users signed up yet?`);
+try {
+  const user = await prisma.user.findUnique({ where: { email } });
+  if (!user) {
+    console.error(`No user found with email: ${email}`);
+    process.exit(1);
+  }
+
+  const prev = user.role ?? 'user';
+  await prisma.user.update({ where: { email }, data: { role: 'admin' } });
+
+  console.log(`✓ ${user.name} (${email}) promoted from "${prev}" → "admin"`);
+  console.log('  Sign out and back in for the new role to take effect.');
+} catch (err) {
+  console.error('Failed to promote user:', err);
   process.exit(1);
+} finally {
+  await prisma.$disconnect();
 }
-
-const users = JSON.parse(fs.readFileSync(DB_PATH, 'utf-8'));
-const idx = users.findIndex((u) => u.email.toLowerCase() === email);
-
-if (idx === -1) {
-  console.error(`No user found with email: ${email}`);
-  process.exit(1);
-}
-
-const prev = users[idx].role ?? 'user';
-users[idx].role = 'admin';
-fs.writeFileSync(DB_PATH, JSON.stringify(users, null, 2), 'utf-8');
-
-console.log(`✓ ${users[idx].name} (${email}) promoted from "${prev}" → "admin"`);
-console.log('  Sign out and back in for the new role to take effect.');

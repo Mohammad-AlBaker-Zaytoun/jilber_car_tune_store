@@ -18,7 +18,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     if (!result.success) {
       return NextResponse.json({ error: 'Validation failed', issues: result.error.flatten() }, { status: 400 });
     }
-    const updated = updateCategory(id, result.data);
+    const updated = await updateCategory(id, result.data);
     if (!updated) return NextResponse.json({ error: 'Not found' }, { status: 404 });
     return NextResponse.json(updated);
   } catch (err) {
@@ -33,7 +33,7 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
   try {
     await requireAdmin();
     const { id } = await params;
-    const deleted = deleteCategory(id);
+    const deleted = await deleteCategory(id);
     if (!deleted) return NextResponse.json({ error: 'Not found' }, { status: 404 });
     return NextResponse.json({ success: true });
   } catch (err) {

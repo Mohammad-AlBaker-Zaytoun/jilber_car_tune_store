@@ -38,7 +38,7 @@ export async function GET(
   try {
     await requireAdmin();
     const { id } = await params;
-    const quote = getQuoteById(id);
+    const quote = await getQuoteById(id);
     if (!quote) return NextResponse.json({ error: 'Not found' }, { status: 404 });
     return NextResponse.json(quote);
   } catch (err) {
@@ -54,7 +54,7 @@ export async function PATCH(
     await requireAdmin();
     const { id } = await params;
 
-    const quote = getQuoteById(id);
+    const quote = await getQuoteById(id);
     if (!quote) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
     const body: unknown = await request.json();
@@ -71,16 +71,16 @@ export async function PATCH(
     let updated = quote;
 
     if (status !== undefined) {
-      updated = updateQuoteStatus(id, status as QuoteStatus) ?? updated;
+      updated = (await updateQuoteStatus(id, status as QuoteStatus)) ?? updated;
     }
     if (priority !== undefined) {
-      updated = updateQuotePriority(id, priority as QuotePriority) ?? updated;
+      updated = (await updateQuotePriority(id, priority as QuotePriority)) ?? updated;
     }
     if (adminNotes !== undefined) {
-      updated = updateQuoteAdminNotes(id, adminNotes) ?? updated;
+      updated = (await updateQuoteAdminNotes(id, adminNotes)) ?? updated;
     }
     if (customerReply !== undefined) {
-      updated = updateQuoteCustomerReply(id, customerReply) ?? updated;
+      updated = (await updateQuoteCustomerReply(id, customerReply)) ?? updated;
       notifyCustomerQuoteUpdated(updated);
     }
 

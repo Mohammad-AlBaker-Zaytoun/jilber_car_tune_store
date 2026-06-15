@@ -16,7 +16,7 @@ export async function PUT(
     await requireAdmin();
     const { id } = await params;
 
-    const review = getReviewById(id);
+    const review = await getReviewById(id);
     if (!review) {
       return NextResponse.json({ error: 'Review not found' }, { status: 404 });
     }
@@ -30,7 +30,7 @@ export async function PUT(
       );
     }
 
-    const updated = updateReview(id, { status: result.data.status });
+    const updated = await updateReview(id, { status: result.data.status });
     return NextResponse.json(updated);
   } catch (err) {
     return handleAdminError(err);
@@ -46,12 +46,12 @@ export async function DELETE(
     await requireAdmin();
     const { id } = await params;
 
-    const review = getReviewById(id);
+    const review = await getReviewById(id);
     if (!review) {
       return NextResponse.json({ error: 'Review not found' }, { status: 404 });
     }
 
-    deleteReview(id);
+    await deleteReview(id);
     return NextResponse.json({ success: true });
   } catch (err) {
     return handleAdminError(err);

@@ -1,0 +1,228 @@
+// Prisma schema for the JILBER car tune store — MSSQL backend.
+//
+// SQL Server connector constraints honoured here:
+//   * No native enum  -> status/role/priority fields are String (validated by the
+//     TS union types in types/admin.ts, types/quotes.ts and the route Zod schemas).
+//   * No Json scalar  -> array/object value-fields are NVarChar(Max) holding JSON,
+//     (de)serialised by the repository layer. True child entities (order items,
+//     status history) are real relational tables instead.
+//   * Index key byte limit -> every column used in a PK / unique / FK / index is
+//     bounded with @db.NVarChar(n) (Prisma's default NVarChar(1000) = 2000 bytes
+//     exceeds SQL Server's index key limits and would only create with warnings).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlserver"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @db.NVarChar(64)
+  email        String   @unique @db.NVarChar(320) // stored lowercased
+  name         String
+  phone        String?
+  passwordHash String
+  role         String   @default("user") // 'user' | 'admin'
+  createdAt    DateTime @default(now())
+
+  @@map("users")
+}
+
+model Category {
+  id          String   @id @db.NVarChar(64)
+  name        String
+  slug        String   @unique @db.NVarChar(191)
+  description String?
+  createdAt   DateTime @default(now())
+
+  @@map("categories")
+}
+
+model Product {
+  id               String   @id @db.NVarChar(64)
+  slug             String   @unique @db.NVarChar(191)
+  name             String
+  category         String
+  shortDescription String   @db.NVarChar(Max)
+  description      String   @db.NVarChar(Max)
+  price            Decimal  @db.Decimal(10, 2)
+  oldPrice         Decimal? @db.Decimal(10, 2)
+  currency         String   @default("USD")
+  badge            String?
+  rating           Float    @default(0)
+  reviewCount      Int      @default(0)
+  inStock          Boolean  @default(true)
+  featured         Boolean  @default(false)
+  visualColor      String
+  visualColor2     String
+  // JSON-encoded arrays (NVarChar(Max)): ProductSpec[], string[], string[], string[]
+  specs            String   @default("[]") @db.NVarChar(Max)
+  compatibility    String   @default("[]") @db.NVarChar(Max)
+  includedItems    String   @default("[]") @db.NVarChar(Max)
+  images           String   @default("[]") @db.NVarChar(Max)
+
+  @@map("products")
+}
+
+model Order {
+  id            String    @id @db.NVarChar(64)
+  ref           String    @unique @db.NVarChar(64)
+  status        String    @default("pending")
+  paymentStatus String    @default("unpaid")
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @default(now())
+  completedAt   DateTime?
+  cancelledAt   DateTime?
+  userId        String?   @db.NVarChar(64)
+
+  // Embedded 1:1 customer
+  customerFullName String
+  customerEmail    String
+  customerPhone    String
+  customerAddress  String  @db.NVarChar(Max)
+
+  // Embedded 1:1 vehicle
+  vehicleMake        String
+  vehicleModel       String
+  vehicleYear        String
+  vehicleEngine      String
+  vehicleCurrentMods String @db.NVarChar(Max)
+  vehicleServiceDate String
+
+  payment       String
+  subtotal      Decimal  @db.Decimal(10, 2)
+  tax           Decimal  @db.Decimal(10, 2)
+  total         Decimal  @db.Decimal(10, 2)
+  currency      String   @default("USD")
+  adminNotes    String?  @db.NVarChar(Max)
+  customerNotes String?  @db.NVarChar(Max)
+
+  items         OrderItem[]
+  statusHistory OrderStatusHistory[]
+
+  @@index([userId])
+  @@map("orders")
+}
+
+model OrderItem {
+  id          String  @id @db.NVarChar(64)
+  orderId     String  @db.NVarChar(64)
+  slug        String
+  name        String
+  category    String
+  price       Decimal @db.Decimal(10, 2)
+  currency    String
+  quantity    Int
+  visualColor String
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+  @@map("order_items")
+}
+
+model OrderStatusHistory {
+  id              String   @id @db.NVarChar(64)
+  orderId         String   @db.NVarChar(64)
+  fromStatus      String?
+  toStatus        String
+  changedByUserId String
+  changedByName   String
+  note            String?  @db.NVarChar(Max)
+  createdAt       DateTime @default(now())
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+  @@map("order_status_history")
+}
+
+model Quote {
+  id          String  @id @db.NVarChar(64)
+  quoteNumber String  @unique @db.NVarChar(64)
+  userId      String? @db.NVarChar(64)
+
+  customerName          String
+  customerEmail         String
+  customerPhone         String
+  preferredContactMethod String // 'phone' | 'whatsapp' | 'email'
+
+  vehicleMake          String
+  vehicleModel         String
+  vehicleYear          String
+  vehicleEngine        String
+  transmission         String?
+  mileage              String?
+  currentModifications String? @db.NVarChar(Max)
+
+  serviceCategory String
+  performanceGoal String? @db.NVarChar(Max)
+  budgetRange     String?
+  desiredTimeline String?
+  message         String  @db.NVarChar(Max)
+
+  relatedProductId   String?
+  relatedProductSlug String?
+  relatedProductName String?
+
+  // JSON-encoded string[] of attachment paths
+  attachments String @default("[]") @db.NVarChar(Max)
+
+  status        String  @default("new")
+  priority      String  @default("normal")
+  adminNotes    String? @db.NVarChar(Max)
+  customerReply String? @db.NVarChar(Max)
+
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @default(now())
+  contactedAt        DateTime?
+  quotedAt           DateTime?
+  convertedToOrderId String?
+
+  @@index([userId])
+  @@map("quotes")
+}
+
+model Review {
+  id          String   @id @db.NVarChar(64)
+  productId   String   @db.NVarChar(64)
+  productSlug String
+  userId      String   @db.NVarChar(64)
+  userName    String
+  userEmail   String
+  rating      Int
+  title       String?
+  comment     String?  @db.NVarChar(Max)
+  status      String   @default("pending") // 'pending' | 'approved' | 'hidden'
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now())
+
+  @@unique([userId, productId]) // one review per user per product
+  @@index([productId])
+  @@map("reviews")
+}
+
+// Singleton row (id = 1) holding the shop-wide AdminSettings.
+model Setting {
+  id                     Int     @id @default(1)
+  shopName               String
+  contactEmail           String
+  contactPhone           String
+  address                String  @db.NVarChar(Max)
+  currency               String
+  taxRate                Float
+  bookingMessage         String  @db.NVarChar(Max)
+  whatsappNumber         String
+  googleMapsUrl          String  @db.NVarChar(Max)
+  workingHours           String
+  enableFloatingWhatsApp Boolean
+  enableFloatingCall     Boolean
+  defaultWhatsAppMessage String  @db.NVarChar(Max)
+  quoteWhatsAppMessage   String  @db.NVarChar(Max)
+  productWhatsAppMessage String  @db.NVarChar(Max)
+
+  @@map("settings")
+}

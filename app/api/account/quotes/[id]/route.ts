@@ -13,7 +13,7 @@ export async function GET(
     }
 
     const { id } = await params;
-    const quote = getQuoteById(id);
+    const quote = await getQuoteById(id);
 
     if (!quote) {
       return NextResponse.json({ error: 'Not found' }, { status: 404 });

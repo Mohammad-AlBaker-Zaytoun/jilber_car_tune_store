@@ -31,14 +31,13 @@ yarn-error.log*
 .pnpm-debug.log*
 
 # env files (can opt-in for committing if needed)
+.env
 .env.local
 
-# dev-only local data stores (must be replaced with a real DB before production)
-.dev-users.json
-.dev-products.json
-.dev-orders.json
-.dev-categories.json
-.dev-settings.json
+# legacy dev-only JSON stores: any left in the PROJECT ROOT during dev are ignored
+# (they hold real PII / bcrypt hashes). The anchored `/` means the sanitized
+# reference snapshots committed under sample_docs/ are NOT ignored.
+/.dev-*.json
 
 # vercel
 .vercel

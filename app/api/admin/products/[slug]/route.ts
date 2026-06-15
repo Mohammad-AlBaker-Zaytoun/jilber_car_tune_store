@@ -31,7 +31,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ slug: s
   try {
     await requireAdmin();
     const { slug } = await params;
-    const product = getProductBySlug(slug);
+    const product = await getProductBySlug(slug);
     if (!product) return NextResponse.json({ error: 'Not found' }, { status: 404 });
     return NextResponse.json(product);
   } catch (err) {
@@ -48,7 +48,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ slug
     if (!result.success) {
       return NextResponse.json({ error: 'Validation failed', issues: result.error.flatten() }, { status: 400 });
     }
-    const updated = updateProduct(slug, result.data as Parameters<typeof updateProduct>[1]);
+    const updated = await updateProduct(slug, result.data as Parameters<typeof updateProduct>[1]);
     if (!updated) return NextResponse.json({ error: 'Not found' }, { status: 404 });
     return NextResponse.json(updated);
   } catch (err) {
@@ -63,7 +63,7 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ slug
   try {
     await requireAdmin();
     const { slug } = await params;
-    const deleted = deleteProduct(slug);
+    const deleted = await deleteProduct(slug);
     if (!deleted) return NextResponse.json({ error: 'Not found' }, { status: 404 });
     return NextResponse.json({ success: true });
   } catch (err) {

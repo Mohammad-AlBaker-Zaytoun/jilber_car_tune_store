@@ -18,7 +18,8 @@ Built with **Next.js 16 · React 19 · TypeScript 5 · Tailwind CSS v4**
 | State | Zustand (cart, persisted) | 5.0.13 |
 | Validation | Zod | 4.4.3 |
 | Icons | lucide-react | latest |
-| Dev Storage | JSON file stores (`.dev-*.json`) | — |
+| Database | Microsoft SQL Server | 2022 |
+| ORM | Prisma | 6.x |
 
 ---
 
@@ -217,22 +218,22 @@ stateDiagram-v2
 sequenceDiagram
     participant Browser
     participant API
-    participant FileStore as .dev-users.json
+    participant DB as MSSQL (Prisma)
 
     Note over Browser,API: Registration (no session created)
     Browser->>API: POST /api/auth/register {name, email, phone, password}
-    API->>FileStore: createUser (bcrypt hash, role: 'user')
+    API->>DB: createUser (bcrypt hash, role: 'user')
     API-->>Browser: 201 {success: true}  ← no cookie yet
 
     Note over Browser,API: Login
     Browser->>API: POST /api/auth/login {email, password}
-    API->>FileStore: findUserByEmail → bcrypt.compare
+    API->>DB: findUserByEmail → bcrypt.compare
     API-->>Browser: 200 {user} + Set-Cookie: session=JWT (httpOnly, 24h)
 
     Note over Browser,API: Admin route protection (per-handler, not middleware)
     Browser->>API: GET /admin/orders  (or any /api/admin/* route)
     API->>API: requireAdmin() - verify JWT from cookie
-    API->>FileStore: findUserById - re-check live role (demotion takes effect immediately)
+    API->>DB: findUserById - re-check live role (demotion takes effect immediately)
     API-->>Browser: 403 {error: Forbidden} if not admin
 
     Note over Browser,API: Session check
@@ -400,15 +401,18 @@ npm install
 
 ### 2. Configure environment
 
-Copy `.env.example` to `.env.local` and fill in the values:
+Copy `.env.example` to `.env` (Prisma reads `.env`) and fill in the values:
 
 ```bash
-cp .env.example .env.local
+cp .env.example .env
 ```
 
 Required variables:
 
 ```env
+# MSSQL connection (Prisma sqlserver connector)
+DATABASE_URL="sqlserver://localhost:1433;database=jilber;user=sa;password=Your_strong_Pass123;encrypt=true;trustServerCertificate=true"
+
 # 32+ character secret for JWT signing
 AUTH_SECRET=your-secret-here
 
@@ -422,7 +426,23 @@ Generate a secure `AUTH_SECRET`:
 node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 ```
 
-### 3. Start development server
+### 3. Start SQL Server and run migrations
+
+Start a local SQL Server (Docker):
+
+```bash
+docker run -e "ACCEPT_EULA=Y" -e "MSSQL_SA_PASSWORD=Your_strong_Pass123" \
+  -p 1433:1433 -d --name jilber-mssql mcr.microsoft.com/mssql/server:2022-latest
+```
+
+Create the schema and (optionally) import any existing legacy `.dev-*.json` data:
+
+```bash
+npx prisma migrate dev --name init   # create tables
+npx prisma db seed                   # seed catalog + import legacy JSON if present
+```
+
+### 4. Start development server
 
 ```bash
 npm run dev
@@ -430,11 +450,15 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000).
 
-### 4. Create an admin account
+### 5. Create an admin account
 
-Register a user at `/signup`, then promote them to admin by editing `.dev-users.json` and changing their `role` to `"admin"`.
+Register a user at `/signup`, then promote them to admin:
 
-### 5. Scroll frames (optional)
+```bash
+node scripts/make-admin.mjs user@example.com
+```
+
+### 6. Scroll frames (optional)
 
 Drop 241 JPEG frames into `public/scroll-frames/`:
 
@@ -457,24 +481,29 @@ Recommended resolution: **1280×720**.
 | `npm run build` | Production build |
 | `npm run start` | Serve the production build locally |
 | `npm run lint` | ESLint check |
+| `npm run db:migrate` | Create/apply Prisma migrations (`prisma migrate dev`) |
+| `npm run db:seed` | Seed catalog + import legacy JSON (`prisma db seed`) |
+| `npm run db:studio` | Open Prisma Studio to browse the database |
 
 ---
 
 ## Data Storage
 
-The project uses **file-based JSON stores** for development (`.dev-*.json` files in the project root). These are fine for local development and demos but are not suitable for production.
+The project persists all data in **Microsoft SQL Server** via **Prisma**. The schema lives in [`prisma/schema.prisma`](prisma/schema.prisma); the data-access layer is a set of repository modules under `lib/*.dev.ts` that expose stable, async function signatures (`getProducts`, `createOrder`, `findUserByEmail`, …) so API routes and server components never touch SQL directly.
 
-| File | Contents |
+| Table | Contents |
 | --- | --- |
-| `.dev-users.json` | User accounts (bcrypt-hashed passwords) |
-| `.dev-products.json` | Product catalog |
-| `.dev-categories.json` | Product categories |
-| `.dev-orders.json` | Orders and status history |
-| `.dev-quotes.json` | Quote requests |
-| `.dev-reviews.json` | Product reviews |
-| `.dev-settings.json` | Admin shop settings |
+| `users` | User accounts (bcrypt-hashed passwords) |
+| `products` | Product catalog (array fields stored as JSON columns) |
+| `categories` | Product categories |
+| `orders` / `order_items` / `order_status_history` | Orders, line items, and status history |
+| `quotes` | Quote requests |
+| `reviews` | Product reviews (unique per user+product) |
+| `settings` | Admin shop settings (singleton row) |
 
-**For production:** replace the `lib/*.dev.ts` files with a proper database client (PostgreSQL + Prisma is recommended). All API routes call these files through stable function signatures, so the routes themselves do not need to change.
+**SQL Server connector notes:** the Prisma `sqlserver` connector has no native `enum` or `Json` scalar, so status/role/priority fields are stored as `String` (validated by the TypeScript union types + Zod schemas) and array/object value-fields are stored as `NVARCHAR(MAX)` JSON columns, mapped to/from arrays in the repository layer.
+
+**Migrating from the old JSON stores:** [`prisma/seed.ts`](prisma/seed.ts) reads any legacy `.dev-*.json` files still present in the project root and imports them (falling back to `data/products.ts` for the catalog). Run it with `npm run db:seed`. The connection target is fully env-driven (`DATABASE_URL`), so moving from local SQL Server to Azure SQL later requires no code changes.
 
 ---
 

@@ -3,7 +3,7 @@ import { getSettings } from '@/lib/settings.dev';
 import type { PublicContactInfo } from '@/lib/contact';
 
 export async function GET() {
-  const s = getSettings();
+  const s = await getSettings();
   const info: PublicContactInfo = {
     contactPhone: s.contactPhone,
     contactEmail: s.contactEmail,

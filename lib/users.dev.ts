@@ -1,18 +1,14 @@
 /**
- * DEV-ONLY user store — JSON file on disk.
+ * User repository — MSSQL via Prisma.
  *
- * This is intentionally NOT suitable for production. Before deploying:
- *   1. Add a real database (Prisma + PostgreSQL, Supabase, PlanetScale, etc.)
- *   2. Replace this module with a proper data-access layer.
- *   3. The interface — findUserByEmail, findUserById, createUser, updateUser —
- *      is kept minimal so consuming API routes need zero changes.
- *
- * The .dev-users.json file is written to the project root and is gitignored.
+ * Public function names/signatures unchanged from the old JSON store. The
+ * passwordHash is never returned by listUsers/updateUser. Email is stored and
+ * matched case-insensitively (persisted lowercased).
  */
 
-import fs from 'fs';
-import path from 'path';
 import { randomUUID } from 'crypto';
+import { prisma } from '@/lib/db/prisma';
+import type { User as UserRow } from '@prisma/client';
 import type { UserRole } from '@/types/admin';
 
 export interface StoredUser {
@@ -26,59 +22,73 @@ export interface StoredUser {
   createdAt: string;
 }
 
-const DB_PATH = path.join(process.cwd(), '.dev-users.json');
-
-function readStore(): StoredUser[] {
-  try {
-    if (!fs.existsSync(DB_PATH)) return [];
-    const raw = fs.readFileSync(DB_PATH, 'utf-8');
-    return JSON.parse(raw) as StoredUser[];
-  } catch {
-    return [];
-  }
-}
-
-function writeStore(users: StoredUser[]): void {
-  fs.writeFileSync(DB_PATH, JSON.stringify(users, null, 2), 'utf-8');
-}
-
-export function findUserByEmail(email: string): StoredUser | null {
-  return readStore().find((u) => u.email.toLowerCase() === email.toLowerCase()) ?? null;
-}
-
-export function findUserById(id: string): StoredUser | null {
-  return readStore().find((u) => u.id === id) ?? null;
-}
-
-export function createUser(data: Omit<StoredUser, 'id' | 'createdAt'>): StoredUser {
-  const users = readStore();
-  const user: StoredUser = {
-    ...data,
-    role: data.role ?? 'user',
-    id: randomUUID(),
-    createdAt: new Date().toISOString(),
+function rowToUser(row: UserRow): StoredUser {
+  return {
+    id: row.id,
+    email: row.email,
+    name: row.name,
+    phone: row.phone ?? undefined,
+    passwordHash: row.passwordHash,
+    role: row.role as UserRole,
+    createdAt: row.createdAt.toISOString(),
   };
-  writeStore([...users, user]);
-  return user;
 }
 
-export function updateUser(
-  id: string,
-  data: Partial<Omit<StoredUser, 'id' | 'createdAt' | 'passwordHash'>>
-): Omit<StoredUser, 'passwordHash'> | null {
-  const users = readStore();
-  const idx = users.findIndex((u) => u.id === id);
-  if (idx === -1) return null;
-  users[idx] = { ...users[idx], ...data };
-  writeStore(users);
-  const { passwordHash: _, ...safe } = users[idx];
+function stripHash(u: StoredUser): Omit<StoredUser, 'passwordHash'> {
+  const { passwordHash: _passwordHash, ...safe } = u;
   return safe;
 }
 
-export function listUsers(): Omit<StoredUser, 'passwordHash'>[] {
-  return readStore().map(({ passwordHash: _, ...u }) => u);
+export async function findUserByEmail(email: string): Promise<StoredUser | null> {
+  const row = await prisma.user.findUnique({ where: { email: email.toLowerCase() } });
+  return row ? rowToUser(row) : null;
 }
 
-export function countUsers(): number {
-  return readStore().length;
+export async function findUserById(id: string): Promise<StoredUser | null> {
+  const row = await prisma.user.findUnique({ where: { id } });
+  return row ? rowToUser(row) : null;
+}
+
+export async function createUser(
+  data: Omit<StoredUser, 'id' | 'createdAt'>
+): Promise<StoredUser> {
+  const row = await prisma.user.create({
+    data: {
+      id: randomUUID(),
+      email: data.email.toLowerCase(),
+      name: data.name,
+      phone: data.phone,
+      passwordHash: data.passwordHash,
+      role: data.role ?? 'user',
+    },
+  });
+  return rowToUser(row);
+}
+
+export async function updateUser(
+  id: string,
+  data: Partial<Omit<StoredUser, 'id' | 'createdAt' | 'passwordHash'>>
+): Promise<Omit<StoredUser, 'passwordHash'> | null> {
+  const current = await prisma.user.findUnique({ where: { id } });
+  if (!current) return null;
+
+  const row = await prisma.user.update({
+    where: { id },
+    data: {
+      ...(data.email !== undefined ? { email: data.email.toLowerCase() } : {}),
+      ...(data.name !== undefined ? { name: data.name } : {}),
+      ...(data.phone !== undefined ? { phone: data.phone } : {}),
+      ...(data.role !== undefined ? { role: data.role } : {}),
+    },
+  });
+  return stripHash(rowToUser(row));
+}
+
+export async function listUsers(): Promise<Omit<StoredUser, 'passwordHash'>[]> {
+  const rows = await prisma.user.findMany({ orderBy: { createdAt: 'asc' } });
+  return rows.map((r) => stripHash(rowToUser(r)));
+}
+
+export async function countUsers(): Promise<number> {
+  return prisma.user.count();
 }

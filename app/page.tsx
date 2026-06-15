@@ -30,8 +30,8 @@ export const metadata: Metadata = {
   },
 };
 
-export default function Home() {
-  const s = getSettings();
+export default async function Home() {
+  const s = await getSettings();
   const orgJsonLd = buildOrganizationJsonLd({
     telephone: s.contactPhone || undefined,
     email: s.contactEmail || undefined,

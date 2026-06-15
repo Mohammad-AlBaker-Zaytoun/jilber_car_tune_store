@@ -1,0 +1,11 @@
+[
+  {
+    "email": "admin@example.com",
+    "name": "Demo Admin",
+    "phone": "+10000000000",
+    "passwordHash": "$2b$12$LkzT5zyo3HMh3E9BL9.6lex2iq6U6n.Go9YcWnJ/I20zW2ANgvVmG",
+    "id": "00000000-0000-4000-8000-000000000001",
+    "createdAt": "2026-05-10T20:21:38.572Z",
+    "role": "admin"
+  }
+]

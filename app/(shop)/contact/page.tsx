@@ -12,8 +12,8 @@ export const metadata: Metadata = {
     'Contact our performance tuning workshop for ECU tuning, exhaust systems, suspension upgrades, diagnostics, and custom automotive builds.',
 };
 
-export default function ContactPage() {
-  const s = getSettings();
+export default async function ContactPage() {
+  const s = await getSettings();
 
   const waUrl = buildWhatsAppUrl(s.whatsappNumber, s.defaultWhatsAppMessage || undefined);
   const telUrl = buildTelUrl(s.contactPhone);

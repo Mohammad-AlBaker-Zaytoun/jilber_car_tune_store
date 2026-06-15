@@ -1,28 +1,61 @@
 /**
- * DEV-ONLY quote request store — JSON file on disk.
- * Replace with a real database before production.
+ * Quote request repository — MSSQL via Prisma.
+ * Public function names/signatures unchanged from the old JSON store.
+ * `attachments` is stored as a JSON string and mapped back to an array here.
  */
 
-import fs from 'fs';
-import path from 'path';
 import { randomUUID, randomBytes } from 'crypto';
-import type { QuoteRequest, QuoteStatus, QuotePriority } from '@/types/quotes';
+import { prisma } from '@/lib/db/prisma';
+import type { Quote as QuoteRow } from '@prisma/client';
+import type {
+  QuoteRequest,
+  QuoteStatus,
+  QuotePriority,
+  ServiceCategory,
+  PreferredContactMethod,
+} from '@/types/quotes';
 
 export type { QuoteRequest, QuoteStatus, QuotePriority };
 
-const DB_PATH = path.join(process.cwd(), '.dev-quotes.json');
-
-function readStore(): QuoteRequest[] {
-  try {
-    if (!fs.existsSync(DB_PATH)) return [];
-    return JSON.parse(fs.readFileSync(DB_PATH, 'utf-8')) as QuoteRequest[];
-  } catch {
-    return [];
-  }
+function iso(d: Date | null): string | undefined {
+  return d ? d.toISOString() : undefined;
 }
 
-function writeStore(quotes: QuoteRequest[]): void {
-  fs.writeFileSync(DB_PATH, JSON.stringify(quotes, null, 2), 'utf-8');
+function rowToQuote(row: QuoteRow): QuoteRequest {
+  return {
+    id: row.id,
+    quoteNumber: row.quoteNumber,
+    userId: row.userId ?? undefined,
+    customerName: row.customerName,
+    customerEmail: row.customerEmail,
+    customerPhone: row.customerPhone,
+    preferredContactMethod: row.preferredContactMethod as PreferredContactMethod,
+    vehicleMake: row.vehicleMake,
+    vehicleModel: row.vehicleModel,
+    vehicleYear: row.vehicleYear,
+    vehicleEngine: row.vehicleEngine,
+    transmission: row.transmission ?? undefined,
+    mileage: row.mileage ?? undefined,
+    currentModifications: row.currentModifications ?? undefined,
+    serviceCategory: row.serviceCategory as ServiceCategory,
+    performanceGoal: row.performanceGoal ?? undefined,
+    budgetRange: row.budgetRange ?? undefined,
+    desiredTimeline: row.desiredTimeline ?? undefined,
+    message: row.message,
+    relatedProductId: row.relatedProductId ?? undefined,
+    relatedProductSlug: row.relatedProductSlug ?? undefined,
+    relatedProductName: row.relatedProductName ?? undefined,
+    attachments: JSON.parse(row.attachments) as string[],
+    status: row.status as QuoteStatus,
+    priority: row.priority as QuotePriority,
+    adminNotes: row.adminNotes ?? undefined,
+    customerReply: row.customerReply ?? undefined,
+    createdAt: row.createdAt.toISOString(),
+    updatedAt: row.updatedAt.toISOString(),
+    contactedAt: iso(row.contactedAt),
+    quotedAt: iso(row.quotedAt),
+    convertedToOrderId: row.convertedToOrderId ?? undefined,
+  };
 }
 
 export function generateQuoteNumber(): string {
@@ -40,120 +73,149 @@ export function generateQuoteNumber(): string {
 // Reads
 // ---------------------------------------------------------------------------
 
-export function getQuotes(): QuoteRequest[] {
-  return readStore().sort(
-    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-  );
+export async function getQuotes(): Promise<QuoteRequest[]> {
+  const rows = await prisma.quote.findMany({ orderBy: { createdAt: 'desc' } });
+  return rows.map(rowToQuote);
 }
 
-export function getQuoteById(id: string): QuoteRequest | null {
-  return readStore().find((q) => q.id === id) ?? null;
+export async function getQuoteById(id: string): Promise<QuoteRequest | null> {
+  const row = await prisma.quote.findUnique({ where: { id } });
+  return row ? rowToQuote(row) : null;
 }
 
-export function getQuotesByUserId(userId: string): QuoteRequest[] {
-  return readStore()
-    .filter((q) => q.userId === userId)
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+export async function getQuotesByUserId(userId: string): Promise<QuoteRequest[]> {
+  const rows = await prisma.quote.findMany({
+    where: { userId },
+    orderBy: { createdAt: 'desc' },
+  });
+  return rows.map(rowToQuote);
 }
 
-export function countQuotes(): {
+export async function countQuotes(): Promise<{
   total: number;
   new: number;
   reviewing: number;
   quoted: number;
   accepted: number;
   converted: number;
-} {
-  const all = readStore();
-  return {
-    total: all.length,
-    new: all.filter((q) => q.status === 'new').length,
-    reviewing: all.filter((q) => q.status === 'reviewing').length,
-    quoted: all.filter((q) => q.status === 'quoted').length,
-    accepted: all.filter((q) => q.status === 'accepted').length,
-    converted: all.filter((q) => q.status === 'converted_to_order').length,
-  };
+}> {
+  const [total, _new, reviewing, quoted, accepted, converted] = await Promise.all([
+    prisma.quote.count(),
+    prisma.quote.count({ where: { status: 'new' } }),
+    prisma.quote.count({ where: { status: 'reviewing' } }),
+    prisma.quote.count({ where: { status: 'quoted' } }),
+    prisma.quote.count({ where: { status: 'accepted' } }),
+    prisma.quote.count({ where: { status: 'converted_to_order' } }),
+  ]);
+  return { total, new: _new, reviewing, quoted, accepted, converted };
 }
 
 // ---------------------------------------------------------------------------
 // Writes
 // ---------------------------------------------------------------------------
 
-export function createQuote(
-  data: Omit<QuoteRequest, 'id' | 'createdAt' | 'updatedAt' | 'status' | 'priority' | 'quoteNumber'>
-): QuoteRequest {
-  const quotes = readStore();
-  const id = randomUUID();
-  const now = new Date().toISOString();
-  const quote: QuoteRequest = {
-    ...data,
-    id,
-    quoteNumber: generateQuoteNumber(),
-    status: 'new',
-    priority: 'normal',
-    createdAt: now,
-    updatedAt: now,
-  };
-  writeStore([...quotes, quote]);
-  return quote;
+export async function createQuote(
+  data: Omit<
+    QuoteRequest,
+    'id' | 'createdAt' | 'updatedAt' | 'status' | 'priority' | 'quoteNumber'
+  >
+): Promise<QuoteRequest> {
+  const { attachments, ...rest } = data;
+  const row = await prisma.quote.create({
+    data: {
+      id: randomUUID(),
+      quoteNumber: generateQuoteNumber(),
+      status: 'new',
+      priority: 'normal',
+      attachments: JSON.stringify(attachments ?? []),
+      ...rest,
+    },
+  });
+  return rowToQuote(row);
 }
 
-export function updateQuoteStatus(id: string, status: QuoteStatus): QuoteRequest | null {
-  const quotes = readStore();
-  const idx = quotes.findIndex((q) => q.id === id);
-  if (idx === -1) return null;
-  const prev = quotes[idx];
-  const now = new Date().toISOString();
-  quotes[idx] = {
-    ...prev,
-    status,
-    updatedAt: now,
-    contactedAt: status === 'contacted' && !prev.contactedAt ? now : prev.contactedAt,
-    quotedAt: status === 'quoted' && !prev.quotedAt ? now : prev.quotedAt,
-  };
-  writeStore(quotes);
-  return quotes[idx];
+export async function updateQuoteStatus(
+  id: string,
+  status: QuoteStatus
+): Promise<QuoteRequest | null> {
+  const prev = await prisma.quote.findUnique({ where: { id } });
+  if (!prev) return null;
+
+  const now = new Date();
+  const row = await prisma.quote.update({
+    where: { id },
+    data: {
+      status,
+      updatedAt: now,
+      contactedAt: status === 'contacted' && !prev.contactedAt ? now : prev.contactedAt,
+      quotedAt: status === 'quoted' && !prev.quotedAt ? now : prev.quotedAt,
+    },
+  });
+  return rowToQuote(row);
 }
 
-export function updateQuotePriority(id: string, priority: QuotePriority): QuoteRequest | null {
-  const quotes = readStore();
-  const idx = quotes.findIndex((q) => q.id === id);
-  if (idx === -1) return null;
-  quotes[idx] = { ...quotes[idx], priority, updatedAt: new Date().toISOString() };
-  writeStore(quotes);
-  return quotes[idx];
+export async function updateQuotePriority(
+  id: string,
+  priority: QuotePriority
+): Promise<QuoteRequest | null> {
+  try {
+    const row = await prisma.quote.update({
+      where: { id },
+      data: { priority, updatedAt: new Date() },
+    });
+    return rowToQuote(row);
+  } catch {
+    return null;
+  }
 }
 
-export function updateQuoteAdminNotes(id: string, adminNotes: string): QuoteRequest | null {
-  const quotes = readStore();
-  const idx = quotes.findIndex((q) => q.id === id);
-  if (idx === -1) return null;
-  quotes[idx] = { ...quotes[idx], adminNotes, updatedAt: new Date().toISOString() };
-  writeStore(quotes);
-  return quotes[idx];
+export async function updateQuoteAdminNotes(
+  id: string,
+  adminNotes: string
+): Promise<QuoteRequest | null> {
+  try {
+    const row = await prisma.quote.update({
+      where: { id },
+      data: { adminNotes, updatedAt: new Date() },
+    });
+    return rowToQuote(row);
+  } catch {
+    return null;
+  }
 }
 
-export function updateQuoteCustomerReply(id: string, customerReply: string): QuoteRequest | null {
-  const quotes = readStore();
-  const idx = quotes.findIndex((q) => q.id === id);
-  if (idx === -1) return null;
-  quotes[idx] = { ...quotes[idx], customerReply, updatedAt: new Date().toISOString() };
-  writeStore(quotes);
-  return quotes[idx];
+export async function updateQuoteCustomerReply(
+  id: string,
+  customerReply: string
+): Promise<QuoteRequest | null> {
+  try {
+    const row = await prisma.quote.update({
+      where: { id },
+      data: { customerReply, updatedAt: new Date() },
+    });
+    return rowToQuote(row);
+  } catch {
+    return null;
+  }
 }
 
-export function convertQuoteToOrder(id: string, orderId: string): QuoteRequest | null {
-  const quotes = readStore();
-  const idx = quotes.findIndex((q) => q.id === id);
-  if (idx === -1) return null;
-  quotes[idx] = {
-    ...quotes[idx],
-    status: 'converted_to_order',
-    convertedToOrderId: orderId,
-    updatedAt: new Date().toISOString(),
-  };
-  writeStore(quotes);
-  return quotes[idx];
+export async function convertQuoteToOrder(
+  id: string,
+  orderId: string
+): Promise<QuoteRequest | null> {
+  try {
+    const row = await prisma.quote.update({
+      where: { id },
+      data: {
+        status: 'converted_to_order',
+        convertedToOrderId: orderId,
+        updatedAt: new Date(),
+      },
+    });
+    return rowToQuote(row);
+  } catch {
+    return null;
+  }
 }
 
 // ---------------------------------------------------------------------------

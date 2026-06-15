@@ -1,12 +1,12 @@
 /**
- * DEV-ONLY review store — JSON file on disk.
- * Follows the same pattern as lib/products.dev.ts and lib/users.dev.ts.
- * Replace with a real database before production.
+ * Review repository — MSSQL via Prisma.
+ * Public function names/signatures unchanged from the old JSON store.
+ * The one-review-per-user-per-product rule is enforced by a DB unique index.
  */
 
-import fs from 'fs';
-import path from 'path';
 import { randomUUID } from 'crypto';
+import { prisma } from '@/lib/db/prisma';
+import type { Review as ReviewRow } from '@prisma/client';
 
 export type ReviewStatus = 'pending' | 'approved' | 'hidden';
 
@@ -31,81 +31,107 @@ export type PublicReview = Omit<Review, 'userEmail'>;
 /** When true, new reviews are auto-approved. Set false to require manual moderation. */
 export const AUTO_APPROVE_REVIEWS = true;
 
-const DB_PATH = path.join(process.cwd(), '.dev-reviews.json');
-
-function readStore(): Review[] {
-  try {
-    if (!fs.existsSync(DB_PATH)) return [];
-    const raw = fs.readFileSync(DB_PATH, 'utf-8');
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? (parsed as Review[]) : [];
-  } catch {
-    return [];
-  }
-}
-
-function writeStore(reviews: Review[]): void {
-  fs.writeFileSync(DB_PATH, JSON.stringify(reviews, null, 2), 'utf-8');
-}
-
-export function getReviews(): Review[] {
-  return readStore();
-}
-
-export function getApprovedReviewsForProduct(productId: string): Review[] {
-  return readStore().filter((r) => r.productId === productId && r.status === 'approved');
-}
-
-export function getAllReviewsForProduct(productId: string): Review[] {
-  return readStore().filter((r) => r.productId === productId);
-}
-
-export function getUserReviewForProduct(userId: string, productId: string): Review | null {
-  return readStore().find((r) => r.userId === userId && r.productId === productId) ?? null;
-}
-
-export function getReviewById(id: string): Review | null {
-  return readStore().find((r) => r.id === id) ?? null;
-}
-
-export function createReview(
-  data: Omit<Review, 'id' | 'createdAt' | 'updatedAt'>
-): Review {
-  const reviews = readStore();
-  if (reviews.some((r) => r.userId === data.userId && r.productId === data.productId)) {
-    throw new Error('You have already reviewed this product');
-  }
-  const now = new Date().toISOString();
-  const review: Review = {
-    ...data,
-    id: `rev-${randomUUID().slice(0, 8)}`,
-    createdAt: now,
-    updatedAt: now,
+function rowToReview(row: ReviewRow): Review {
+  return {
+    id: row.id,
+    productId: row.productId,
+    productSlug: row.productSlug,
+    userId: row.userId,
+    userName: row.userName,
+    userEmail: row.userEmail,
+    rating: row.rating,
+    title: row.title ?? undefined,
+    comment: row.comment ?? undefined,
+    status: row.status as ReviewStatus,
+    createdAt: row.createdAt.toISOString(),
+    updatedAt: row.updatedAt.toISOString(),
   };
-  writeStore([...reviews, review]);
-  return review;
 }
 
-export function updateReview(
+export async function getReviews(): Promise<Review[]> {
+  const rows = await prisma.review.findMany();
+  return rows.map(rowToReview);
+}
+
+export async function getApprovedReviewsForProduct(productId: string): Promise<Review[]> {
+  const rows = await prisma.review.findMany({ where: { productId, status: 'approved' } });
+  return rows.map(rowToReview);
+}
+
+export async function getAllReviewsForProduct(productId: string): Promise<Review[]> {
+  const rows = await prisma.review.findMany({ where: { productId } });
+  return rows.map(rowToReview);
+}
+
+export async function getUserReviewForProduct(
+  userId: string,
+  productId: string
+): Promise<Review | null> {
+  const row = await prisma.review.findUnique({
+    where: { userId_productId: { userId, productId } },
+  });
+  return row ? rowToReview(row) : null;
+}
+
+export async function getReviewById(id: string): Promise<Review | null> {
+  const row = await prisma.review.findUnique({ where: { id } });
+  return row ? rowToReview(row) : null;
+}
+
+export async function createReview(
+  data: Omit<Review, 'id' | 'createdAt' | 'updatedAt'>
+): Promise<Review> {
+  const existing = await prisma.review.findUnique({
+    where: { userId_productId: { userId: data.userId, productId: data.productId } },
+  });
+  if (existing) throw new Error('You have already reviewed this product');
+
+  const row = await prisma.review.create({
+    data: {
+      id: `rev-${randomUUID().slice(0, 8)}`,
+      productId: data.productId,
+      productSlug: data.productSlug,
+      userId: data.userId,
+      userName: data.userName,
+      userEmail: data.userEmail,
+      rating: data.rating,
+      title: data.title,
+      comment: data.comment,
+      status: data.status,
+    },
+  });
+  return rowToReview(row);
+}
+
+export async function updateReview(
   id: string,
   data: Partial<Pick<Review, 'rating' | 'title' | 'comment' | 'status'>>
-): Review | null {
-  const reviews = readStore();
-  const idx = reviews.findIndex((r) => r.id === id);
-  if (idx === -1) return null;
-  reviews[idx] = { ...reviews[idx], ...data, updatedAt: new Date().toISOString() };
-  writeStore(reviews);
-  return reviews[idx];
+): Promise<Review | null> {
+  const current = await prisma.review.findUnique({ where: { id } });
+  if (!current) return null;
+
+  const row = await prisma.review.update({
+    where: { id },
+    data: {
+      ...(data.rating !== undefined ? { rating: data.rating } : {}),
+      ...(data.title !== undefined ? { title: data.title } : {}),
+      ...(data.comment !== undefined ? { comment: data.comment } : {}),
+      ...(data.status !== undefined ? { status: data.status } : {}),
+      updatedAt: new Date(),
+    },
+  });
+  return rowToReview(row);
 }
 
-export function deleteReview(id: string): boolean {
-  const reviews = readStore();
-  const filtered = reviews.filter((r) => r.id !== id);
-  if (filtered.length === reviews.length) return false;
-  writeStore(filtered);
-  return true;
+export async function deleteReview(id: string): Promise<boolean> {
+  try {
+    await prisma.review.delete({ where: { id } });
+    return true;
+  } catch {
+    return false;
+  }
 }
 
-export function countApprovedReviews(): number {
-  return readStore().filter((r) => r.status === 'approved').length;
+export async function countApprovedReviews(): Promise<number> {
+  return prisma.review.count({ where: { status: 'approved' } });
 }

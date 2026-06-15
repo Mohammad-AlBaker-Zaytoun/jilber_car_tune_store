@@ -31,7 +31,7 @@ const productSchema = z.object({
 export async function GET() {
   try {
     await requireAdmin();
-    return NextResponse.json(getProducts());
+    return NextResponse.json(await getProducts());
   } catch (err) {
     return handleAdminError(err);
   }
@@ -45,7 +45,7 @@ export async function POST(request: Request) {
     if (!result.success) {
       return NextResponse.json({ error: 'Validation failed', issues: result.error.flatten() }, { status: 400 });
     }
-    const product = createProduct(result.data as Omit<Product, 'id'>);
+    const product = await createProduct(result.data as Omit<Product, 'id'>);
     return NextResponse.json(product, { status: 201 });
   } catch (err) {
     if (err instanceof Error && err.message.includes('slug')) {

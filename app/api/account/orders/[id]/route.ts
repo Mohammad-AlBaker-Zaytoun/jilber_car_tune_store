@@ -12,7 +12,7 @@ export async function GET(
   }
 
   const { id } = await params;
-  const order = getOrderById(id);
+  const order = await getOrderById(id);
 
   if (!order) {
     return NextResponse.json({ error: 'Not found' }, { status: 404 });

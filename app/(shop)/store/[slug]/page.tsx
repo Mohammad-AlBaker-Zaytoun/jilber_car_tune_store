@@ -21,7 +21,7 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  const product = getProductBySlug(slug);
+  const product = await getProductBySlug(slug);
   if (!product) return { title: 'Product Not Found' };
 
   const description = truncateDescription(
@@ -69,19 +69,19 @@ export default async function ProductPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const product = getProductBySlug(slug);
+  const product = await getProductBySlug(slug);
   if (!product) notFound();
 
   const session = await getSession();
 
-  const approvedReviews = getApprovedReviewsForProduct(product.id);
+  const approvedReviews = await getApprovedReviewsForProduct(product.id);
   const initialReviews: PublicReview[] = approvedReviews.map(
     ({ userEmail: _e, ...r }) => r,
   );
 
   let userReview: PublicReview | null = null;
   if (session) {
-    const raw = getUserReviewForProduct(session.id, product.id);
+    const raw = await getUserReviewForProduct(session.id, product.id);
     if (raw) {
       const { userEmail: _e, ...pub } = raw;
       userReview = pub;
