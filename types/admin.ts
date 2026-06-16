@@ -71,6 +71,10 @@ export interface Order {
   currency: string;
   adminNotes?: string;
   customerNotes?: string;
+  /** Whish payment external id (card payments), once initiated. */
+  whishExternalId?: number;
+  /** Whish transaction id, recorded once payment is confirmed. */
+  whishTransactionId?: string;
   statusHistory: OrderStatusHistoryEntry[];
 }
 

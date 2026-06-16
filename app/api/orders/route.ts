@@ -1,11 +1,13 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { randomBytes } from 'crypto';
-import { createOrder } from '@/lib/orders';
+import { createOrder, attachWhishExternalId } from '@/lib/orders';
 import { getSession } from '@/lib/session';
 import { getProductBySlug } from '@/lib/products';
 import { getSettings } from '@/lib/settings';
 import { notifyOrderCreated } from '@/lib/order-notifications';
+import { getWhishClient, toWhishCurrency } from '@/lib/payments/whish';
+import { siteConfig } from '@/lib/seo/site-config';
 import { rateLimit, getClientIp, tooManyRequests } from '@/lib/rate-limit';
 import type { PaymentStatus } from '@/types/admin';
 
@@ -63,6 +65,16 @@ export async function POST(request: Request) {
 
     const { customer, vehicle, items, payment } = result.data;
 
+    // Card payments go through Whish — fail fast if it isn't configured rather
+    // than silently creating an unpaid order the customer thinks they paid for.
+    const whish = payment === 'card' ? getWhishClient() : null;
+    if (payment === 'card' && !whish) {
+      return NextResponse.json(
+        { error: 'Card payments are currently unavailable. Please choose another method.' },
+        { status: 503 }
+      );
+    }
+
     const resolvedItems = [];
     for (const item of items) {
       const product = await getProductBySlug(item.slug);
@@ -117,7 +129,47 @@ export async function POST(request: Request) {
       },
     });
 
-    notifyOrderCreated(order);
+    // Shop/bank orders are confirmed on placement. Card orders are unpaid until
+    // Whish confirms, so their confirmation (and admin alert) is sent from the
+    // payment callback instead — not here, before any money has arrived.
+    if (payment !== 'card') {
+      notifyOrderCreated(order);
+    }
+
+    // Card: initiate a Whish payment and hand the client the hosted-page URL.
+    if (payment === 'card' && whish) {
+      try {
+        const externalId = whish.generateExternalId();
+        await attachWhishExternalId(order.id, externalId);
+        const whishCurrency = toWhishCurrency(order.currency);
+        const result = await whish.createPayment({
+          amount: order.total,
+          currency: whishCurrency,
+          invoice: order.ref,
+          externalId,
+          successCallbackUrl: `${siteConfig.siteUrl}/api/whish/callback`,
+          failureCallbackUrl: `${siteConfig.siteUrl}/api/whish/callback`,
+          successRedirectUrl: `${siteConfig.siteUrl}/checkout/success?ref=${encodeURIComponent(order.ref)}`,
+          failureRedirectUrl: `${siteConfig.siteUrl}/checkout/failure?ref=${encodeURIComponent(order.ref)}`,
+        });
+        if (!result.success || !result.collectUrl) {
+          return NextResponse.json(
+            { error: result.dialog?.message ?? 'Could not start the card payment. Please try another method.' },
+            { status: 502 }
+          );
+        }
+        return NextResponse.json(
+          { orderId: order.id, ref: order.ref, collectUrl: result.collectUrl },
+          { status: 201 }
+        );
+      } catch (err) {
+        console.error('[orders/POST] whish createPayment', err);
+        return NextResponse.json(
+          { error: 'Could not start the card payment. Please try another method.' },
+          { status: 502 }
+        );
+      }
+    }
 
     return NextResponse.json({ orderId: order.id, ref: order.ref }, { status: 201 });
   } catch (err) {

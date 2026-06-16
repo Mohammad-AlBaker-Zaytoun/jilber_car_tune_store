@@ -26,6 +26,11 @@ model User {
   phone        String?
   passwordHash String
   role         String   @default("user") // 'user' | 'admin'
+  // Bumped on password change/reset; the JWT carries the value it was issued
+  // with, and getSession() rejects tokens whose version is stale.
+  tokenVersion Int      @default(0)
+  // Set when the user confirms their email via the verification link.
+  emailVerifiedAt DateTime?
   createdAt    DateTime @default(now())
 
   @@map("users")
@@ -44,6 +49,20 @@ model PasswordResetToken {
 
   @@index([userId])
   @@map("password_reset_tokens")
+}
+
+// Single-use, expiring tokens for the verify-email-on-signup flow. Same hashed,
+// single-use design as PasswordResetToken — only the SHA-256 hash is stored.
+model EmailVerificationToken {
+  id        String    @id @db.NVarChar(64)
+  userId    String    @db.NVarChar(64)
+  tokenHash String    @unique @db.NVarChar(191)
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
+  @@map("email_verification_tokens")
 }
 
 model Category {
@@ -114,6 +133,11 @@ model Order {
   currency      String   @default("USD")
   adminNotes    String?  @db.NVarChar(Max)
   customerNotes String?  @db.NVarChar(Max)
+
+  // Whish payment correlation (card payments). externalId is generated before
+  // redirecting the customer to Whish; the callback looks the order up by it.
+  whishExternalId    BigInt? @unique
+  whishTransactionId String?
 
   items         OrderItem[]
   statusHistory OrderStatusHistory[]

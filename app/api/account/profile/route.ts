@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { getSession } from '@/lib/session';
-import { findUserById, updateUser } from '@/lib/users';
+import { getSessionWithUser } from '@/lib/session';
+import { updateUser } from '@/lib/users';
 import { createToken, setSessionCookie, type SessionUser } from '@/lib/auth';
 
 const schema = z.object({
@@ -12,10 +12,11 @@ const schema = z.object({
 /** PATCH /api/account/profile — update the signed-in user's own name/phone. */
 export async function PATCH(request: Request) {
   try {
-    const session = await getSession();
-    if (!session) {
+    const resolved = await getSessionWithUser();
+    if (!resolved) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    const { session, user } = resolved;
 
     const body: unknown = await request.json();
     const result = schema.safeParse(body);
@@ -32,14 +33,16 @@ export async function PATCH(request: Request) {
     }
 
     // Re-issue the session cookie so the JWT reflects the new name/phone.
-    const live = await findUserById(session.id);
+    // createdAt/tokenVersion are unchanged by a profile edit, so reuse the row
+    // already loaded by getSessionWithUser instead of reading again.
     const sessionUser: SessionUser = {
       id: session.id,
       email: updated.email,
       name: updated.name,
       phone: updated.phone,
       role: updated.role,
-      createdAt: live?.createdAt ?? session.createdAt,
+      createdAt: user.createdAt,
+      tokenVersion: user.tokenVersion,
     };
     const token = await createToken(sessionUser);
     const response = NextResponse.json({ user: sessionUser });

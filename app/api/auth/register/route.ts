@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import bcrypt from 'bcryptjs';
 import { findUserByEmail, createUser } from '@/lib/users';
+import { sendVerificationEmail } from '@/lib/email-verification';
 import { rateLimit, getClientIp, tooManyRequests } from '@/lib/rate-limit';
 
 const schema = z
@@ -45,7 +46,10 @@ export async function POST(request: Request) {
     }
 
     const passwordHash = await bcrypt.hash(password, 12);
-    await createUser({ email, name, phone, passwordHash, role: 'user' });
+    const created = await createUser({ email, name, phone, passwordHash, role: 'user' });
+
+    // Fire-and-forget verification email (env-gated, best-effort).
+    void sendVerificationEmail(created.id, created.name, created.email);
 
     return NextResponse.json({ success: true }, { status: 201 });
   } catch (err) {

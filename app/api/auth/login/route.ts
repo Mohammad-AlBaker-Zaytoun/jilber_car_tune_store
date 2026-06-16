@@ -41,6 +41,7 @@ export async function POST(request: Request) {
       phone: user.phone,
       role: user.role ?? 'user',
       createdAt: user.createdAt,
+      tokenVersion: user.tokenVersion,
     };
 
     const token = await createToken(sessionUser);

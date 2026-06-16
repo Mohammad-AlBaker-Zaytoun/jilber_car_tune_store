@@ -29,6 +29,12 @@ export interface SessionUser {
   role: UserRole;
   /** ISO timestamp of account creation — used for "member since". */
   createdAt?: string;
+  /**
+   * The user's tokenVersion at the time this token was issued. getSession()
+   * compares it against the live value to revoke tokens after a password change.
+   * Defaults to 0 for pre-existing tokens that lack the claim.
+   */
+  tokenVersion?: number;
 }
 
 export async function createToken(user: SessionUser): Promise<string> {
@@ -39,6 +45,7 @@ export async function createToken(user: SessionUser): Promise<string> {
     phone: user.phone,
     role: user.role,
     createdAt: user.createdAt,
+    tv: user.tokenVersion ?? 0,
   })
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
@@ -49,7 +56,7 @@ export async function createToken(user: SessionUser): Promise<string> {
 export async function verifyToken(token: string): Promise<SessionUser | null> {
   try {
     const { payload } = await jwtVerify(token, getSecret());
-    const { id, email, name, phone, role, createdAt } = payload;
+    const { id, email, name, phone, role, createdAt, tv } = payload;
     if (typeof id !== 'string' || typeof email !== 'string' || typeof name !== 'string') {
       return null;
     }
@@ -58,6 +65,7 @@ export async function verifyToken(token: string): Promise<SessionUser | null> {
       phone: typeof phone === 'string' ? phone : undefined,
       role: role === 'admin' ? 'admin' : 'user',
       createdAt: typeof createdAt === 'string' ? createdAt : undefined,
+      tokenVersion: typeof tv === 'number' ? tv : 0,
     };
   } catch {
     return null;

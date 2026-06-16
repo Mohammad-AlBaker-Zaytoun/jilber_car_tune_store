@@ -85,7 +85,7 @@ const PAYMENT_OPTIONS: { id: PaymentMethod; label: string; sub: string; Icon: Re
   {
     id: 'card',
     label: 'Card Payment',
-    sub: 'Online card payment — coming soon.',
+    sub: 'Pay securely online via Whish. You will be redirected to complete payment.',
     Icon: CreditCard,
   },
 ];
@@ -179,7 +179,13 @@ export default function CheckoutPage() {
         return;
       }
 
-      const data = (await res.json()) as { orderId: string; ref: string };
+      const data = (await res.json()) as { orderId: string; ref: string; collectUrl?: string };
+      // Card payments return a Whish hosted-page URL — redirect there to pay.
+      // Keep the cart intact until payment is confirmed via the callback.
+      if (data.collectUrl) {
+        window.location.href = data.collectUrl;
+        return;
+      }
       clearCart();
       router.push(`/checkout/success?ref=${encodeURIComponent(data.ref)}`);
     } catch {
@@ -365,13 +371,12 @@ export default function CheckoutPage() {
                     <button
                       key={id}
                       type="button"
-                      onClick={() => id !== 'card' && setPayment(id)}
-                      disabled={id === 'card'}
+                      onClick={() => setPayment(id)}
                       className={`flex items-start gap-4 p-4 border text-left transition-all duration-200 ${
                         payment === id
                           ? 'border-cyan-400/50 bg-cyan-400/5'
                           : 'border-zinc-800 hover:border-zinc-700'
-                      } disabled:opacity-40 disabled:cursor-not-allowed`}
+                      }`}
                     >
                       <div className={`w-8 h-8 shrink-0 flex items-center justify-center border ${payment === id ? 'border-cyan-400/40 bg-cyan-400/10' : 'border-zinc-700 bg-zinc-900'} mt-0.5`}>
                         <Icon size={14} className={payment === id ? 'text-cyan-400' : 'text-zinc-500'} aria-hidden="true" />
@@ -381,11 +386,6 @@ export default function CheckoutPage() {
                           <p className={`text-xs font-black tracking-wide uppercase ${payment === id ? 'text-white' : 'text-zinc-400'}`}>
                             {label}
                           </p>
-                          {id === 'card' && (
-                            <span className="text-[9px] border border-zinc-700 text-zinc-600 px-1.5 py-0.5 font-bold tracking-wide uppercase">
-                              Soon
-                            </span>
-                          )}
                         </div>
                         <p className="text-[11px] text-zinc-500 mt-0.5 leading-relaxed">{sub}</p>
                       </div>
@@ -397,9 +397,6 @@ export default function CheckoutPage() {
                     </button>
                   ))}
                 </div>
-                <p className="mt-4 text-[10px] text-zinc-700 leading-relaxed">
-                  This is a mock checkout. No real payment is processed. No card data is collected.
-                </p>
               </div>
             </div>
 

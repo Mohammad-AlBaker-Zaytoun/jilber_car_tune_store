@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { getSession } from '@/lib/session';
+import { getSessionWithUser } from '@/lib/session';
 import {
   getApprovedReviewsForProduct,
   getUserReviewForProduct,
@@ -32,9 +32,19 @@ const createSchema = z.object({
 
 /** POST /api/reviews — authenticated, creates one review per user per product */
 export async function POST(request: Request) {
-  const session = await getSession();
-  if (!session) {
+  const resolved = await getSessionWithUser();
+  if (!resolved) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+  const { session, user: author } = resolved;
+
+  // Require a verified email before a user can post a review (low-risk gate;
+  // ordering/quotes stay open so revenue isn't blocked by verification).
+  if (!author.emailVerifiedAt) {
+    return NextResponse.json(
+      { error: 'Please verify your email address before posting a review.' },
+      { status: 403 }
+    );
   }
 
   const body: unknown = await request.json();

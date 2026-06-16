@@ -76,6 +76,8 @@ function rowToOrder(row: OrderRowFull): Order {
     currency: row.currency,
     adminNotes: row.adminNotes ?? undefined,
     customerNotes: row.customerNotes ?? undefined,
+    whishExternalId: row.whishExternalId == null ? undefined : Number(row.whishExternalId),
+    whishTransactionId: row.whishTransactionId ?? undefined,
     statusHistory: row.statusHistory.map((h) => ({
       id: h.id,
       orderId: h.orderId,
@@ -130,7 +132,13 @@ export async function countOrders(): Promise<{ total: number; pending: number }>
 
 export async function estimatedRevenue(): Promise<number> {
   const agg = await prisma.order.aggregate({
-    where: { status: { not: 'cancelled' } },
+    where: {
+      status: { not: 'cancelled' },
+      // Exclude card orders that were initiated but never paid (abandoned online
+      // payments) — they'd otherwise inflate the estimate. Shop/bank orders stay
+      // in the pipeline estimate, and paid card orders count normally.
+      NOT: { payment: 'card', paymentStatus: { not: 'paid' } },
+    },
     _sum: { total: true },
   });
   return Number(agg._sum.total ?? 0);
@@ -291,6 +299,55 @@ export async function updatePaymentStatus(
 // Legacy compat — kept so any existing call sites don't break during migration
 export async function updateOrderNotes(id: string, notes: string): Promise<Order | null> {
   return updateOrderAdminNotes(id, notes);
+}
+
+// ---------------------------------------------------------------------------
+// Whish payment correlation
+// ---------------------------------------------------------------------------
+
+/** Persists the Whish externalId on an order before redirecting to payment. */
+export async function attachWhishExternalId(
+  orderId: string,
+  externalId: number
+): Promise<void> {
+  await prisma.order.update({
+    where: { id: orderId },
+    data: { whishExternalId: BigInt(externalId) },
+  });
+}
+
+/** Looks up the order a Whish callback refers to by its externalId. */
+export async function getOrderByWhishExternalId(externalId: number): Promise<Order | null> {
+  const row = await prisma.order.findUnique({
+    where: { whishExternalId: BigInt(externalId) },
+    include: includeChildren,
+  });
+  return row ? rowToOrder(row) : null;
+}
+
+/**
+ * Marks an order paid via Whish and records the transaction id. Idempotent: a
+ * second call (callback replay) is a no-op once paymentStatus is already 'paid'.
+ * Returns 'paid_now' only on the transition to paid (so callers send the
+ * confirmation email exactly once), 'already_paid' on replay, 'missing' if gone.
+ */
+export async function markOrderPaidByWhish(
+  orderId: string,
+  transactionId?: string
+): Promise<'paid_now' | 'already_paid' | 'missing'> {
+  const existing = await prisma.order.findUnique({ where: { id: orderId } });
+  if (!existing) return 'missing';
+  if (existing.paymentStatus === 'paid') return 'already_paid';
+
+  await prisma.order.update({
+    where: { id: orderId },
+    data: {
+      paymentStatus: 'paid',
+      whishTransactionId: transactionId ?? existing.whishTransactionId,
+      updatedAt: new Date(),
+    },
+  });
+  return 'paid_now';
 }
 
 // ---------------------------------------------------------------------------

@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import bcrypt from 'bcryptjs';
 import { consumeResetToken } from '@/lib/password-reset';
-import { updateUserPassword } from '@/lib/users';
+import { updateUserPassword, incrementTokenVersion } from '@/lib/users';
 import { rateLimit, getClientIp, tooManyRequests } from '@/lib/rate-limit';
 
 const schema = z
@@ -47,6 +47,10 @@ export async function POST(request: Request) {
     if (!updated) {
       return NextResponse.json({ error: 'Account no longer exists.' }, { status: 404 });
     }
+
+    // Invalidate any existing sessions — a reset implies the old credentials
+    // (and any sessions opened with them) should no longer be trusted.
+    await incrementTokenVersion(userId);
 
     return NextResponse.json({ success: true });
   } catch (err) {

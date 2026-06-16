@@ -7,12 +7,15 @@ export const metadata: Metadata = {
   title: 'Account',
   robots: { index: false, follow: false },
 };
-import { getSession } from '@/lib/session';
+import { getSessionWithUser } from '@/lib/session';
 import AccountShell from '@/components/account/AccountShell';
+import VerifyEmailBanner from '@/components/account/VerifyEmailBanner';
 
 export default async function AccountPage() {
-  const user = await getSession();
-  if (!user) redirect('/signin?redirect=/account');
+  const resolved = await getSessionWithUser();
+  if (!resolved) redirect('/signin?redirect=/account');
+  const { session: user, user: account } = resolved;
+  const emailVerified = Boolean(account.emailVerifiedAt);
 
   const quickLinks = [
     {
@@ -55,6 +58,7 @@ export default async function AccountPage() {
   return (
     <AccountShell user={user}>
       <div className="flex flex-col gap-6">
+        {!emailVerified && <VerifyEmailBanner />}
         {/* Welcome banner */}
         <div className="border border-zinc-800/50 bg-zinc-900/20 p-7 relative overflow-hidden">
           <div

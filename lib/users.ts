@@ -19,6 +19,10 @@ export interface StoredUser {
   /** bcrypt hash — never exposed to clients */
   passwordHash: string;
   role: UserRole;
+  /** Incremented on password change/reset to invalidate older JWTs. */
+  tokenVersion: number;
+  /** ISO timestamp the email was verified, or undefined if not yet verified. */
+  emailVerifiedAt?: string;
   createdAt: string;
 }
 
@@ -30,6 +34,8 @@ function rowToUser(row: UserRow): StoredUser {
     phone: row.phone ?? undefined,
     passwordHash: row.passwordHash,
     role: row.role as UserRole,
+    tokenVersion: row.tokenVersion,
+    emailVerifiedAt: row.emailVerifiedAt?.toISOString(),
     createdAt: row.createdAt.toISOString(),
   };
 }
@@ -50,7 +56,7 @@ export async function findUserById(id: string): Promise<StoredUser | null> {
 }
 
 export async function createUser(
-  data: Omit<StoredUser, 'id' | 'createdAt'>
+  data: Omit<StoredUser, 'id' | 'createdAt' | 'tokenVersion' | 'emailVerifiedAt'>
 ): Promise<StoredUser> {
   const row = await prisma.user.create({
     data: {
@@ -88,6 +94,32 @@ export async function updateUser(
 export async function updateUserPassword(id: string, passwordHash: string): Promise<boolean> {
   try {
     await prisma.user.update({ where: { id }, data: { passwordHash } });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Bumps the user's tokenVersion, invalidating every JWT issued before now.
+ * Returns the new version, or null if the user no longer exists.
+ */
+export async function incrementTokenVersion(id: string): Promise<number | null> {
+  try {
+    const row = await prisma.user.update({
+      where: { id },
+      data: { tokenVersion: { increment: 1 } },
+    });
+    return row.tokenVersion;
+  } catch {
+    return null;
+  }
+}
+
+/** Marks the user's email as verified (idempotent). Returns false if user is gone. */
+export async function markEmailVerified(id: string): Promise<boolean> {
+  try {
+    await prisma.user.update({ where: { id }, data: { emailVerifiedAt: new Date() } });
     return true;
   } catch {
     return false;
