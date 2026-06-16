@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { findUserByEmail } from '@/lib/users';
 import { createResetToken } from '@/lib/password-reset';
-import { sendEmail, emailLayout } from '@/lib/email';
+import { sendEmail, emailLayout, escapeHtml } from '@/lib/email';
 import { siteConfig } from '@/lib/seo/site-config';
 import { rateLimit, getClientIp, tooManyRequests } from '@/lib/rate-limit';
 
@@ -33,7 +33,7 @@ export async function POST(request: Request) {
           subject: 'Reset your JILBER password',
           html: emailLayout(
             'Password reset',
-            `<p>Hi ${user.name},</p>
+            `<p>Hi ${escapeHtml(user.name)},</p>
              <p>We received a request to reset your password. Click the button below to choose a new one. This link expires in 1 hour.</p>
              <p style="margin:24px 0">
                <a href="${resetUrl}" style="background:#0891b2;color:#fff;padding:12px 20px;text-decoration:none;font-weight:bold;border-radius:4px;display:inline-block">Reset password</a>

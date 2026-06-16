@@ -4,10 +4,15 @@ import { join, extname } from 'path';
 import { randomBytes } from 'crypto';
 import { requireAdmin, handleAdminError } from '@/lib/admin';
 
-// NOTE: Writing to public/ is acceptable for local development only.
-// In production (Vercel/serverless) the filesystem is read-only after build.
-// Replace this handler with S3, Cloudinary, UploadThing, or Supabase Storage
-// before deploying to a serverless platform.
+// Storage location is configurable so production (VPS) can write to a PERSISTENT
+// directory outside the build output — a redeploy that replaces the app dir would
+// otherwise wipe uploads under public/. Set:
+//   UPLOAD_DIR         absolute fs path, e.g. /var/lib/jilber/uploads
+//   UPLOAD_PUBLIC_PATH URL prefix the reverse proxy serves that dir from
+// When unset, falls back to public/products/uploads (fine for local dev).
+//
+// Serverless note: on a read-only FS (e.g. Vercel) this handler can't write —
+// swap for S3/Cloudinary/Blob there. The VPS local-disk path is supported.
 
 const ALLOWED_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/avif']);
 const MAX_SIZE = 5 * 1024 * 1024; // 5 MB
@@ -19,7 +24,12 @@ const MIME_TO_EXT: Record<string, string> = {
   'image/avif': '.avif',
 };
 
-const UPLOAD_DIR = join(process.cwd(), 'public', 'products', 'uploads');
+const UPLOAD_DIR =
+  process.env.UPLOAD_DIR ?? join(process.cwd(), 'public', 'products', 'uploads');
+const UPLOAD_PUBLIC_PATH = (process.env.UPLOAD_PUBLIC_PATH ?? '/products/uploads').replace(
+  /\/$/,
+  ''
+);
 
 export async function POST(request: Request) {
   try {
@@ -55,7 +65,7 @@ export async function POST(request: Request) {
     const bytes = await file.arrayBuffer();
     await writeFile(join(UPLOAD_DIR, safeName), Buffer.from(bytes));
 
-    return NextResponse.json({ path: `/products/uploads/${safeName}` });
+    return NextResponse.json({ path: `${UPLOAD_PUBLIC_PATH}/${safeName}` });
   } catch (err) {
     return handleAdminError(err);
   }

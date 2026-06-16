@@ -26,12 +26,11 @@ jobs:
       - name: Test
         run: npm test
 
-      # Lint is informational until the pre-existing react-hooks debt (TASKS.md Q7)
-      # is cleared; flip to a hard gate afterwards.
+      # Hard gate: the react-hooks debt (TASKS.md Q7) is cleared and `eslint .`
+      # is clean, so lint failures now block.
       - name: Lint
         run: npx eslint .
-        continue-on-error: true
 
 # Note: `next build` is intentionally not run here — it prerenders pages that read
 # from MSSQL, so it needs a live database. The production build runs on the deploy
-# platform (e.g. Vercel) with real DATABASE_URL. CI gates on type-check + tests.
+# server with a real DATABASE_URL. CI gates on type-check + tests + lint.

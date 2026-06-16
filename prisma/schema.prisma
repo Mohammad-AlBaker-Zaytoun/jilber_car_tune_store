@@ -119,6 +119,7 @@ model Order {
   statusHistory OrderStatusHistory[]
 
   @@index([userId])
+  @@index([status])
   @@map("orders")
 }
 
@@ -198,6 +199,7 @@ model Quote {
   convertedToOrderId String?
 
   @@index([userId])
+  @@index([status])
   @@map("quotes")
 }
 
@@ -217,6 +219,7 @@ model Review {
 
   @@unique([userId, productId]) // one review per user per product
   @@index([productId])
+  @@index([status])
   @@map("reviews")
 }
 

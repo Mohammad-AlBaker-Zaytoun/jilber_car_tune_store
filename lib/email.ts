@@ -17,6 +17,20 @@ interface EmailParams {
   html: string;
 }
 
+/**
+ * Escapes HTML special characters so user-supplied values (names, vehicle
+ * details, free-text messages) can't inject markup into the email body. Apply to
+ * every interpolated user value when building email HTML.
+ */
+export function escapeHtml(value: unknown): string {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 export async function sendEmail({ to, subject, html }: EmailParams): Promise<void> {
   const apiKey = process.env.RESEND_API_KEY;
   const from = process.env.EMAIL_FROM ?? 'JILBER Performance <onboarding@resend.dev>';
