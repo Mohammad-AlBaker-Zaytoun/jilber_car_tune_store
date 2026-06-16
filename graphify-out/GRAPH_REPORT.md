@@ -1,318 +1,293 @@
-# Graph Report - .  (2026-06-14)
+# Graph Report - .  (2026-06-16)
 
 ## Corpus Check
-- Large corpus: 621 files · ~1,946,635 words. Semantic extraction will be expensive (many Claude tokens). Consider running on a subfolder.
+- 116 files · ~1,959,943 words
+- Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 261 nodes · 49 edges · 232 communities (5 shown, 227 thin omitted)
-- Extraction: 55% EXTRACTED · 45% INFERRED · 0% AMBIGUOUS · INFERRED: 22 edges (avg confidence: 0.9)
-- Token cost: 3,200 input · 1,800 output
+- 686 nodes · 1183 edges · 145 communities (21 shown, 124 thin omitted)
+- Extraction: 90% EXTRACTED · 10% INFERRED · 0% AMBIGUOUS · INFERRED: 122 edges (avg confidence: 0.82)
+- Token cost: 48,928 input · 0 output
 
 ## Community Hubs (Navigation)
-- [[_COMMUNITY_Cart & Platform Core|Cart & Platform Core]]
-- [[_COMMUNITY_Admin & Order Management|Admin & Order Management]]
-- [[_COMMUNITY_Next.js Framework & Rendering|Next.js Framework & Rendering]]
-- [[_COMMUNITY_Auth & Session System|Auth & Session System]]
-- [[_COMMUNITY_User Domain Types|User Domain Types]]
-- [[_COMMUNITY_Contact & WhatsApp|Contact & WhatsApp]]
-- [[_COMMUNITY_Component 6|Component 6]]
-- [[_COMMUNITY_Component 7|Component 7]]
-- [[_COMMUNITY_Component 8|Component 8]]
-- [[_COMMUNITY_Component 9|Component 9]]
-- [[_COMMUNITY_Component 10|Component 10]]
-- [[_COMMUNITY_Component 11|Component 11]]
-- [[_COMMUNITY_Component 12|Component 12]]
-- [[_COMMUNITY_Component 13|Component 13]]
-- [[_COMMUNITY_Component 14|Component 14]]
-- [[_COMMUNITY_Component 15|Component 15]]
-- [[_COMMUNITY_Component 16|Component 16]]
-- [[_COMMUNITY_Component 17|Component 17]]
-- [[_COMMUNITY_Component 18|Component 18]]
-- [[_COMMUNITY_Component 19|Component 19]]
-- [[_COMMUNITY_Component 20|Component 20]]
-- [[_COMMUNITY_Component 21|Component 21]]
-- [[_COMMUNITY_Component 22|Component 22]]
-- [[_COMMUNITY_Component 23|Component 23]]
-- [[_COMMUNITY_Component 24|Component 24]]
-- [[_COMMUNITY_Component 25|Component 25]]
-- [[_COMMUNITY_Component 26|Component 26]]
-- [[_COMMUNITY_Component 27|Component 27]]
-- [[_COMMUNITY_Component 28|Component 28]]
-- [[_COMMUNITY_Component 29|Component 29]]
-- [[_COMMUNITY_Component 30|Component 30]]
-- [[_COMMUNITY_Component 31|Component 31]]
-- [[_COMMUNITY_Component 32|Component 32]]
-- [[_COMMUNITY_Component 33|Component 33]]
-- [[_COMMUNITY_Component 34|Component 34]]
-- [[_COMMUNITY_Component 35|Component 35]]
-- [[_COMMUNITY_Component 36|Component 36]]
-- [[_COMMUNITY_Component 37|Component 37]]
-- [[_COMMUNITY_Component 38|Component 38]]
-- [[_COMMUNITY_Component 39|Component 39]]
-- [[_COMMUNITY_Component 40|Component 40]]
-- [[_COMMUNITY_Component 41|Component 41]]
-- [[_COMMUNITY_Component 42|Component 42]]
-- [[_COMMUNITY_Component 43|Component 43]]
-- [[_COMMUNITY_Component 44|Component 44]]
-- [[_COMMUNITY_Component 45|Component 45]]
-- [[_COMMUNITY_Component 46|Component 46]]
-- [[_COMMUNITY_Component 47|Component 47]]
-- [[_COMMUNITY_Component 48|Component 48]]
-- [[_COMMUNITY_Component 49|Component 49]]
-- [[_COMMUNITY_Component 50|Component 50]]
-- [[_COMMUNITY_Component 51|Component 51]]
-- [[_COMMUNITY_Component 52|Component 52]]
-- [[_COMMUNITY_Component 53|Component 53]]
-- [[_COMMUNITY_Component 54|Component 54]]
-- [[_COMMUNITY_Component 55|Component 55]]
-- [[_COMMUNITY_Component 56|Component 56]]
-- [[_COMMUNITY_Component 57|Component 57]]
-- [[_COMMUNITY_Component 58|Component 58]]
-- [[_COMMUNITY_Component 59|Component 59]]
-- [[_COMMUNITY_Component 60|Component 60]]
-- [[_COMMUNITY_Component 61|Component 61]]
-- [[_COMMUNITY_Component 62|Component 62]]
-- [[_COMMUNITY_Component 63|Component 63]]
-- [[_COMMUNITY_Component 64|Component 64]]
-- [[_COMMUNITY_Component 65|Component 65]]
-- [[_COMMUNITY_Component 66|Component 66]]
-- [[_COMMUNITY_Component 67|Component 67]]
-- [[_COMMUNITY_Component 68|Component 68]]
-- [[_COMMUNITY_Component 69|Component 69]]
-- [[_COMMUNITY_Component 70|Component 70]]
-- [[_COMMUNITY_Component 71|Component 71]]
-- [[_COMMUNITY_Component 72|Component 72]]
-- [[_COMMUNITY_Component 73|Component 73]]
-- [[_COMMUNITY_Component 74|Component 74]]
-- [[_COMMUNITY_Component 75|Component 75]]
-- [[_COMMUNITY_Component 76|Component 76]]
-- [[_COMMUNITY_Component 77|Component 77]]
-- [[_COMMUNITY_Component 78|Component 78]]
-- [[_COMMUNITY_Component 79|Component 79]]
-- [[_COMMUNITY_Component 80|Component 80]]
-- [[_COMMUNITY_Component 81|Component 81]]
-- [[_COMMUNITY_Component 82|Component 82]]
-- [[_COMMUNITY_Component 83|Component 83]]
-- [[_COMMUNITY_Component 84|Component 84]]
-- [[_COMMUNITY_Component 85|Component 85]]
-- [[_COMMUNITY_Component 86|Component 86]]
-- [[_COMMUNITY_Component 87|Component 87]]
-- [[_COMMUNITY_Component 88|Component 88]]
-- [[_COMMUNITY_Component 89|Component 89]]
-- [[_COMMUNITY_Component 90|Component 90]]
-- [[_COMMUNITY_Component 91|Component 91]]
-- [[_COMMUNITY_Component 92|Component 92]]
-- [[_COMMUNITY_Component 93|Component 93]]
-- [[_COMMUNITY_Component 94|Component 94]]
-- [[_COMMUNITY_Component 95|Component 95]]
-- [[_COMMUNITY_Component 96|Component 96]]
-- [[_COMMUNITY_Component 97|Component 97]]
-- [[_COMMUNITY_Component 98|Component 98]]
-- [[_COMMUNITY_Component 99|Component 99]]
-- [[_COMMUNITY_Component 100|Component 100]]
-- [[_COMMUNITY_Component 101|Component 101]]
-- [[_COMMUNITY_Component 102|Component 102]]
-- [[_COMMUNITY_Component 103|Component 103]]
-- [[_COMMUNITY_Component 104|Component 104]]
-- [[_COMMUNITY_Component 105|Component 105]]
-- [[_COMMUNITY_Component 106|Component 106]]
-- [[_COMMUNITY_Component 107|Component 107]]
-- [[_COMMUNITY_Component 108|Component 108]]
-- [[_COMMUNITY_Component 109|Component 109]]
-- [[_COMMUNITY_Component 110|Component 110]]
-- [[_COMMUNITY_Component 111|Component 111]]
-- [[_COMMUNITY_Component 112|Component 112]]
-- [[_COMMUNITY_Component 113|Component 113]]
-- [[_COMMUNITY_Component 114|Component 114]]
-- [[_COMMUNITY_Component 115|Component 115]]
-- [[_COMMUNITY_Component 116|Component 116]]
-- [[_COMMUNITY_Component 117|Component 117]]
-- [[_COMMUNITY_Component 118|Component 118]]
-- [[_COMMUNITY_Component 119|Component 119]]
-- [[_COMMUNITY_Component 120|Component 120]]
-- [[_COMMUNITY_Component 121|Component 121]]
-- [[_COMMUNITY_Component 122|Component 122]]
-- [[_COMMUNITY_Component 123|Component 123]]
-- [[_COMMUNITY_Component 124|Component 124]]
-- [[_COMMUNITY_Component 125|Component 125]]
-- [[_COMMUNITY_Component 126|Component 126]]
-- [[_COMMUNITY_Component 127|Component 127]]
-- [[_COMMUNITY_Component 128|Component 128]]
-- [[_COMMUNITY_Component 129|Component 129]]
-- [[_COMMUNITY_Component 130|Component 130]]
-- [[_COMMUNITY_Component 131|Component 131]]
-- [[_COMMUNITY_Component 132|Component 132]]
-- [[_COMMUNITY_Component 133|Component 133]]
-- [[_COMMUNITY_Component 134|Component 134]]
-- [[_COMMUNITY_Component 135|Component 135]]
-- [[_COMMUNITY_Component 136|Component 136]]
-- [[_COMMUNITY_Component 137|Component 137]]
-- [[_COMMUNITY_Component 138|Component 138]]
-- [[_COMMUNITY_Component 139|Component 139]]
-- [[_COMMUNITY_Component 140|Component 140]]
-- [[_COMMUNITY_Component 141|Component 141]]
-- [[_COMMUNITY_Component 142|Component 142]]
-- [[_COMMUNITY_Component 143|Component 143]]
-- [[_COMMUNITY_Component 144|Component 144]]
-- [[_COMMUNITY_Component 145|Component 145]]
-- [[_COMMUNITY_Component 146|Component 146]]
-- [[_COMMUNITY_Component 147|Component 147]]
-- [[_COMMUNITY_Component 148|Component 148]]
-- [[_COMMUNITY_Component 149|Component 149]]
-- [[_COMMUNITY_Component 150|Component 150]]
-- [[_COMMUNITY_Component 151|Component 151]]
-- [[_COMMUNITY_Component 152|Component 152]]
-- [[_COMMUNITY_Component 153|Component 153]]
-- [[_COMMUNITY_Component 154|Component 154]]
-- [[_COMMUNITY_Component 155|Component 155]]
-- [[_COMMUNITY_Component 156|Component 156]]
-- [[_COMMUNITY_Component 157|Component 157]]
-- [[_COMMUNITY_Component 158|Component 158]]
-- [[_COMMUNITY_Component 159|Component 159]]
-- [[_COMMUNITY_Component 160|Component 160]]
-- [[_COMMUNITY_Component 161|Component 161]]
-- [[_COMMUNITY_Component 162|Component 162]]
-- [[_COMMUNITY_Component 163|Component 163]]
-- [[_COMMUNITY_Component 164|Component 164]]
-- [[_COMMUNITY_Component 165|Component 165]]
-- [[_COMMUNITY_Component 166|Component 166]]
-- [[_COMMUNITY_Component 167|Component 167]]
-- [[_COMMUNITY_Component 168|Component 168]]
-- [[_COMMUNITY_Component 169|Component 169]]
-- [[_COMMUNITY_Component 170|Component 170]]
-- [[_COMMUNITY_Component 171|Component 171]]
-- [[_COMMUNITY_Component 172|Component 172]]
-- [[_COMMUNITY_Component 173|Component 173]]
-- [[_COMMUNITY_Component 174|Component 174]]
-- [[_COMMUNITY_Component 175|Component 175]]
-- [[_COMMUNITY_Component 176|Component 176]]
-- [[_COMMUNITY_Component 177|Component 177]]
-- [[_COMMUNITY_Component 178|Component 178]]
-- [[_COMMUNITY_Component 179|Component 179]]
-- [[_COMMUNITY_Component 180|Component 180]]
-- [[_COMMUNITY_Component 181|Component 181]]
-- [[_COMMUNITY_Component 182|Component 182]]
-- [[_COMMUNITY_Component 183|Component 183]]
-- [[_COMMUNITY_Component 184|Component 184]]
-- [[_COMMUNITY_Component 185|Component 185]]
-- [[_COMMUNITY_Component 186|Component 186]]
-- [[_COMMUNITY_Component 187|Component 187]]
-- [[_COMMUNITY_Component 188|Component 188]]
-- [[_COMMUNITY_Component 189|Component 189]]
-- [[_COMMUNITY_Component 190|Component 190]]
-- [[_COMMUNITY_Component 191|Component 191]]
-- [[_COMMUNITY_Component 192|Component 192]]
-- [[_COMMUNITY_Component 193|Component 193]]
-- [[_COMMUNITY_Component 194|Component 194]]
-- [[_COMMUNITY_Component 195|Component 195]]
-- [[_COMMUNITY_Component 196|Component 196]]
-- [[_COMMUNITY_Component 197|Component 197]]
-- [[_COMMUNITY_Component 198|Component 198]]
-- [[_COMMUNITY_Component 199|Component 199]]
-- [[_COMMUNITY_Component 200|Component 200]]
-- [[_COMMUNITY_Component 201|Component 201]]
-- [[_COMMUNITY_Component 202|Component 202]]
-- [[_COMMUNITY_Component 203|Component 203]]
-- [[_COMMUNITY_Component 204|Component 204]]
-- [[_COMMUNITY_Component 205|Component 205]]
-- [[_COMMUNITY_Component 206|Component 206]]
-- [[_COMMUNITY_Component 207|Component 207]]
-- [[_COMMUNITY_Component 208|Component 208]]
-- [[_COMMUNITY_Component 209|Component 209]]
-- [[_COMMUNITY_Component 210|Component 210]]
-- [[_COMMUNITY_Component 211|Component 211]]
-- [[_COMMUNITY_Component 212|Component 212]]
-- [[_COMMUNITY_Component 213|Component 213]]
-- [[_COMMUNITY_Component 214|Component 214]]
-- [[_COMMUNITY_Component 215|Component 215]]
-- [[_COMMUNITY_Component 216|Component 216]]
-- [[_COMMUNITY_Component 217|Component 217]]
-- [[_COMMUNITY_Component 218|Component 218]]
-- [[_COMMUNITY_Component 219|Component 219]]
-- [[_COMMUNITY_Component 220|Component 220]]
-- [[_COMMUNITY_Component 221|Component 221]]
-- [[_COMMUNITY_Component 222|Component 222]]
-- [[_COMMUNITY_Component 223|Component 223]]
-- [[_COMMUNITY_Component 224|Component 224]]
-- [[_COMMUNITY_Component 225|Component 225]]
-- [[_COMMUNITY_Component 226|Component 226]]
-- [[_COMMUNITY_Component 227|Component 227]]
-- [[_COMMUNITY_Component 228|Component 228]]
-- [[_COMMUNITY_Component 229|Component 229]]
-- [[_COMMUNITY_Component 230|Component 230]]
-- [[_COMMUNITY_Component 231|Component 231]]
+- [[_COMMUNITY_Reviews, Ratings & SEO|Reviews, Ratings & SEO]]
+- [[_COMMUNITY_Admin CategoriesUsersSettings|Admin Categories/Users/Settings]]
+- [[_COMMUNITY_Auth, Orders & Notifications|Auth, Orders & Notifications]]
+- [[_COMMUNITY_Public Pages & API Routes|Public Pages & API Routes]]
+- [[_COMMUNITY_Order Status & Lifecycle|Order Status & Lifecycle]]
+- [[_COMMUNITY_NPM Dependencies|NPM Dependencies]]
+- [[_COMMUNITY_Home & Layout Components|Home & Layout Components]]
+- [[_COMMUNITY_Product Catalog|Product Catalog]]
+- [[_COMMUNITY_Profile & Related Products|Profile & Related Products]]
+- [[_COMMUNITY_Sign-In & Instrumentation|Sign-In & Instrumentation]]
+- [[_COMMUNITY_Auth Context Provider|Auth Context Provider]]
+- [[_COMMUNITY_Platform Architecture Overview|Platform Architecture Overview]]
+- [[_COMMUNITY_Database Seed Script|Database Seed Script]]
+- [[_COMMUNITY_CI Workflow Gates|CI Workflow Gates]]
+- [[_COMMUNITY_Data Layer Migration Rationale|Data Layer Migration Rationale]]
+- [[_COMMUNITY_Admin Dashboard & Dev Stores|Admin Dashboard & Dev Stores]]
+- [[_COMMUNITY_Quote System & Production Tasks|Quote System & Production Tasks]]
+- [[_COMMUNITY_Reset Password Form|Reset Password Form]]
+- [[_COMMUNITY_Prisma 7 Upgrade Plan|Prisma 7 Upgrade Plan]]
+- [[_COMMUNITY_Auth Flow (JWTSession)|Auth Flow (JWT/Session)]]
+- [[_COMMUNITY_Forgot Password Form|Forgot Password Form]]
+- [[_COMMUNITY_Categories Client|Categories Client]]
+- [[_COMMUNITY_Privacy Policy Page|Privacy Policy Page]]
+- [[_COMMUNITY_Cookie Policy Page|Cookie Policy Page]]
+- [[_COMMUNITY_Terms of Service Page|Terms of Service Page]]
+- [[_COMMUNITY_Community 25|Community 25]]
+- [[_COMMUNITY_Community 26|Community 26]]
+- [[_COMMUNITY_Community 27|Community 27]]
+- [[_COMMUNITY_Community 28|Community 28]]
+- [[_COMMUNITY_Community 29|Community 29]]
+- [[_COMMUNITY_Community 30|Community 30]]
+- [[_COMMUNITY_Community 31|Community 31]]
+- [[_COMMUNITY_Community 32|Community 32]]
+- [[_COMMUNITY_Community 33|Community 33]]
+- [[_COMMUNITY_Community 34|Community 34]]
+- [[_COMMUNITY_Community 35|Community 35]]
+- [[_COMMUNITY_Community 36|Community 36]]
+- [[_COMMUNITY_Community 37|Community 37]]
+- [[_COMMUNITY_Community 38|Community 38]]
+- [[_COMMUNITY_Community 39|Community 39]]
+- [[_COMMUNITY_Community 40|Community 40]]
+- [[_COMMUNITY_Community 41|Community 41]]
+- [[_COMMUNITY_Community 42|Community 42]]
+- [[_COMMUNITY_Community 43|Community 43]]
+- [[_COMMUNITY_Community 44|Community 44]]
+- [[_COMMUNITY_Community 45|Community 45]]
+- [[_COMMUNITY_Community 46|Community 46]]
+- [[_COMMUNITY_Community 47|Community 47]]
+- [[_COMMUNITY_Community 48|Community 48]]
+- [[_COMMUNITY_Community 49|Community 49]]
+- [[_COMMUNITY_Community 50|Community 50]]
+- [[_COMMUNITY_Community 51|Community 51]]
+- [[_COMMUNITY_Community 52|Community 52]]
+- [[_COMMUNITY_Community 53|Community 53]]
+- [[_COMMUNITY_Community 54|Community 54]]
+- [[_COMMUNITY_Community 55|Community 55]]
+- [[_COMMUNITY_Community 56|Community 56]]
+- [[_COMMUNITY_Community 57|Community 57]]
+- [[_COMMUNITY_Community 58|Community 58]]
+- [[_COMMUNITY_Community 59|Community 59]]
+- [[_COMMUNITY_Community 60|Community 60]]
+- [[_COMMUNITY_Community 61|Community 61]]
+- [[_COMMUNITY_Community 62|Community 62]]
+- [[_COMMUNITY_Community 63|Community 63]]
+- [[_COMMUNITY_Community 64|Community 64]]
+- [[_COMMUNITY_Community 65|Community 65]]
+- [[_COMMUNITY_Community 66|Community 66]]
+- [[_COMMUNITY_Community 67|Community 67]]
+- [[_COMMUNITY_Community 68|Community 68]]
+- [[_COMMUNITY_Community 69|Community 69]]
+- [[_COMMUNITY_Community 70|Community 70]]
+- [[_COMMUNITY_Community 71|Community 71]]
+- [[_COMMUNITY_Community 72|Community 72]]
+- [[_COMMUNITY_Community 73|Community 73]]
+- [[_COMMUNITY_Community 74|Community 74]]
+- [[_COMMUNITY_Community 75|Community 75]]
+- [[_COMMUNITY_Community 76|Community 76]]
+- [[_COMMUNITY_Community 77|Community 77]]
+- [[_COMMUNITY_Community 78|Community 78]]
+- [[_COMMUNITY_Community 79|Community 79]]
+- [[_COMMUNITY_Community 80|Community 80]]
+- [[_COMMUNITY_Community 81|Community 81]]
+- [[_COMMUNITY_Community 82|Community 82]]
+- [[_COMMUNITY_Community 83|Community 83]]
+- [[_COMMUNITY_Community 84|Community 84]]
+- [[_COMMUNITY_Community 85|Community 85]]
+- [[_COMMUNITY_Community 86|Community 86]]
+- [[_COMMUNITY_Community 87|Community 87]]
+- [[_COMMUNITY_Community 88|Community 88]]
+- [[_COMMUNITY_Community 89|Community 89]]
+- [[_COMMUNITY_Community 90|Community 90]]
+- [[_COMMUNITY_Community 91|Community 91]]
+- [[_COMMUNITY_Community 92|Community 92]]
+- [[_COMMUNITY_Community 93|Community 93]]
+- [[_COMMUNITY_Community 94|Community 94]]
+- [[_COMMUNITY_Community 95|Community 95]]
+- [[_COMMUNITY_Community 96|Community 96]]
+- [[_COMMUNITY_Community 97|Community 97]]
+- [[_COMMUNITY_Community 98|Community 98]]
+- [[_COMMUNITY_Community 99|Community 99]]
+- [[_COMMUNITY_Community 100|Community 100]]
+- [[_COMMUNITY_Community 101|Community 101]]
+- [[_COMMUNITY_Community 102|Community 102]]
+- [[_COMMUNITY_Community 103|Community 103]]
+- [[_COMMUNITY_Community 104|Community 104]]
+- [[_COMMUNITY_Community 105|Community 105]]
+- [[_COMMUNITY_Community 106|Community 106]]
+- [[_COMMUNITY_Community 107|Community 107]]
+- [[_COMMUNITY_Community 108|Community 108]]
+- [[_COMMUNITY_Community 109|Community 109]]
+- [[_COMMUNITY_Community 110|Community 110]]
+- [[_COMMUNITY_Community 111|Community 111]]
+- [[_COMMUNITY_Community 112|Community 112]]
+- [[_COMMUNITY_Community 113|Community 113]]
+- [[_COMMUNITY_Community 114|Community 114]]
+- [[_COMMUNITY_Community 115|Community 115]]
+- [[_COMMUNITY_Community 116|Community 116]]
+- [[_COMMUNITY_Community 117|Community 117]]
+- [[_COMMUNITY_Community 118|Community 118]]
+- [[_COMMUNITY_Community 119|Community 119]]
+- [[_COMMUNITY_Community 120|Community 120]]
+- [[_COMMUNITY_Community 121|Community 121]]
+- [[_COMMUNITY_Community 122|Community 122]]
+- [[_COMMUNITY_Community 123|Community 123]]
+- [[_COMMUNITY_Community 124|Community 124]]
+- [[_COMMUNITY_Community 125|Community 125]]
+- [[_COMMUNITY_Community 126|Community 126]]
+- [[_COMMUNITY_Community 127|Community 127]]
+- [[_COMMUNITY_Community 128|Community 128]]
+- [[_COMMUNITY_Community 129|Community 129]]
+- [[_COMMUNITY_Community 130|Community 130]]
+- [[_COMMUNITY_Community 131|Community 131]]
+- [[_COMMUNITY_Community 132|Community 132]]
+- [[_COMMUNITY_Community 133|Community 133]]
+- [[_COMMUNITY_Community 134|Community 134]]
+- [[_COMMUNITY_Community 135|Community 135]]
+- [[_COMMUNITY_Community 136|Community 136]]
+- [[_COMMUNITY_Community 137|Community 137]]
+- [[_COMMUNITY_Community 138|Community 138]]
+- [[_COMMUNITY_Community 139|Community 139]]
+- [[_COMMUNITY_Community 140|Community 140]]
+- [[_COMMUNITY_Community 141|Community 141]]
+- [[_COMMUNITY_Community 142|Community 142]]
+- [[_COMMUNITY_Community 143|Community 143]]
 
 ## God Nodes (most connected - your core abstractions)
-1. `JILBER Performance Engineering Platform` - 16 edges
-2. `Quote Status Lifecycle` - 6 edges
-3. `Auth Flow (Register + Login + JWT Cookie)` - 6 edges
-4. `JWT Auth via jose + bcryptjs` - 5 edges
-5. `Order Status Lifecycle` - 5 edges
-6. `Zustand Cart State (persisted)` - 4 edges
-7. `JSON File-Based Dev Stores` - 4 edges
-8. `Shopping Cart Flow` - 4 edges
-9. `Next.js 16 App Router + Turbopack` - 3 edges
-10. `Server vs Client Component Rendering Model` - 3 edges
+1. `requireAdmin` - 41 edges
+2. `handleAdminError` - 41 edges
+3. `JILBER Performance Engineering Platform` - 19 edges
+4. `getSettings()` - 18 edges
+5. `getProductBySlug()` - 17 edges
+6. `getSession` - 16 edges
+7. `getClientIp()` - 16 edges
+8. `rateLimit()` - 16 edges
+9. `tooManyRequests()` - 15 edges
+10. `getQuoteById()` - 13 edges
 
 ## Surprising Connections (you probably didn't know these)
-- `Next.js Breaking Changes Warning` --conceptually_related_to--> `Next.js 16 App Router + Turbopack`  [INFERRED]
-  AGENTS.md → README.md
-- `SessionUser` --references--> `UserRole`  [EXTRACTED]
-  lib/auth.ts → types/admin.ts
-- `StoredUser` --references--> `UserRole`  [EXTRACTED]
-  lib/users.dev.ts → types/admin.ts
-- `CLAUDE.md AGENTS.md Reference` --references--> `Next.js Agent Documentation Guide`  [EXTRACTED]
-  CLAUDE.md → AGENTS.md
+- `AdminOrderDetailPage` --calls--> `getOrderById()`  [INFERRED]
+  app/(admin)/admin/orders/[id]/page.tsx → lib/orders.ts
+- `AdminQuoteDetailPage` --calls--> `getQuoteById()`  [INFERRED]
+  app/(admin)/admin/quotes/[id]/page.tsx → lib/quotes.ts
+- `generateMetadata` --calls--> `getProductBySlug()`  [EXTRACTED]
+  app/(shop)/store/[slug]/page.tsx → lib/products.ts
+- `GET` --calls--> `handleAdminError`  [INFERRED]
+  app/api/admin/orders/[id]/route.ts → lib/admin.ts
+- `GET` --calls--> `requireAdmin`  [INFERRED]
+  app/api/admin/orders/[id]/route.ts → lib/admin.ts
 
 ## Import Cycles
 - None detected.
 
 ## Hyperedges (group relationships)
-- **Auth Session + JWT + File Store form the authentication subsystem** — readme_auth_flow, readme_jwt_auth, readme_json_file_stores, readme_lib_auth, readme_lib_admin [INFERRED 0.85]
-- **Cart + Checkout + Zod Validation form the purchase flow** — readme_cart_flow, readme_zustand_cart, readme_zod_validation, readme_lib_cart [INFERRED 0.85]
-- **Quote and Order lifecycles managed through Admin Dashboard** — readme_quote_lifecycle, readme_order_lifecycle, readme_admin_dashboard, readme_api_routes [INFERRED 0.80]
+- **Prisma 7 Upgrade Sequence** — docs_prisma_7_upgrade_plan_node_bump, docs_prisma_7_upgrade_plan_config_migration, docs_prisma_7_upgrade_plan_generator_switch, docs_prisma_7_upgrade_plan_mssql_risk [EXTRACTED 1.00]
+- **CI Quality Gates Pipeline** — ci_typecheck_gate, ci_test_gate, ci_lint_informational, ci_prisma_generate_postinstall [EXTRACTED 1.00]
+- **Legacy JSON to MSSQL Seed Migration** — readme_legacy_json_stores, readme_prisma_seed, readme_mssql_prisma_storage, readme_idempotent_seed_import [INFERRED 0.85]
 
-## Communities (232 total, 227 thin omitted)
+## Communities (145 total, 124 thin omitted)
 
-### Community 0 - "Cart & Platform Core"
-Cohesion: 0.27
-Nodes (10): Shopping Cart Flow, JILBER Performance Engineering Platform, lib/cart.ts Zustand cart store, lib/seo/ site-config.ts + helpers.ts, React 19 UI Runtime, SEO Layer (JSON-LD, OG, sitemap, robots), Tailwind CSS v4 Styling, TypeScript 5 Language (+2 more)
+### Community 0 - "Reviews, Ratings & SEO"
+Cohesion: 0.08
+Nodes (37): DELETE, PUT, GET, DELETE, PUT, GET, sitemap, statusSchema (+29 more)
 
-### Community 1 - "Admin & Order Management"
+### Community 1 - "Admin Categories/Users/Settings"
+Cohesion: 0.09
+Nodes (40): DELETE, PUT, schema, GET, GET, PUT, schema, GET (+32 more)
+
+### Community 2 - "Auth, Orders & Notifications"
+Cohesion: 0.11
+Nodes (38): POST(), schema, adminEmail(), emailLayout(), EmailParams, sendEmail(), notifyOrderCreated, orderSummary() (+30 more)
+
+### Community 3 - "Public Pages & API Routes"
+Cohesion: 0.09
+Nodes (34): GET, GET, GET, metadata, POST(), AccountQuoteDetailPage, AdminQuoteDetailPage, PATCH (+26 more)
+
+### Community 4 - "Order Status & Lifecycle"
+Cohesion: 0.10
+Nodes (33): canTransition, formatStatus, GET, GET, GET, PUT, schema, metadata (+25 more)
+
+### Community 5 - "NPM Dependencies"
+Cohesion: 0.05
+Nodes (39): dependencies, bcryptjs, jose, lucide-react, next, @prisma/client, react, react-dom (+31 more)
+
+### Community 6 - "Home & Layout Components"
+Cohesion: 0.08
+Nodes (25): Home, metadata, COMPANY_LINKS, SERVICES_LINKS, SOCIAL_LINKS, NAV_LINKS, FloatingContactButtons, GET (+17 more)
+
+### Community 7 - "Product Catalog"
+Cohesion: 0.08
+Nodes (23): Product, ProductSpec, AdminEditProductPage, createProduct(), deleteProduct(), getProductBySlug(), productWriteData(), rowToProduct() (+15 more)
+
+### Community 8 - "Profile & Related Products"
+Cohesion: 0.08
+Nodes (20): Props, Category, getRelatedProducts, SessionUser, getRelatedProducts(), PublicReview, StoredUser, metadata (+12 more)
+
+### Community 9 - "Sign-In & Instrumentation"
+Cohesion: 0.11
+Nodes (21): FormErrors, SignInForm, register, clearSessionCookie, createToken, getSecret(), getSessionFromRequest, safeRedirect (+13 more)
+
+### Community 10 - "Auth Context Provider"
+Cohesion: 0.11
+Nodes (16): AuthContext, AuthContextValue, AuthProvider, AuthUser, useAuth, Props, CheckoutPage(), FormData (+8 more)
+
+### Community 11 - "Platform Architecture Overview"
+Cohesion: 0.17
+Nodes (16): Shopping Cart Flow, JILBER Performance Engineering Platform, lib/cart.ts Zustand cart store, lib/contact.ts WhatsApp/phone URL builders, lib/seo/ site-config.ts + helpers.ts, Next.js 16 App Router + Turbopack, React 19 UI Runtime, Server vs Client Component Rendering Model (+8 more)
+
+### Community 12 - "Database Seed Script"
+Cohesion: 0.37
+Nodes (13): main(), prisma, readJson(), SAMPLE_DIR, seedCategories(), seedOrders(), seedProducts(), seedQuotes() (+5 more)
+
+### Community 13 - "CI Workflow Gates"
+Cohesion: 0.22
+Nodes (9): Lint Step (informational, continue-on-error), prisma generate via postinstall (no DB), Test Gate (npm test), Type-check Gate (tsc --noEmit), CI Workflow (GitHub Actions), Node >=20.19 Bump (gating blocker), Q1 Vitest Test Suite, Q2 GitHub Actions CI (+1 more)
+
+### Community 14 - "Data Layer Migration Rationale"
+Cohesion: 0.22
+Nodes (9): Skip next build in CI, Isolated Data Layer (small blast radius), Idempotent Upsert Seed Import, Legacy JSON Data Stores (sample_docs), MSSQL via Prisma Storage, prisma/seed.ts (legacy JSON import), Repository Data-Access Layer (lib/*.dev.ts), PII/Secret Sanitization of Sample Data (+1 more)
+
+### Community 15 - "Admin Dashboard & Dev Stores"
 Cohesion: 0.36
 Nodes (8): Admin Dashboard, API Routes (auth, orders, quotes, admin, reviews), lib/*.dev.ts file-based dev data stores, Order Status Lifecycle, Production DB Migration Rationale (replace .dev.ts with Prisma/PostgreSQL), Quote Status Lifecycle, types/admin.ts Order, Quote, User, Settings types, types/quotes.ts QuoteRequest, QuoteStatus types
 
-### Community 2 - "Next.js Framework & Rendering"
+### Community 16 - "Quote System & Production Tasks"
 Cohesion: 0.33
-Nodes (6): Next.js Breaking Changes Warning, Next.js Agent Documentation Guide, CLAUDE.md AGENTS.md Reference, Next.js 16 App Router + Turbopack, Server vs Client Component Rendering Model, Scroll-Driven Canvas Hero (241-frame JPEG sequence)
+Nodes (7): Quote System, B1 Quote-to-Order Conversion, F1 Email Notifications via Resend (lib/email.ts), F3 Forgot/Reset Password Flow (lib/password-reset.ts), Production-Readiness Tasks, S1/S2 Rate Limiting (lib/rate-limit.ts), S3 CSRF Same-Origin Check (lib/csrf.ts, proxy.ts)
 
-### Community 3 - "Auth & Session System"
+### Community 18 - "Prisma 7 Upgrade Plan"
+Cohesion: 0.33
+Nodes (6): Migrate Prisma config to prisma.config.ts, Switch to prisma-client generator (explicit output), MSSQL Connector Risk under v7 Query Compiler, Prisma 7 Upgrade Plan, SQL Server Connector Constraints (no enum/Json scalar), Q6 Prisma 7 Upgrade Plan
+
+### Community 19 - "Auth Flow (JWT/Session)"
 Cohesion: 0.53
 Nodes (6): Auth Flow (Register + Login + JWT Cookie), JSON File-Based Dev Stores, JWT Auth via jose + bcryptjs, lib/admin.ts admin authorization check, lib/auth.ts JWT + cookie helpers, lib/session.ts server-side session retrieval
 
-### Community 4 - "User Domain Types"
+### Community 25 - "Community 25"
 Cohesion: 0.67
-Nodes (3): SessionUser, StoredUser, UserRole
+Nodes (3): Next.js Breaking Changes Warning, Next.js Agent Documentation Guide, CLAUDE.md AGENTS.md Reference
 
 ## Knowledge Gaps
-- **236 isolated node(s):** `AdminCategoriesPage`, `AdminOrderDetailPage`, `AdminOrdersPage`, `AdminDashboardPage`, `AdminEditProductPage` (+231 more)
+- **270 isolated node(s):** `AdminCategoriesPage`, `AdminOrdersPage`, `AdminDashboardPage`, `AdminNewProductPage`, `AdminQuotesPage` (+265 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **227 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **124 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `JILBER Performance Engineering Platform` connect `Cart & Platform Core` to `Admin & Order Management`, `Next.js Framework & Rendering`, `Auth & Session System`, `Contact & WhatsApp`?**
-  _High betweenness centrality (0.011) - this node is a cross-community bridge._
-- **Why does `Next.js 16 App Router + Turbopack` connect `Next.js Framework & Rendering` to `Cart & Platform Core`?**
-  _High betweenness centrality (0.003) - this node is a cross-community bridge._
-- **Are the 5 inferred relationships involving `Quote Status Lifecycle` (e.g. with `API Routes (auth, orders, quotes, admin, reviews)` and `Order Status Lifecycle`) actually correct?**
-  _`Quote Status Lifecycle` has 5 INFERRED edges - model-reasoned connections that need verification._
-- **Are the 3 inferred relationships involving `Auth Flow (Register + Login + JWT Cookie)` (e.g. with `lib/admin.ts admin authorization check` and `lib/auth.ts JWT + cookie helpers`) actually correct?**
-  _`Auth Flow (Register + Login + JWT Cookie)` has 3 INFERRED edges - model-reasoned connections that need verification._
-- **Are the 3 inferred relationships involving `JWT Auth via jose + bcryptjs` (e.g. with `JSON File-Based Dev Stores` and `lib/admin.ts admin authorization check`) actually correct?**
-  _`JWT Auth via jose + bcryptjs` has 3 INFERRED edges - model-reasoned connections that need verification._
-- **Are the 4 inferred relationships involving `Order Status Lifecycle` (e.g. with `API Routes (auth, orders, quotes, admin, reviews)` and `Admin Dashboard`) actually correct?**
-  _`Order Status Lifecycle` has 4 INFERRED edges - model-reasoned connections that need verification._
-- **What connects `AdminCategoriesPage`, `AdminOrderDetailPage`, `AdminOrdersPage` to the rest of the system?**
-  _237 weakly-connected nodes found - possible documentation gaps or missing edges._
+- **Why does `getSession` connect `Reviews, Ratings & SEO` to `Admin Categories/Users/Settings`, `Auth, Orders & Notifications`, `Public Pages & API Routes`, `Order Status & Lifecycle`, `Home & Layout Components`, `Profile & Related Products`?**
+  _High betweenness centrality (0.035) - this node is a cross-community bridge._
+- **Why does `requireAdmin` connect `Admin Categories/Users/Settings` to `Reviews, Ratings & SEO`, `Public Pages & API Routes`, `Order Status & Lifecycle`, `Product Catalog`?**
+  _High betweenness centrality (0.026) - this node is a cross-community bridge._
+- **Why does `handleAdminError` connect `Admin Categories/Users/Settings` to `Reviews, Ratings & SEO`, `Public Pages & API Routes`, `Order Status & Lifecycle`, `Product Catalog`?**
+  _High betweenness centrality (0.024) - this node is a cross-community bridge._
+- **Are the 12 inferred relationships involving `requireAdmin` (e.g. with `DELETE` and `PUT`) actually correct?**
+  _`requireAdmin` has 12 INFERRED edges - model-reasoned connections that need verification._
+- **Are the 12 inferred relationships involving `handleAdminError` (e.g. with `DELETE` and `PUT`) actually correct?**
+  _`handleAdminError` has 12 INFERRED edges - model-reasoned connections that need verification._
+- **Are the 2 inferred relationships involving `getProductBySlug()` (e.g. with `POST` and `POST`) actually correct?**
+  _`getProductBySlug()` has 2 INFERRED edges - model-reasoned connections that need verification._
+- **What connects `AdminCategoriesPage`, `AdminOrdersPage`, `AdminDashboardPage` to the rest of the system?**
+  _275 weakly-connected nodes found - possible documentation gaps or missing edges._
