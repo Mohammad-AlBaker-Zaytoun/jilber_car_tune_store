@@ -247,6 +247,23 @@ model Review {
   @@map("reviews")
 }
 
+model ContactInquiry {
+  id         String   @id @db.NVarChar(64)
+  name       String
+  email      String
+  phone      String?
+  vehicle    String?
+  service    String?
+  message    String?  @db.NVarChar(Max)
+  status     String   @default("new") // 'new' | 'read' | 'replied'
+  adminNotes String?  @db.NVarChar(Max)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @default(now())
+
+  @@index([status])
+  @@map("contact_inquiries")
+}
+
 // Singleton row (id = 1) holding the shop-wide AdminSettings.
 model Setting {
   id                     Int     @id @default(1)

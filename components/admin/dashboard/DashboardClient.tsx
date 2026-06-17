@@ -13,6 +13,7 @@ import {
   ArrowRight,
   AlertCircle,
   RefreshCw,
+  Inbox,
 } from 'lucide-react';
 import AdminStatCard from '@/components/admin/AdminStatCard';
 import { STATUS_COLORS, formatStatus } from '@/components/admin/orderStatus';
@@ -121,6 +122,13 @@ export default function DashboardClient() {
             accent="green"
             sub="Excludes cancelled orders"
           />
+          <AdminStatCard
+            label="New Inquiries"
+            value={stats.newInquiries}
+            icon={Inbox}
+            accent="yellow"
+            sub="Unread contact form submissions"
+          />
         </div>
       )}
 
@@ -157,6 +165,13 @@ export default function DashboardClient() {
           >
             <Users size={12} aria-hidden="true" />
             Manage Users
+          </Link>
+          <Link
+            href="/admin/inquiries"
+            className="inline-flex items-center gap-2 px-4 py-2.5 border border-zinc-700 hover:border-cyan-400/40 text-zinc-300 hover:text-cyan-400 text-xs font-black tracking-[0.2em] uppercase transition-all duration-200"
+          >
+            <Inbox size={12} aria-hidden="true" />
+            View Inquiries
           </Link>
         </div>
       </div>

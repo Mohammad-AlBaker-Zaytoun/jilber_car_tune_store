@@ -18,6 +18,7 @@ import {
   Shield,
   MessageSquare,
   FileQuestion,
+  Inbox,
 } from 'lucide-react';
 import { useAuth } from '@/components/auth/AuthProvider';
 import type { SessionUser } from '@/lib/auth';
@@ -30,6 +31,7 @@ const NAV = [
   { href: '/admin/quotes', label: 'Quotes', icon: FileQuestion, exact: false },
   { href: '/admin/users', label: 'Users', icon: Users, exact: false },
   { href: '/admin/reviews', label: 'Reviews', icon: MessageSquare, exact: false },
+  { href: '/admin/inquiries', label: 'Inquiries', icon: Inbox, exact: false },
   { href: '/admin/settings', label: 'Settings', icon: Settings, exact: false },
 ];
 

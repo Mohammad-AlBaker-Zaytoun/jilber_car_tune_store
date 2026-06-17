@@ -112,4 +112,21 @@ export interface AdminStats {
   totalOrders: number;
   pendingOrders: number;
   estimatedRevenue: number;
+  newInquiries: number;
+}
+
+export type InquiryStatus = 'new' | 'read' | 'replied';
+
+export interface ContactInquiry {
+  id: string;
+  name: string;
+  email: string;
+  phone?: string;
+  vehicle?: string;
+  service?: string;
+  message?: string;
+  status: InquiryStatus;
+  adminNotes?: string;
+  createdAt: string;
+  updatedAt: string;
 }

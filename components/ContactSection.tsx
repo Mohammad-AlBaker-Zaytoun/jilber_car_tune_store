@@ -25,6 +25,7 @@ type FormState = {
   vehicle: string;
   service: string;
   message: string;
+  _hp: string;
 };
 
 const INITIAL_FORM: FormState = {
@@ -34,6 +35,7 @@ const INITIAL_FORM: FormState = {
   vehicle: '',
   service: '',
   message: '',
+  _hp: '',
 };
 
 const inputCls =
@@ -42,6 +44,9 @@ const inputCls =
 export default function ContactSection() {
   const [form, setForm] = useState<FormState>(INITIAL_FORM);
   const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState<Partial<Record<keyof FormState, string>>>({});
   const { info } = useContactInfo();
 
   const handleChange = (
@@ -50,14 +55,47 @@ export default function ContactSection() {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    setSubmitted(true);
+    setSubmitting(true);
+    setSubmitError('');
+    setFieldErrors({});
+    try {
+      const res = await fetch('/api/contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      });
+      if (!res.ok) {
+        const data = (await res.json()) as {
+          error?: string;
+          issues?: Partial<Record<keyof FormState, string[]>>;
+        };
+        if (data.issues) {
+          setFieldErrors(
+            Object.fromEntries(
+              Object.entries(data.issues).map(([k, v]) => [k, (v as string[])[0]])
+            ) as Partial<Record<keyof FormState, string>>
+          );
+          setSubmitError('Please fix the errors below.');
+        } else {
+          setSubmitError(data.error ?? 'Something went wrong. Please try again.');
+        }
+        return;
+      }
+      setSubmitted(true);
+    } catch {
+      setSubmitError('Something went wrong. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const reset = () => {
     setForm(INITIAL_FORM);
     setSubmitted(false);
+    setSubmitError('');
+    setFieldErrors({});
   };
 
   const waUrl = buildWhatsAppUrl(
@@ -237,7 +275,18 @@ export default function ContactSection() {
                 </button>
               </div>
             ) : (
-              <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
+              <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+                {/* Honeypot — hidden from real users, bots fill it */}
+                <input
+                  name="_hp"
+                  type="text"
+                  value={form._hp}
+                  onChange={handleChange}
+                  tabIndex={-1}
+                  autoComplete="off"
+                  aria-hidden="true"
+                  style={{ display: 'none' }}
+                />
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="flex flex-col gap-1.5">
                     <label
@@ -257,6 +306,7 @@ export default function ContactSection() {
                       className={inputCls}
                       placeholder="John Smith"
                     />
+                    {fieldErrors.name && <p className="text-[10px] text-red-400">{fieldErrors.name}</p>}
                   </div>
                   <div className="flex flex-col gap-1.5">
                     <label
@@ -276,6 +326,7 @@ export default function ContactSection() {
                       className={inputCls}
                       placeholder="you@email.com"
                     />
+                    {fieldErrors.email && <p className="text-[10px] text-red-400">{fieldErrors.email}</p>}
                   </div>
                 </div>
 
@@ -316,6 +367,7 @@ export default function ContactSection() {
                       className={inputCls}
                       placeholder="2023 BMW M3 Competition"
                     />
+                    {fieldErrors.vehicle && <p className="text-[10px] text-red-400">{fieldErrors.vehicle}</p>}
                   </div>
                 </div>
 
@@ -343,6 +395,7 @@ export default function ContactSection() {
                       </option>
                     ))}
                   </select>
+                  {fieldErrors.service && <p className="text-[10px] text-red-400">{fieldErrors.service}</p>}
                 </div>
 
                 <div className="flex flex-col gap-1.5">
@@ -380,11 +433,16 @@ export default function ContactSection() {
                   </div>
                 )}
 
+                {submitError && (
+                  <p className="text-xs text-red-400 text-center">{submitError}</p>
+                )}
+
                 <button
                   type="submit"
-                  className="mt-2 w-full py-4 bg-cyan-400 hover:bg-cyan-300 text-black font-black text-xs tracking-[0.25em] uppercase transition-all duration-200 hover:shadow-[0_0_30px_rgba(0,212,255,0.5)]"
+                  disabled={submitting}
+                  className="mt-2 w-full py-4 bg-cyan-400 hover:bg-cyan-300 disabled:opacity-50 disabled:cursor-not-allowed text-black font-black text-xs tracking-[0.25em] uppercase transition-all duration-200 hover:shadow-[0_0_30px_rgba(0,212,255,0.5)]"
                 >
-                  Send Build Request
+                  {submitting ? 'Sending…' : 'Send Build Request'}
                 </button>
 
                 <p className="text-[10px] text-zinc-600 text-center leading-relaxed">
