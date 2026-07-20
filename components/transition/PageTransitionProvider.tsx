@@ -15,7 +15,7 @@ import PageTransitionOverlay from './PageTransitionOverlay';
 
 // ─── Config ────────────────────────────────────────────────────────────────
 
-export const PAGE_TRANSITION_FRAME_COUNT = 60;
+export const PAGE_TRANSITION_FRAME_COUNT = 72;
 export const PAGE_TRANSITION_DURATION_MS = 900;
 
 /**
@@ -29,7 +29,7 @@ const FADE_OUT_MS = 600;
 const MAX_TRANSITION_MS = 8000;
 
 export const PAGE_TRANSITION_FRAME_PATH = (index: number) =>
-  `/page-transition-frames/frame_${String(index).padStart(4, '0')}.webp`;
+  `/pro-tuning-transition-frames-webp/frame_${String(index).padStart(4, '0')}.webp`;
 
 // ─── Context ────────────────────────────────────────────────────────────────
 
