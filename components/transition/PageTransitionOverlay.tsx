@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   PAGE_TRANSITION_DURATION_MS,
   PAGE_TRANSITION_FRAME_COUNT,
@@ -36,15 +36,18 @@ export default function PageTransitionOverlay({ phase, framesRef }: Props) {
   const progressRef = useRef<HTMLDivElement>(null);
   const rafRef = useRef<number>(0);
   const reducedMotionRef = useRef(false);
+  const [hasEntered, setHasEntered] = useState(false);
 
-  // Opacity is derived purely from the phase prop — no React state needed.
-  //   active  → 1  (overlay appears instantly; no fade-in so the page underneath
-  //                  can never bleed through during a fast navigation)
-  //   exiting → 0  (CSS transition fades it out gracefully)
-  //
-  // Keeping `transition` constant at '500ms ease' lets the browser animate
-  // the 1→0 change when exiting without requiring any JS-driven style flips.
+  // The entrance state supplies a distinct transparent first paint; the phase
+  // still controls the longer exit fade.
   const isExiting = phase === 'exiting';
+
+  // Mount transparent, then reveal on the next paint so the transition has a
+  // real starting frame instead of replacing the page abruptly.
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => setHasEntered(true));
+    return () => cancelAnimationFrame(frame);
+  }, []);
 
   // ── Detect reduced-motion preference once on mount ───────────────────
   useEffect(() => {
@@ -167,11 +170,11 @@ export default function PageTransitionOverlay({ phase, framesRef }: Props) {
         position: 'fixed',
         inset: 0,
         zIndex: 9999,
-        // Instant full-opacity on mount (no fade-in) prevents any page content
-        // from bleeding through the overlay during fast cached navigations.
-        // The 500ms ease transition only applies to the 1→0 change on exit.
-        opacity: isExiting ? 0 : 1,
-        transition: 'opacity 500ms ease',
+        // Ease the overlay in quickly, then use the longer cinematic fade-out.
+        opacity: isExiting || !hasEntered ? 0 : 1,
+        transition: isExiting
+          ? 'opacity 500ms ease'
+          : 'opacity 240ms cubic-bezier(0.16, 1, 0.3, 1)',
         pointerEvents: 'all',
         willChange: 'opacity',
       }}

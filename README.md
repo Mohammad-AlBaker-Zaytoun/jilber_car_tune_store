@@ -393,11 +393,17 @@ public/
 
 ## Getting Started
 
-### 1. Install dependencies
+### 1. Clone and install dependencies
 
 ```bash
-npm install
+git clone <repository-url>
+cd jilber_car_tune_store
+npm ci
 ```
+
+Use `npm ci` on a fresh clone so npm installs exactly the versions recorded in
+`package-lock.json`. Use `npm install` only when intentionally adding or updating
+dependencies.
 
 ### 2. Configure environment
 
@@ -405,6 +411,12 @@ Copy `.env.example` to `.env` (Prisma reads `.env`) and fill in the values:
 
 ```bash
 cp .env.example .env
+```
+
+PowerShell equivalent:
+
+```powershell
+Copy-Item .env.example .env
 ```
 
 Required variables:
@@ -426,7 +438,11 @@ Generate a secure `AUTH_SECRET`:
 node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 ```
 
-### 3. Start SQL Server and run migrations
+For local development, set `NEXT_PUBLIC_SITE_URL=http://localhost:3000`. The
+`.env` file contains secrets and is intentionally ignored by Git, so it must be
+created separately on every machine.
+
+### 3. Start SQL Server, migrate, and seed
 
 Start a local SQL Server (Docker):
 
@@ -435,12 +451,17 @@ docker run -e "ACCEPT_EULA=Y" -e "MSSQL_SA_PASSWORD=Your_strong_Pass123" \
   -p 1433:1433 -d --name jilber-mssql mcr.microsoft.com/mssql/server:2022-latest
 ```
 
-Create the schema and (optionally) import any existing legacy `.dev-*.json` data:
+Apply the migrations committed to the repository, then seed the catalog and any
+legacy `.dev-*.json` data that is present:
 
 ```bash
-npx prisma migrate dev --name init   # create tables
-npx prisma db seed                   # seed catalog + import legacy JSON if present
+npx prisma migrate deploy
+npm run db:seed
 ```
+
+Use `npm run db:migrate` (`prisma migrate dev`) only while developing a schema
+change and creating a new migration. Do not create an extra migration during a
+normal fresh-machine setup.
 
 ### 4. Start development server
 
@@ -449,6 +470,13 @@ npm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000).
+
+To verify and run the production build locally instead:
+
+```bash
+npm run build
+npm run start
+```
 
 ### 5. Create an admin account
 
@@ -484,6 +512,16 @@ Recommended resolution: **1280×720**.
 | `npm run db:migrate` | Create/apply Prisma migrations (`prisma migrate dev`) |
 | `npm run db:seed` | Seed catalog + import legacy JSON (`prisma db seed`) |
 | `npm run db:studio` | Open Prisma Studio to browse the database |
+
+### Files that must remain committed
+
+- `package-lock.json` makes `npm ci` reproducible across machines and CI.
+- `prisma/migrations/migration_lock.toml` records the Prisma migration provider.
+- `prisma/migrations/` contains the database history applied by
+  `prisma migrate deploy`.
+
+Do not add these files to `.gitignore`. Local secrets (`.env`), dependencies
+(`node_modules/`), and generated Next.js output (`.next/`) remain ignored.
 
 ---
 
