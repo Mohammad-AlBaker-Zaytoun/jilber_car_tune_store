@@ -1,38 +1,39 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState } from 'react';
 import { Search, Shield, User, Users, AlertCircle } from 'lucide-react';
 import ConfirmDialog from '@/components/admin/ConfirmDialog';
+import Pagination from '@/components/admin/Pagination';
 import type { StoredUser } from '@/lib/users';
 import { useAuth } from '@/components/auth/AuthProvider';
+import { usePagedResource } from '@/hooks/usePagedResource';
 
 type SafeUser = Omit<StoredUser, 'passwordHash'>;
 
+interface UserPageResponse {
+  users: SafeUser[];
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+  adminCount: number;
+}
+
 export default function UsersClient() {
   const { user: me } = useAuth();
-  const [users, setUsers] = useState<SafeUser[]>([]);
-  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [pendingRole, setPendingRole] = useState<{ user: SafeUser; newRole: 'user' | 'admin' } | null>(null);
   const [saving, setSaving] = useState(false);
   const [roleError, setRoleError] = useState('');
 
-  const load = () => {
-    fetch('/api/admin/users')
-      .then((r) => r.json())
-      .then((data: SafeUser[]) => setUsers(data))
-      .catch(console.error)
-      .finally(() => setLoading(false));
-  };
+  // Search and paging run in SQL; the table no longer loads every user row.
+  const { data, loading, error, page, applyFilters, reload, goToPage } =
+    usePagedResource<UserPageResponse>({
+      endpoint: '/api/admin/users',
+      filters: { search },
+    });
 
-  useEffect(() => { load(); }, []);
-
-  const filtered = useMemo(() => {
-    const q = search.toLowerCase();
-    return users.filter(
-      (u) => !q || u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q)
-    );
-  }, [users, search]);
+  const users = data?.users ?? [];
 
   const handleRoleChange = async () => {
     if (!pendingRole) return;
@@ -51,7 +52,7 @@ export default function UsersClient() {
         return;
       }
       setPendingRole(null);
-      load();
+      reload();
     } catch {
       setRoleError('Something went wrong. Please try again.');
     } finally {
@@ -59,7 +60,9 @@ export default function UsersClient() {
     }
   };
 
-  if (loading) return <div className="py-20 text-center text-xs text-zinc-600 animate-pulse">Loading…</div>;
+  if (loading && !data) {
+    return <div className="py-20 text-center text-xs text-zinc-600 animate-pulse">Loading…</div>;
+  }
 
   return (
     <>
@@ -86,20 +89,35 @@ export default function UsersClient() {
           <input
             type="search"
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => applyFilters(() => setSearch(e.target.value))}
             placeholder="Search users…"
             className="w-full bg-zinc-900 border border-zinc-800 focus:border-cyan-400/50 text-zinc-100 text-xs pl-9 pr-4 py-2.5 outline-none transition-colors placeholder:text-zinc-600"
           />
         </div>
-        <span className="text-[10px] text-zinc-600 ml-auto">{filtered.length} user{filtered.length !== 1 ? 's' : ''}</span>
+        <span className="text-[10px] text-zinc-600 ml-auto">
+          {data?.total ?? 0} user{(data?.total ?? 0) !== 1 ? 's' : ''}
+          {loading && ' · updating…'}
+        </span>
       </div>
 
-      {filtered.length === 0 ? (
+      {error ? (
+        <div className="border border-red-500/30 bg-red-500/5 flex flex-col items-center py-16 gap-4">
+          <AlertCircle size={32} className="text-red-400" aria-hidden="true" />
+          <p className="text-xs text-red-400">{error}</p>
+          <button
+            onClick={reload}
+            className="px-4 py-2 border border-zinc-700 hover:border-cyan-400/40 text-zinc-300 hover:text-cyan-400 text-[10px] font-black tracking-[0.2em] uppercase transition-colors"
+          >
+            Retry
+          </button>
+        </div>
+      ) : users.length === 0 ? (
         <div className="border border-zinc-800/50 bg-zinc-900/20 flex flex-col items-center py-16 gap-4">
           <Users size={32} className="text-zinc-700" aria-hidden="true" />
           <p className="text-xs text-zinc-600">No users found.</p>
         </div>
       ) : (
+        <>
         <div className="border border-zinc-800/50 bg-zinc-900/20 overflow-x-auto">
           <table className="w-full">
             <thead>
@@ -112,7 +130,7 @@ export default function UsersClient() {
               </tr>
             </thead>
             <tbody>
-              {filtered.map((u) => {
+              {users.map((u) => {
                 const isMe = u.id === me?.id;
                 const initials = u.name.split(' ').filter(Boolean).map((n) => n[0]).slice(0, 2).join('').toUpperCase();
                 return (
@@ -146,7 +164,7 @@ export default function UsersClient() {
                     </td>
                     <td className="px-5 py-3.5 text-right hidden md:table-cell">
                       <span className="text-[10px] text-zinc-600">
-                        {new Date(u.createdAt).toLocaleDateString()}
+                        {new Date(u.createdAt).toLocaleDateString('en-US')}
                       </span>
                     </td>
                     <td className="px-5 py-3.5 text-right">
@@ -164,7 +182,9 @@ export default function UsersClient() {
               })}
             </tbody>
           </table>
-        </div>
+          </div>
+          <Pagination page={page} totalPages={data?.totalPages ?? 1} onChange={goToPage} />
+        </>
       )}
     </>
   );

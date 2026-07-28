@@ -12,6 +12,10 @@ import { buildOrganizationJsonLd, safeJsonLd } from "@/lib/seo/helpers";
 import { siteConfig } from "@/lib/seo/site-config";
 import { getSettings } from "@/lib/settings";
 
+// Contact details and featured products come from the DB. Without this the page
+// is frozen at build time and admin changes never reach visitors.
+export const revalidate = 60;
+
 export const metadata: Metadata = {
   title: {
     absolute: siteConfig.siteName,

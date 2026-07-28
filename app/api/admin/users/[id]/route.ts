@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { requireAdmin, handleAdminError } from '@/lib/admin';
-import { findUserById, listUsers, updateUser, incrementTokenVersion } from '@/lib/users';
+import { findUserById, countAdmins, updateUser, incrementTokenVersion } from '@/lib/users';
 import { logger } from '@/lib/logger';
 
 const schema = z.object({
@@ -26,9 +26,10 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     const target = await findUserById(id);
     if (!target) return NextResponse.json({ error: 'User not found' }, { status: 404 });
 
-    // Prevent demoting the last admin
+    // Prevent demoting the last admin. Counts in SQL rather than loading every
+    // user row into memory to filter it.
     if (result.data.role === 'user' && target.role === 'admin') {
-      const adminCount = (await listUsers()).filter((u) => u.role === 'admin').length;
+      const adminCount = await countAdmins();
       if (adminCount <= 1) {
         return NextResponse.json({ error: 'Cannot demote the last admin' }, { status: 400 });
       }

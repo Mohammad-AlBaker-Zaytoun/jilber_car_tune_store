@@ -6,6 +6,10 @@ import { safeJsonLd } from '@/lib/seo/helpers';
 import { Phone, MessageCircle, Mail, MapPin, Clock, ExternalLink, ChevronRight } from 'lucide-react';
 import Link from 'next/link';
 
+// Phone, WhatsApp, address and hours are admin-editable — revalidate so edits
+// actually appear instead of being baked in at build time.
+export const revalidate = 60;
+
 export const metadata: Metadata = {
   title: 'Contact',
   description:

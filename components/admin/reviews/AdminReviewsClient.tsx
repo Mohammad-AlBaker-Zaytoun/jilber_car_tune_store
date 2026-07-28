@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import {
   Star,
@@ -13,6 +13,17 @@ import {
 } from 'lucide-react';
 import type { Review, ReviewStatus } from '@/lib/reviews';
 import ConfirmDialog from '@/components/admin/ConfirmDialog';
+import Pagination from '@/components/admin/Pagination';
+import { usePagedResource } from '@/hooks/usePagedResource';
+
+interface ReviewPageResponse {
+  reviews: Review[];
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+  statusCounts: Record<string, number>;
+}
 
 function StatusBadge({ status }: { status: ReviewStatus }) {
   const map: Record<ReviewStatus, { label: string; cls: string }> = {
@@ -37,15 +48,6 @@ function StatusBadge({ status }: { status: ReviewStatus }) {
   );
 }
 
-async function fetchReviews(): Promise<Review[]> {
-  const res = await fetch('/api/admin/reviews');
-  if (!res.ok) throw new Error('Failed to load reviews.');
-  const data = (await res.json()) as Review[];
-  // Newest first
-  data.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-  return data;
-}
-
 function StarRow({ rating }: { rating: number }) {
   return (
     <div className="flex items-center gap-0.5">
@@ -62,45 +64,28 @@ function StarRow({ rating }: { rating: number }) {
 }
 
 export default function AdminReviewsClient() {
-  const [reviews, setReviews] = useState<Review[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [fetchError, setFetchError] = useState('');
   const [actionError, setActionError] = useState('');
 
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<ReviewStatus | 'all'>('all');
   const [ratingFilter, setRatingFilter] = useState<number | 0>(0);
 
+  // Status, rating and search all filter in SQL. Filtering the current page in
+  // memory would silently hide matches sitting on other pages.
+  const { data, loading, error: fetchError, page, applyFilters, reload, goToPage } =
+    usePagedResource<ReviewPageResponse>({
+      endpoint: '/api/admin/reviews',
+      filters: {
+        search,
+        status: statusFilter === 'all' ? '' : statusFilter,
+        rating: ratingFilter > 0 ? String(ratingFilter) : '',
+      },
+    });
+
+  const filtered = data?.reviews ?? [];
+
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [actingId, setActingId] = useState<string | null>(null);
-
-  useEffect(() => {
-    fetchReviews()
-      .then((data) => {
-        setReviews(data);
-        setFetchError('');
-      })
-      .catch(() => setFetchError('Failed to load reviews.'))
-      .finally(() => setLoading(false));
-  }, []);
-
-  const filtered = useMemo(() => {
-    const q = search.toLowerCase();
-    return reviews.filter((r) => {
-      if (statusFilter !== 'all' && r.status !== statusFilter) return false;
-      if (ratingFilter > 0 && r.rating !== ratingFilter) return false;
-      if (q) {
-        return (
-          r.userName.toLowerCase().includes(q) ||
-          r.userEmail.toLowerCase().includes(q) ||
-          r.productSlug.toLowerCase().includes(q) ||
-          (r.title ?? '').toLowerCase().includes(q) ||
-          (r.comment ?? '').toLowerCase().includes(q)
-        );
-      }
-      return true;
-    });
-  }, [reviews, search, statusFilter, ratingFilter]);
 
   const updateStatus = async (id: string, status: ReviewStatus) => {
     setActionError('');
@@ -116,8 +101,7 @@ export default function AdminReviewsClient() {
         setActionError(d.error ?? 'Action failed.');
         return;
       }
-      const updated = (await res.json()) as Review;
-      setReviews((prev) => prev.map((r) => (r.id === id ? updated : r)));
+      reload();
     } catch {
       setActionError('Action failed. Please try again.');
     } finally {
@@ -137,7 +121,7 @@ export default function AdminReviewsClient() {
           setActionError(d.error ?? 'Delete failed.');
           return;
         }
-        setReviews((prev) => prev.filter((r) => r.id !== id));
+        reload();
       })
       .catch(() => {
         setActionError('Delete failed. Please try again.');
@@ -155,14 +139,14 @@ export default function AdminReviewsClient() {
         <input
           type="text"
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(e) => applyFilters(() => setSearch(e.target.value))}
           placeholder="Search product, customer, title…"
           className={`${inputCls} flex-1 min-w-48`}
         />
         <div className="relative">
           <select
             value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value as ReviewStatus | 'all')}
+            onChange={(e) => applyFilters(() => setStatusFilter(e.target.value as ReviewStatus | 'all'))}
             className={selectCls}
             aria-label="Filter by status"
           >
@@ -180,7 +164,7 @@ export default function AdminReviewsClient() {
         <div className="relative">
           <select
             value={ratingFilter}
-            onChange={(e) => setRatingFilter(Number(e.target.value))}
+            onChange={(e) => applyFilters(() => setRatingFilter(Number(e.target.value)))}
             className={selectCls}
             aria-label="Filter by rating"
           >
@@ -198,7 +182,8 @@ export default function AdminReviewsClient() {
           />
         </div>
         <span className="text-[10px] text-zinc-600 font-semibold tracking-wide ml-1">
-          {filtered.length} of {reviews.length}
+          {data?.total ?? 0} review{(data?.total ?? 0) !== 1 ? 's' : ''}
+          {loading && ' · updating…'}
         </span>
       </div>
 
@@ -211,7 +196,7 @@ export default function AdminReviewsClient() {
       )}
 
       {/* Table */}
-      {loading ? (
+      {loading && !data ? (
         <div className="flex items-center justify-center py-16 text-zinc-600 text-sm">
           Loading reviews…
         </div>
@@ -220,7 +205,13 @@ export default function AdminReviewsClient() {
           <p className="text-zinc-500 text-sm font-semibold">No reviews found.</p>
           {(search || statusFilter !== 'all' || ratingFilter > 0) && (
             <button
-              onClick={() => { setSearch(''); setStatusFilter('all'); setRatingFilter(0); }}
+              onClick={() =>
+                applyFilters(() => {
+                  setSearch('');
+                  setStatusFilter('all');
+                  setRatingFilter(0);
+                })
+              }
               className="text-xs text-cyan-400 hover:text-cyan-300 transition-colors"
             >
               Clear filters
@@ -355,6 +346,8 @@ export default function AdminReviewsClient() {
           </table>
         </div>
       )}
+
+      <Pagination page={page} totalPages={data?.totalPages ?? 1} onChange={goToPage} />
 
       <ConfirmDialog
         open={!!deleteId}

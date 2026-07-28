@@ -131,6 +131,66 @@ export async function listUsers(): Promise<Omit<StoredUser, 'passwordHash'>[]> {
   return rows.map((r) => stripHash(rowToUser(r)));
 }
 
+export interface UserPage {
+  users: Omit<StoredUser, 'passwordHash'>[];
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+  adminCount: number;
+}
+
+export const USERS_PAGE_SIZE = 25;
+
+/** Paginated user list for the admin table. Never returns password hashes. */
+export async function listUsersPage(
+  query: { page?: number; pageSize?: number; search?: string; role?: string } = {}
+): Promise<UserPage> {
+  const page = Math.max(1, Math.floor(query.page ?? 1));
+  const pageSize = Math.min(
+    Math.max(1, Math.floor(query.pageSize ?? USERS_PAGE_SIZE)),
+    100
+  );
+
+  const search = query.search?.trim();
+  const where = {
+    ...(query.role ? { role: query.role } : {}),
+    ...(search
+      ? {
+          OR: [
+            { email: { contains: search } },
+            { name: { contains: search } },
+          ],
+        }
+      : {}),
+  };
+
+  const [total, rows, adminCount] = await Promise.all([
+    prisma.user.count({ where }),
+    prisma.user.findMany({
+      where,
+      orderBy: { createdAt: 'asc' },
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+    }),
+    prisma.user.count({ where: { role: 'admin' } }),
+  ]);
+
+  return {
+    users: rows.map((r) => stripHash(rowToUser(r))),
+    total,
+    page,
+    pageSize,
+    totalPages: Math.max(1, Math.ceil(total / pageSize)),
+    adminCount,
+  };
+}
+
+/** Counts admins without loading every user row. */
+export async function countAdmins(): Promise<number> {
+  return prisma.user.count({ where: { role: 'admin' } });
+}
+
 export async function countUsers(): Promise<number> {
   return prisma.user.count();
 }

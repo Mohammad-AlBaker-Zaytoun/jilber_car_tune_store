@@ -3,6 +3,10 @@ import { getProducts } from '@/lib/products';
 import { siteConfig } from '@/lib/seo/site-config';
 import { absoluteUrl } from '@/lib/seo/helpers';
 
+// Crawlers hit this often and it does a full product scan; an hour of staleness
+// in a sitemap is irrelevant.
+export const revalidate = 3600;
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const products = await getProducts();
   const now = new Date();

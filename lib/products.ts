@@ -8,6 +8,7 @@
  */
 
 import { randomUUID } from 'crypto';
+import { cache } from 'react';
 import { prisma } from '@/lib/db/prisma';
 import type { Product as ProductRow } from '@prisma/client';
 import type { Product, ProductSpec, Category } from '@/data/products';
@@ -57,8 +58,21 @@ export async function getProducts(): Promise<Product[]> {
   return rows.map(rowToProduct);
 }
 
-export async function getProductBySlug(slug: string): Promise<Product | undefined> {
-  const row = await prisma.product.findUnique({ where: { slug } });
+/**
+ * Wrapped in React's `cache()` so repeated calls within a single request hit the
+ * database once. `/store/[slug]` calls this twice per render — once in
+ * generateMetadata and again in the page body — which was two identical queries
+ * on every product view. The cache is per-request, so there is no staleness.
+ */
+export const getProductBySlug = cache(
+  async (slug: string): Promise<Product | undefined> => {
+    const row = await prisma.product.findUnique({ where: { slug } });
+    return row ? rowToProduct(row) : undefined;
+  }
+);
+
+export async function getProductById(id: string): Promise<Product | undefined> {
+  const row = await prisma.product.findUnique({ where: { id } });
   return row ? rowToProduct(row) : undefined;
 }
 

@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { getProducts } from '@/lib/products';
-import { getReviews } from '@/lib/reviews';
+import { getApprovedReviews } from '@/lib/reviews';
 import { buildRatingsMap } from '@/lib/rating';
 import StoreScrollHero from '@/components/store/StoreScrollHero';
 import StoreContent from '@/components/store/StoreContent';
@@ -23,9 +23,25 @@ export const metadata: Metadata = {
   },
 };
 
+/**
+ * ISR, 60s.
+ *
+ * This page was prerendered at BUILD TIME with no revalidation, so a product
+ * added or edited in /admin/products never appeared on the storefront until the
+ * next deploy — the admin panel looked like it worked and silently did nothing.
+ * 60s bounds that staleness while still collapsing ~every request down to one
+ * DB round trip per minute.
+ */
+export const revalidate = 60;
+
 export default async function StorePage() {
-  const [products, allReviews] = await Promise.all([getProducts(), getReviews()]);
-  const approvedReviews = allReviews.filter((r) => r.status === 'approved');
+  // Filter in SQL, not JS. This previously pulled the entire reviews table
+  // (including every reviewer's email) and discarded the non-approved rows in
+  // memory, bypassing the reviews_status_idx that exists for this query.
+  const [products, approvedReviews] = await Promise.all([
+    getProducts(),
+    getApprovedReviews(),
+  ]);
   const ratings = buildRatingsMap(products, approvedReviews);
 
   return (

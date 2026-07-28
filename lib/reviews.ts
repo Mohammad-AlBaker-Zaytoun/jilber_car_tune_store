@@ -6,7 +6,7 @@
 
 import { randomUUID } from 'crypto';
 import { prisma } from '@/lib/db/prisma';
-import type { Review as ReviewRow } from '@prisma/client';
+import type { Review as ReviewRow, Prisma } from '@prisma/client';
 
 export type ReviewStatus = 'pending' | 'approved' | 'hidden';
 
@@ -51,6 +51,99 @@ function rowToReview(row: ReviewRow): Review {
 export async function getReviews(): Promise<Review[]> {
   const rows = await prisma.review.findMany({ orderBy: { createdAt: 'desc' } });
   return rows.map(rowToReview);
+}
+
+/**
+ * Approved reviews for many products in ONE query.
+ *
+ * The store listing used to call getReviews() — the entire table, including
+ * every reviewer's email — and filter to approved in JavaScript, bypassing the
+ * reviews_status_idx added specifically for this.
+ */
+export async function getApprovedReviews(): Promise<Review[]> {
+  const rows = await prisma.review.findMany({
+    where: { status: 'approved' },
+    orderBy: { createdAt: 'desc' },
+  });
+  return rows.map(rowToReview);
+}
+
+export interface ReviewPage {
+  reviews: Review[];
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+  statusCounts: Record<string, number>;
+}
+
+export const REVIEWS_PAGE_SIZE = 25;
+
+/**
+ * Paginated review list for the admin moderation table.
+ *
+ * All three filters run in SQL. Filtering client-side would only ever search the
+ * rows on the current page, which silently hides matches on other pages.
+ */
+export async function getReviewsPage(
+  query: {
+    page?: number;
+    pageSize?: number;
+    status?: string;
+    rating?: number;
+    search?: string;
+  } = {}
+): Promise<ReviewPage> {
+  const page = Math.max(1, Math.floor(query.page ?? 1));
+  const pageSize = Math.min(
+    Math.max(1, Math.floor(query.pageSize ?? REVIEWS_PAGE_SIZE)),
+    100
+  );
+
+  const search = query.search?.trim();
+  const where: Prisma.ReviewWhereInput = {
+    ...(query.status ? { status: query.status } : {}),
+    ...(query.rating ? { rating: query.rating } : {}),
+    ...(search
+      ? {
+          OR: [
+            { userName: { contains: search } },
+            { userEmail: { contains: search } },
+            { productSlug: { contains: search } },
+            { title: { contains: search } },
+            { comment: { contains: search } },
+          ],
+        }
+      : {}),
+  };
+
+  const [total, rows, grouped] = await Promise.all([
+    prisma.review.count({ where }),
+    prisma.review.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+    }),
+    prisma.review.groupBy({ by: ['status'], _count: { _all: true } }),
+  ]);
+
+  const statusCounts: Record<string, number> = {};
+  let all = 0;
+  for (const g of grouped) {
+    statusCounts[g.status] = g._count._all;
+    all += g._count._all;
+  }
+  statusCounts.all = all;
+
+  return {
+    reviews: rows.map(rowToReview),
+    total,
+    page,
+    pageSize,
+    totalPages: Math.max(1, Math.ceil(total / pageSize)),
+    statusCounts,
+  };
 }
 
 export async function getApprovedReviewsForProduct(productId: string): Promise<Review[]> {

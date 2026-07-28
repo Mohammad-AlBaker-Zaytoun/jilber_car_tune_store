@@ -7,7 +7,7 @@ import {
   createReview,
   AUTO_APPROVE_REVIEWS,
 } from '@/lib/reviews';
-import { getProducts } from '@/lib/products';
+import { getProductById } from '@/lib/products';
 import { isUniqueConstraintError } from '@/lib/admin';
 import { logger } from '@/lib/logger';
 
@@ -59,7 +59,9 @@ export async function POST(request: Request) {
 
   const { productId, rating, title, comment } = result.data;
 
-  const product = (await getProducts()).find((p) => p.id === productId);
+  // Was `(await getProducts()).find(...)` — a full table scan pulled into memory
+  // to locate a single row by primary key.
+  const product = await getProductById(productId);
   if (!product) {
     return NextResponse.json({ error: 'Product not found' }, { status: 404 });
   }
