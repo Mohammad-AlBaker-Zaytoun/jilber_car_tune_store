@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { NextResponse, after } from 'next/server';
 import { requireAdmin, handleAdminError } from '@/lib/admin';
 import { getQuoteById, convertQuoteToOrder } from '@/lib/quotes';
 import { createOrder, generateOrderRef } from '@/lib/orders';
@@ -109,7 +109,7 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
     });
 
     const updatedQuote = await convertQuoteToOrder(quote.id, order.id);
-    if (updatedQuote) notifyQuoteConvertedToOrder(updatedQuote);
+    if (updatedQuote) after(() => notifyQuoteConvertedToOrder(updatedQuote));
 
     return NextResponse.json({ orderId: order.id, ref: order.ref }, { status: 201 });
   } catch (err) {

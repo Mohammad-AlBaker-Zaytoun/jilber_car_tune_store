@@ -1,9 +1,11 @@
-import { NextResponse } from 'next/server';
+import { NextResponse, after } from 'next/server';
 import { z } from 'zod';
 import bcrypt from 'bcryptjs';
 import { findUserByEmail, createUser } from '@/lib/users';
 import { sendVerificationEmail } from '@/lib/email-verification';
+import { notifyRegistrationAttemptOnExistingAccount } from '@/lib/auth-notifications';
 import { rateLimit, getClientIp, tooManyRequests } from '@/lib/rate-limit';
+import { logger } from '@/lib/logger';
 
 const schema = z
   .object({
@@ -38,22 +40,33 @@ export async function POST(request: Request) {
 
     const { name, email, phone, password } = result.data;
 
-    if (await findUserByEmail(email)) {
-      return NextResponse.json(
-        { error: 'An account with this email already exists' },
-        { status: 409 }
-      );
+    const existing = await findUserByEmail(email);
+
+    if (existing) {
+      // Neutral response — this used to return 409 "An account with this email
+      // already exists", which is a free, definitive account-enumeration oracle
+      // (forgot-password and resend-verification already answer neutrally).
+      //
+      // Still hash, so the response time matches the create path and does not
+      // leak the same fact through timing instead.
+      await bcrypt.hash(password, 12);
+
+      // Tell the real account holder, not the requester. If this was them, it is
+      // the nudge they need; if it was someone probing, they learn nothing.
+      after(() => notifyRegistrationAttemptOnExistingAccount(existing.name, existing.email));
+
+      logger.info('auth.register_existing_email', { email });
+      return NextResponse.json({ success: true }, { status: 201 });
     }
 
     const passwordHash = await bcrypt.hash(password, 12);
     const created = await createUser({ email, name, phone, passwordHash, role: 'user' });
 
-    // Fire-and-forget verification email (env-gated, best-effort).
-    void sendVerificationEmail(created.id, created.name, created.email);
+    after(() => sendVerificationEmail(created.id, created.name, created.email));
 
     return NextResponse.json({ success: true }, { status: 201 });
   } catch (err) {
-    console.error('[register]', err);
+    logger.error('register.unhandled', err);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

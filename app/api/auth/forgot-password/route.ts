@@ -5,6 +5,7 @@ import { createResetToken } from '@/lib/password-reset';
 import { sendEmail, emailLayout, escapeHtml } from '@/lib/email';
 import { siteConfig } from '@/lib/seo/site-config';
 import { rateLimit, getClientIp, tooManyRequests } from '@/lib/rate-limit';
+import { logger } from '@/lib/logger';
 
 const schema = z.object({ email: z.string().email() });
 
@@ -49,7 +50,7 @@ export async function POST(request: Request) {
       message: 'If an account exists for that email, a reset link has been sent.',
     });
   } catch (err) {
-    console.error('[auth/forgot-password]', err);
+    logger.error('auth.forgot.password.unhandled', err);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

@@ -5,9 +5,20 @@ import type { UserRole } from '@/types/admin';
 export { type UserRole };
 
 export const COOKIE_NAME = 'jilber-session';
-// 24-hour window; the proxy renews the cookie on every authenticated page load
-// so active sessions slide forward while inactive ones expire predictably.
+// 24-hour idle window; the proxy renews the cookie on every authenticated page
+// load so active sessions slide forward while inactive ones expire predictably.
 const COOKIE_MAX_AGE = 60 * 60 * 24;
+
+/**
+ * Absolute session lifetime, in seconds (7 days).
+ *
+ * The sliding renewal above has no ceiling on its own: a session used once a day
+ * is renewed forever, so a stolen cookie stays valid indefinitely as long as it
+ * keeps being used. `sat` (session-started-at) is carried across renewals and
+ * checked here, forcing a real re-authentication after this long no matter how
+ * active the session is.
+ */
+const ABSOLUTE_SESSION_MAX_AGE = 60 * 60 * 24 * 7;
 
 function getSecret(): Uint8Array {
   const secret = process.env.AUTH_SECRET;
@@ -35,9 +46,16 @@ export interface SessionUser {
    * Defaults to 0 for pre-existing tokens that lack the claim.
    */
   tokenVersion?: number;
+  /**
+   * Session-started-at, as a UNIX timestamp in seconds. Set once at sign-in and
+   * carried unchanged through every sliding renewal so the absolute lifetime is
+   * measured from the original authentication, not the last page view.
+   */
+  sessionStartedAt?: number;
 }
 
 export async function createToken(user: SessionUser): Promise<string> {
+  const nowSeconds = Math.floor(Date.now() / 1000);
   return new SignJWT({
     id: user.id,
     email: user.email,
@@ -46,6 +64,9 @@ export async function createToken(user: SessionUser): Promise<string> {
     role: user.role,
     createdAt: user.createdAt,
     tv: user.tokenVersion ?? 0,
+    // Preserve the original value on renewal; only a fresh sign-in starts a new
+    // window. Renewing this would make the ceiling slide too, defeating it.
+    sat: user.sessionStartedAt ?? nowSeconds,
   })
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
@@ -56,16 +77,26 @@ export async function createToken(user: SessionUser): Promise<string> {
 export async function verifyToken(token: string): Promise<SessionUser | null> {
   try {
     const { payload } = await jwtVerify(token, getSecret());
-    const { id, email, name, phone, role, createdAt, tv } = payload;
+    const { id, email, name, phone, role, createdAt, tv, sat } = payload;
     if (typeof id !== 'string' || typeof email !== 'string' || typeof name !== 'string') {
       return null;
     }
+
+    // Absolute lifetime. Tokens issued before this claim existed have no `sat`;
+    // treat them as starting now rather than rejecting every live session on
+    // deploy — they still expire within 24h of going idle.
+    if (typeof sat === 'number') {
+      const ageSeconds = Math.floor(Date.now() / 1000) - sat;
+      if (ageSeconds > ABSOLUTE_SESSION_MAX_AGE) return null;
+    }
+
     return {
       id, email, name,
       phone: typeof phone === 'string' ? phone : undefined,
       role: role === 'admin' ? 'admin' : 'user',
       createdAt: typeof createdAt === 'string' ? createdAt : undefined,
       tokenVersion: typeof tv === 'number' ? tv : 0,
+      sessionStartedAt: typeof sat === 'number' ? sat : undefined,
     };
   } catch {
     return null;

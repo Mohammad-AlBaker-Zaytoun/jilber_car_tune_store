@@ -1,8 +1,9 @@
-import { NextResponse } from 'next/server';
+import { NextResponse, after } from 'next/server';
 import { z } from 'zod';
 import { createInquiry } from '@/lib/inquiries';
 import { notifyAdminNewInquiry } from '@/lib/contact-notifications';
 import { rateLimit, getClientIp, tooManyRequests } from '@/lib/rate-limit';
+import { logger } from '@/lib/logger';
 
 const schema = z.object({
   name: z.string().min(1).max(200).trim(),
@@ -38,11 +39,11 @@ export async function POST(request: Request) {
     const inquiry = await createInquiry(data);
 
     // Fire-and-forget — never blocks the response
-    void notifyAdminNewInquiry(inquiry);
+    after(() => notifyAdminNewInquiry(inquiry));
 
     return NextResponse.json({ ok: true });
   } catch (err) {
-    console.error('[contact POST]', err);
+    logger.error('contact.post.unhandled', err);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { NextResponse, after } from 'next/server';
 import { z } from 'zod';
 import { requireAdmin, handleAdminError } from '@/lib/admin';
 import {
@@ -84,11 +84,15 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
           statusNote
         )) ?? order;
 
-      // Fire notification hooks
-      notifyOrderStatusChanged(order, status);
-      if (status === 'confirmed') notifyOrderConfirmed(order);
-      if (status === 'ready_for_pickup') notifyOrderReadyForPickup(order);
-      if (status === 'cancelled') notifyOrderCancelled(order);
+      // Snapshot the order as it is at the moment of the status change. `order`
+      // is reassigned by the paymentStatus/notes updates below, and after()
+      // callbacks run once the response has flushed — without the snapshot they
+      // would describe whatever state the variable ended up in.
+      const changed = order;
+      after(() => notifyOrderStatusChanged(changed, status));
+      if (status === 'confirmed') after(() => notifyOrderConfirmed(changed));
+      if (status === 'ready_for_pickup') after(() => notifyOrderReadyForPickup(changed));
+      if (status === 'cancelled') after(() => notifyOrderCancelled(changed));
     }
 
     // Payment status change

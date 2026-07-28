@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { consumeVerificationToken } from '@/lib/email-verification';
 import { markEmailVerified } from '@/lib/users';
 import { rateLimit, getClientIp, tooManyRequests } from '@/lib/rate-limit';
+import { logger } from '@/lib/logger';
 
 const schema = z.object({ token: z.string().min(1, 'Verification token is required') });
 
@@ -36,7 +37,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ success: true });
   } catch (err) {
-    console.error('[auth/verify-email]', err);
+    logger.error('auth.verify.email.unhandled', err);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

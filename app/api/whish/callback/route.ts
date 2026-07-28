@@ -3,6 +3,7 @@ import { parseCallbackUrl } from 'whish-pay';
 import { getOrderByWhishExternalId } from '@/lib/orders';
 import { settleWhishOrder } from '@/lib/payments/whish-settle';
 import { siteConfig } from '@/lib/seo/site-config';
+import { logger } from '@/lib/logger';
 
 // Whish redirects the browser here (GET) after payment and also calls it
 // server-to-server. This is cross-origin, so the proxy CSRF gate (which only
@@ -24,7 +25,7 @@ async function handleCallback(request: Request) {
 
   const order = await getOrderByWhishExternalId(externalId);
   if (!order) {
-    console.error(`[whish/callback] no order for externalId ${externalId}`);
+    logger.error('payment.callback_unknown_order', undefined, { externalId });
     return { outcome: 'not_paid' as const, ref: null };
   }
 
@@ -34,10 +35,11 @@ async function handleCallback(request: Request) {
   // paid. Never silently drop it: the reconciliation job picks these up, but it
   // must be visible in logs/alerting now.
   if (outcome === 'unavailable') {
-    console.error(
-      `[whish/callback] could not confirm payment for order ${order.ref} — ` +
-        `left unpaid for reconciliation`
-    );
+    logger.error('payment.callback_unconfirmed', undefined, {
+      orderRef: order.ref,
+      orderId: order.id,
+      detail: 'left unpaid — scripts/reconcile-payments.ts will retry',
+    });
   }
 
   return { outcome, ref: order.ref };
@@ -58,7 +60,7 @@ export async function POST(request: Request) {
     }
     return NextResponse.json({ received: true, outcome }, { status: 200 });
   } catch (err) {
-    console.error('[whish/callback POST]', err);
+    logger.error('whish.callback.post.unhandled', err);
     return NextResponse.json({ received: false }, { status: 500 });
   }
 }
@@ -77,7 +79,7 @@ export async function GET(request: Request) {
     }
     return redirect(`/checkout/failure${refQs}`);
   } catch (err) {
-    console.error('[whish/callback GET]', err);
+    logger.error('whish.callback.get.unhandled', err);
     return redirect('/checkout/failure');
   }
 }

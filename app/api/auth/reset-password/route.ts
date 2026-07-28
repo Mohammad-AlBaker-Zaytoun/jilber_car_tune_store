@@ -4,6 +4,7 @@ import bcrypt from 'bcryptjs';
 import { consumeResetToken } from '@/lib/password-reset';
 import { updateUserPassword, incrementTokenVersion } from '@/lib/users';
 import { rateLimit, getClientIp, tooManyRequests } from '@/lib/rate-limit';
+import { logger } from '@/lib/logger';
 
 const schema = z
   .object({
@@ -54,7 +55,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ success: true });
   } catch (err) {
-    console.error('[auth/reset-password]', err);
+    logger.error('auth.reset.password.unhandled', err);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

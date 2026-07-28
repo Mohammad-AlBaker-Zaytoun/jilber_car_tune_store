@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { getSessionWithUser } from '@/lib/session';
 import { updateUser } from '@/lib/users';
 import { createToken, setSessionCookie, type SessionUser } from '@/lib/auth';
+import { logger } from '@/lib/logger';
 
 const schema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters').max(100).optional(),
@@ -49,7 +50,7 @@ export async function PATCH(request: Request) {
     setSessionCookie(response, token);
     return response;
   } catch (err) {
-    console.error('[account/profile PATCH]', err);
+    logger.error('account.profile.patch.unhandled', err);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

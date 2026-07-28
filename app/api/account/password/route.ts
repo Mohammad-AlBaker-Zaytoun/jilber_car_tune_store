@@ -5,6 +5,7 @@ import { getSessionWithUser } from '@/lib/session';
 import { updateUserPassword, incrementTokenVersion } from '@/lib/users';
 import { createToken, setSessionCookie, type SessionUser } from '@/lib/auth';
 import { rateLimit, getClientIp, tooManyRequests } from '@/lib/rate-limit';
+import { logger } from '@/lib/logger';
 
 const schema = z
   .object({
@@ -64,7 +65,7 @@ export async function POST(request: Request) {
     setSessionCookie(response, token);
     return response;
   } catch (err) {
-    console.error('[account/password POST]', err);
+    logger.error('account.password.post.unhandled', err);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

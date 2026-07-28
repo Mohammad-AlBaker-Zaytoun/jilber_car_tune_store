@@ -17,26 +17,28 @@
  */
 
 import { isWhishConfigured, isWhishProduction } from './whish';
+import { logger } from '@/lib/logger';
 
 /** Set to '1' to run configured Whish credentials against the sandbox on purpose. */
 const SANDBOX_OPT_IN = 'WHISH_ALLOW_SANDBOX';
 
 export function assertWhishEnvironment(): void {
   if (!isWhishConfigured()) {
-    console.info('[whish] not configured — card checkout will return 503.');
+    logger.info('whish.not_configured', { effect: 'card checkout returns 503' });
     return;
   }
 
   if (isWhishProduction()) {
-    console.info('[whish] configured, environment=PRODUCTION (real charges).');
+    logger.info('whish.ready', { environment: 'production', realCharges: true });
     return;
   }
 
   if (process.env[SANDBOX_OPT_IN] === '1') {
-    console.warn(
-      `[whish] configured, environment=SANDBOX (no real charges). ` +
-        `${SANDBOX_OPT_IN}=1 is set, so this is intentional.`
-    );
+    logger.warn('whish.ready', {
+      environment: 'sandbox',
+      realCharges: false,
+      detail: `${SANDBOX_OPT_IN}=1 is set, so this is intentional`,
+    });
     return;
   }
 

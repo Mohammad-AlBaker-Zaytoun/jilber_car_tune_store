@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { NextResponse, after } from 'next/server';
 import { z } from 'zod';
 import { requireAdmin, handleAdminError } from '@/lib/admin';
 import {
@@ -81,7 +81,7 @@ export async function PATCH(
     }
     if (customerReply !== undefined) {
       updated = (await updateQuoteCustomerReply(id, customerReply)) ?? updated;
-      notifyCustomerQuoteUpdated(updated);
+      after(() => notifyCustomerQuoteUpdated(updated));
     }
 
     return NextResponse.json(updated);

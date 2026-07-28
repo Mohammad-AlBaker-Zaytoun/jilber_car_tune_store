@@ -6,6 +6,7 @@
 import { Prisma } from '@prisma/client';
 import { getSessionWithUser } from './session';
 import type { SessionUser } from './auth';
+import { logger } from '@/lib/logger';
 
 export class AdminError extends Error {
   constructor(
@@ -46,6 +47,6 @@ export function handleAdminError(err: unknown): Response {
       { status: 409 }
     );
   }
-  console.error('[admin]', err);
+  logger.error('admin.unhandled', err);
   return Response.json({ error: 'Internal server error' }, { status: 500 });
 }

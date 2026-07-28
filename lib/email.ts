@@ -11,6 +11,8 @@
  * latency/failure never blocks an API response.
  */
 
+import { logger } from '@/lib/logger';
+
 interface EmailParams {
   to: string;
   subject: string;
@@ -36,22 +38,33 @@ export async function sendEmail({ to, subject, html }: EmailParams): Promise<voi
   const from = process.env.EMAIL_FROM ?? 'JILBER Performance <onboarding@resend.dev>';
 
   if (!apiKey) {
-    console.info(`[email] disabled (set RESEND_API_KEY) — would send "${subject}" to ${to}`);
+    logger.info('email.disabled', { subject, to });
     return;
   }
   if (!to) return;
 
+  // Email failures used to be console.error only, so a customer never receiving
+  // their order confirmation was invisible in production. These now go through
+  // the logger and therefore to whatever tracker is attached.
   try {
     const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ from, to, subject, html }),
+      signal: AbortSignal.timeout(10_000),
     });
     if (!res.ok) {
-      console.error('[email] send failed', res.status, await res.text());
+      logger.error('email.send_failed', undefined, {
+        subject,
+        to,
+        status: res.status,
+        body: (await res.text()).slice(0, 500),
+      });
+      return;
     }
+    logger.debug('email.sent', { subject, to });
   } catch (err) {
-    console.error('[email] send error', err);
+    logger.error('email.send_error', err, { subject, to });
   }
 }
 

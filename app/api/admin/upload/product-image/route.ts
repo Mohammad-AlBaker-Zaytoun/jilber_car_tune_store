@@ -24,6 +24,32 @@ const MIME_TO_EXT: Record<string, string> = {
   'image/avif': '.avif',
 };
 
+/**
+ * Identifies an image from its magic bytes, independent of what the client
+ * claimed. Returns null for anything not in the allowlist (notably SVG, which is
+ * scriptable and is excluded on purpose).
+ */
+export function sniffImageType(bytes: Uint8Array): string | null {
+  const startsWith = (...sig: number[]) =>
+    sig.length <= bytes.length && sig.every((b, i) => bytes[i] === b);
+
+  // FF D8 FF
+  if (startsWith(0xff, 0xd8, 0xff)) return 'image/jpeg';
+  // \x89 P N G \r \n \x1a \n
+  if (startsWith(0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a)) return 'image/png';
+
+  // RIFF....WEBP — bytes 0-3 "RIFF", bytes 8-11 "WEBP"
+  const ascii = (offset: number, text: string) =>
+    offset + text.length <= bytes.length &&
+    [...text].every((c, i) => bytes[offset + i] === c.charCodeAt(0));
+  if (ascii(0, 'RIFF') && ascii(8, 'WEBP')) return 'image/webp';
+
+  // ISO-BMFF: ....ftyp{avif|avis}
+  if (ascii(4, 'ftyp') && (ascii(8, 'avif') || ascii(8, 'avis'))) return 'image/avif';
+
+  return null;
+}
+
 const UPLOAD_DIR =
   process.env.UPLOAD_DIR ?? join(process.cwd(), 'public', 'products', 'uploads');
 const UPLOAD_PUBLIC_PATH = (process.env.UPLOAD_PUBLIC_PATH ?? '/products/uploads').replace(
@@ -34,6 +60,18 @@ const UPLOAD_PUBLIC_PATH = (process.env.UPLOAD_PUBLIC_PATH ?? '/products/uploads
 export async function POST(request: Request) {
   try {
     await requireAdmin();
+
+    // Reject oversized bodies BEFORE parsing. request.formData() buffers the
+    // entire payload into memory, so checking file.size afterwards meant a
+    // multi-GB POST was fully read first — a memory DoS, admin-only but trivial.
+    // Allow some slack over MAX_SIZE for multipart boundaries and other fields.
+    const declaredLength = Number(request.headers.get('content-length') ?? 0);
+    if (declaredLength > MAX_SIZE + 64 * 1024) {
+      return NextResponse.json(
+        { error: 'File exceeds 5 MB limit.' },
+        { status: 413 }
+      );
+    }
 
     const formData = await request.formData();
     const file = formData.get('file');
@@ -49,8 +87,23 @@ export async function POST(request: Request) {
       );
     }
 
+    // Belt and braces: Content-Length can be absent (chunked encoding) or lie.
     if (file.size > MAX_SIZE) {
-      return NextResponse.json({ error: 'File exceeds 5 MB limit.' }, { status: 400 });
+      return NextResponse.json({ error: 'File exceeds 5 MB limit.' }, { status: 413 });
+    }
+
+    const bytes = await file.arrayBuffer();
+
+    // The declared MIME type comes from the client's multipart headers and is
+    // what picks the stored extension. Verify it against the actual file
+    // signature so a mislabelled (or deliberately disguised) payload cannot be
+    // written with an image extension.
+    const sniffed = sniffImageType(new Uint8Array(bytes));
+    if (!sniffed || sniffed !== file.type) {
+      return NextResponse.json(
+        { error: 'File contents do not match its type. Use a real JPEG, PNG, WebP, or AVIF.' },
+        { status: 400 }
+      );
     }
 
     const originalExt = extname(file.name).toLowerCase();
@@ -61,8 +114,6 @@ export async function POST(request: Request) {
     const safeName = `product-${unique}${ext}`;
 
     await mkdir(UPLOAD_DIR, { recursive: true });
-
-    const bytes = await file.arrayBuffer();
     await writeFile(join(UPLOAD_DIR, safeName), Buffer.from(bytes));
 
     return NextResponse.json({ path: `${UPLOAD_PUBLIC_PATH}/${safeName}` });

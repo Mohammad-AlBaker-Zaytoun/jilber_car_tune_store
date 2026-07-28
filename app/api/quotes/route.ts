@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { NextResponse, after } from 'next/server';
 import { z } from 'zod';
 import { createQuote } from '@/lib/quotes';
 import { getSession } from '@/lib/session';
@@ -7,6 +7,7 @@ import { notifyQuoteSubmitted, notifyAdminNewQuote } from '@/lib/quote-notificat
 import { rateLimit, getClientIp, tooManyRequests } from '@/lib/rate-limit';
 import { SERVICE_CATEGORIES } from '@/types/quotes';
 import type { ServiceCategory, PreferredContactMethod } from '@/types/quotes';
+import { logger } from '@/lib/logger';
 
 const CONTACT_METHODS = ['phone', 'whatsapp', 'email'] as const;
 
@@ -102,15 +103,15 @@ export async function POST(request: Request) {
       relatedProductName,
     });
 
-    notifyQuoteSubmitted(quote);
-    notifyAdminNewQuote(quote);
+    after(() => notifyQuoteSubmitted(quote));
+    after(() => notifyAdminNewQuote(quote));
 
     return NextResponse.json(
       { quoteId: quote.id, quoteNumber: quote.quoteNumber },
       { status: 201 }
     );
   } catch (err) {
-    console.error('[quotes/POST]', err);
+    logger.error('quotes.post.unhandled', err);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

@@ -14,6 +14,7 @@ import type {
   Order as OrderRow,
   OrderItem as OrderItemRow,
   OrderStatusHistory as HistoryRow,
+  Prisma,
 } from '@prisma/client';
 import type { Order, OrderStatus, PaymentStatus, OrderStatusHistoryEntry } from '@/types/admin';
 
@@ -101,6 +102,94 @@ export async function getOrders(): Promise<Order[]> {
     orderBy: { createdAt: 'desc' },
   });
   return rows.map(rowToOrder);
+}
+
+export interface OrderPage {
+  orders: Order[];
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+  /**
+   * Counts per status across the WHOLE table, not just this page — the admin
+   * stat tiles must not change meaning when you turn the page.
+   */
+  statusCounts: Record<string, number>;
+}
+
+export interface OrderQuery {
+  page?: number;
+  pageSize?: number;
+  status?: string;
+  paymentStatus?: string;
+  /** Matches order ref, customer name, or customer email. */
+  search?: string;
+}
+
+export const ORDERS_PAGE_SIZE = 25;
+const ORDERS_MAX_PAGE_SIZE = 100;
+
+/**
+ * Paginated, filtered order list for the admin table.
+ *
+ * `getOrders()` loads every order with every line item AND every status-history
+ * row, serialises the lot into one JSON response, and lets the browser filter.
+ * That is fine at demo scale and degrades linearly — it will time out the admin
+ * dashboard as order history accumulates. Filtering moved to SQL so the indexes
+ * on (userId, status, createdAt) actually get used.
+ */
+export async function getOrdersPage(query: OrderQuery = {}): Promise<OrderPage> {
+  const page = Math.max(1, Math.floor(query.page ?? 1));
+  const pageSize = Math.min(
+    Math.max(1, Math.floor(query.pageSize ?? ORDERS_PAGE_SIZE)),
+    ORDERS_MAX_PAGE_SIZE
+  );
+
+  const search = query.search?.trim();
+  const where: Prisma.OrderWhereInput = {
+    ...(query.status ? { status: query.status } : {}),
+    ...(query.paymentStatus ? { paymentStatus: query.paymentStatus } : {}),
+    ...(search
+      ? {
+          OR: [
+            { ref: { contains: search } },
+            { customerFullName: { contains: search } },
+            { customerEmail: { contains: search } },
+          ],
+        }
+      : {}),
+  };
+
+  const [total, rows, grouped] = await Promise.all([
+    prisma.order.count({ where }),
+    prisma.order.findMany({
+      where,
+      include: includeChildren,
+      orderBy: { createdAt: 'desc' },
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+    }),
+    // Unfiltered by status on purpose: the tiles are the navigation *between*
+    // statuses, so they must show the totals you would get by clicking them.
+    prisma.order.groupBy({ by: ['status'], _count: { _all: true } }),
+  ]);
+
+  const statusCounts: Record<string, number> = {};
+  let allOrders = 0;
+  for (const group of grouped) {
+    statusCounts[group.status] = group._count._all;
+    allOrders += group._count._all;
+  }
+  statusCounts.all = allOrders;
+
+  return {
+    orders: rows.map(rowToOrder),
+    total,
+    page,
+    pageSize,
+    totalPages: Math.max(1, Math.ceil(total / pageSize)),
+    statusCounts,
+  };
 }
 
 export async function getOrderById(id: string): Promise<Order | null> {

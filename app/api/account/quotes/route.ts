@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getSession } from '@/lib/session';
 import { getQuotesByUserId, sanitizeQuoteForCustomer } from '@/lib/quotes';
+import { logger } from '@/lib/logger';
 
 export async function GET() {
   try {
@@ -12,7 +13,7 @@ export async function GET() {
     const quotes = (await getQuotesByUserId(session.id)).map(sanitizeQuoteForCustomer);
     return NextResponse.json(quotes);
   } catch (err) {
-    console.error('[account/quotes/GET]', err);
+    logger.error('account.quotes.get.unhandled', err);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

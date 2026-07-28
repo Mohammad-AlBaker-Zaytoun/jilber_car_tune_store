@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { NextResponse, after } from 'next/server';
 import { z } from 'zod';
 import { randomBytes } from 'crypto';
 import { createOrder, attachWhishExternalId } from '@/lib/orders';
@@ -11,6 +11,7 @@ import { getWhishClient, toWhishCurrency } from '@/lib/payments/whish';
 import { siteConfig } from '@/lib/seo/site-config';
 import { rateLimit, getClientIp, tooManyRequests } from '@/lib/rate-limit';
 import type { PaymentStatus } from '@/types/admin';
+import { logger } from '@/lib/logger';
 
 const itemSchema = z.object({
   slug: z.string().min(1),
@@ -101,9 +102,11 @@ export async function POST(request: Request) {
       // other currency would be summed into the total as a bare scalar and then
       // charged as USD, so refuse rather than silently mis-charge.
       if (product.currency !== STORE_CURRENCY) {
-        console.error(
-          `[orders/POST] product ${product.slug} has currency ${product.currency}, expected ${STORE_CURRENCY}`
-        );
+        logger.error('orders.product_currency_mismatch', undefined, {
+          slug: product.slug,
+          found: product.currency,
+          expected: STORE_CURRENCY,
+        });
         return NextResponse.json(
           { error: `${product.name} is temporarily unavailable. Please contact us to complete this order.` },
           { status: 409 }
@@ -158,7 +161,7 @@ export async function POST(request: Request) {
     // Whish confirms, so their confirmation (and admin alert) is sent from the
     // payment callback instead — not here, before any money has arrived.
     if (payment !== 'card') {
-      notifyOrderCreated(order);
+      after(() => notifyOrderCreated(order));
     }
 
     // Card: initiate a Whish payment and hand the client the hosted-page URL.
@@ -188,7 +191,14 @@ export async function POST(request: Request) {
           { status: 201 }
         );
       } catch (err) {
-        console.error('[orders/POST] whish createPayment', err);
+        // The order row already exists at this point but has no payment session.
+        // Log the ref so it can be matched against Whish's side if a customer
+        // reports being charged.
+        logger.error('payment.create_failed', err, {
+          orderRef: order.ref,
+          orderId: order.id,
+          total: order.total,
+        });
         return NextResponse.json(
           { error: 'Could not start the card payment. Please try another method.' },
           { status: 502 }
@@ -198,7 +208,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ orderId: order.id, ref: order.ref }, { status: 201 });
   } catch (err) {
-    console.error('[orders/POST]', err);
+    logger.error('orders.post.unhandled', err);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

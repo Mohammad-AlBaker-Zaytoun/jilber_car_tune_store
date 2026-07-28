@@ -9,6 +9,7 @@ import {
 } from '@/lib/reviews';
 import { getProducts } from '@/lib/products';
 import { isUniqueConstraintError } from '@/lib/admin';
+import { logger } from '@/lib/logger';
 
 /** GET /api/reviews?productId=X — public, returns approved reviews only (email stripped) */
 export async function GET(request: Request) {
@@ -95,7 +96,7 @@ export async function POST(request: Request) {
         { status: 409 }
       );
     }
-    console.error('[reviews POST]', err);
+    logger.error('reviews.post.unhandled', err);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

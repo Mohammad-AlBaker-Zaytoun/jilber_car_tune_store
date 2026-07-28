@@ -10,6 +10,7 @@
 import { getWhishClient, toWhishCurrency, shouldMarkPaid } from '@/lib/payments/whish';
 import { markOrderPaidByWhish } from '@/lib/orders';
 import { notifyOrderCreated } from '@/lib/order-notifications';
+import { logger } from '@/lib/logger';
 import type { Order } from '@/types/admin';
 
 export type SettleOutcome =
@@ -40,10 +41,11 @@ export async function settleWhishOrder(order: Order): Promise<SettleOutcome> {
       Number(order.whishExternalId)
     );
   } catch (err) {
-    console.error(
-      `[whish/settle] status query failed for order ${order.ref} (externalId ${order.whishExternalId})`,
-      err
-    );
+    logger.error('payment.status_query_failed', err, {
+      orderRef: order.ref,
+      orderId: order.id,
+      whishExternalId: String(order.whishExternalId),
+    });
     return 'unavailable';
   }
 
@@ -51,6 +53,13 @@ export async function settleWhishOrder(order: Order): Promise<SettleOutcome> {
 
   const outcome = await markOrderPaidByWhish(order.id, status.transactionId);
   if (outcome === 'paid_now') {
+    logger.info('payment.settled', {
+      orderRef: order.ref,
+      orderId: order.id,
+      total: order.total,
+      currency: order.currency,
+      transactionId: status.transactionId,
+    });
     // The create handler deliberately skips confirmation for card orders, so this
     // is the only place a paid card order notifies anyone. markOrderPaidByWhish
     // is atomic, so exactly one caller ever reaches this branch.
@@ -60,6 +69,9 @@ export async function settleWhishOrder(order: Order): Promise<SettleOutcome> {
   if (outcome === 'already_paid') return 'already_paid';
 
   // The order vanished between the lookup and the update.
-  console.error(`[whish/settle] order ${order.id} disappeared while settling`);
+  logger.error('payment.order_disappeared', undefined, {
+    orderRef: order.ref,
+    orderId: order.id,
+  });
   return 'unavailable';
 }

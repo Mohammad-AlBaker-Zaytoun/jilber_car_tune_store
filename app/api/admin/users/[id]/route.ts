@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { requireAdmin, handleAdminError } from '@/lib/admin';
-import { findUserById, listUsers, updateUser } from '@/lib/users';
+import { findUserById, listUsers, updateUser, incrementTokenVersion } from '@/lib/users';
+import { logger } from '@/lib/logger';
 
 const schema = z.object({
   role: z.enum(['user', 'admin']).optional(),
@@ -35,6 +36,22 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
 
     const updated = await updateUser(id, result.data);
     if (!updated) return NextResponse.json({ error: 'User not found' }, { status: 404 });
+
+    // Invalidate the target's existing sessions when their role changes. The
+    // role is a JWT claim, and proxy.ts + the admin layout both read it from the
+    // token, so without this a demoted admin keeps the admin UI until their
+    // cookie expires (up to 24h). Every admin API re-checks the live row, so
+    // they could not actually read data — but the gate should not be stale.
+    if (result.data.role !== undefined && result.data.role !== target.role) {
+      await incrementTokenVersion(id);
+      logger.info('auth.role_changed', {
+        targetUserId: id,
+        from: target.role,
+        to: result.data.role,
+        byAdminId: admin.id,
+      });
+    }
+
     return NextResponse.json(updated);
   } catch (err) {
     return handleAdminError(err);

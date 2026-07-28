@@ -3,6 +3,7 @@ import { getSession } from '@/lib/session';
 import { findUserById } from '@/lib/users';
 import { sendVerificationEmail } from '@/lib/email-verification';
 import { rateLimit, getClientIp, tooManyRequests } from '@/lib/rate-limit';
+import { logger } from '@/lib/logger';
 
 /**
  * POST /api/auth/resend-verification — re-send the verification email to the
@@ -30,7 +31,7 @@ export async function POST(request: Request) {
       message: 'If your email needs verifying, a new link has been sent.',
     });
   } catch (err) {
-    console.error('[auth/resend-verification]', err);
+    logger.error('auth.resend.verification.unhandled', err);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
