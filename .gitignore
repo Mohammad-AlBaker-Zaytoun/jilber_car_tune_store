@@ -45,3 +45,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Generated analysis output (graphify); regenerate with the graphify skill.
+graphify-out/

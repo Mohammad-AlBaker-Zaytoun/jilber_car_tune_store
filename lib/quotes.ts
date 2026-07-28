@@ -6,6 +6,7 @@
 
 import { randomUUID, randomBytes } from 'crypto';
 import { prisma } from '@/lib/db/prisma';
+import { logger } from '@/lib/logger';
 import type { Quote as QuoteRow } from '@prisma/client';
 import type {
   QuoteRequest,
@@ -19,6 +20,21 @@ export type { QuoteRequest, QuoteStatus, QuotePriority };
 
 function iso(d: Date | null): string | undefined {
   return d ? d.toISOString() : undefined;
+}
+
+/**
+ * MSSQL has no array type, so attachments are stored as a JSON string. A bare
+ * JSON.parse meant one malformed row threw and took down the whole quote list
+ * rather than just that quote.
+ */
+function parseAttachments(value: string, quoteId: string): string[] {
+  try {
+    const parsed: unknown = JSON.parse(value);
+    return Array.isArray(parsed) ? (parsed as string[]) : [];
+  } catch {
+    logger.error('quote.attachments_malformed', undefined, { quoteId });
+    return [];
+  }
 }
 
 function rowToQuote(row: QuoteRow): QuoteRequest {
@@ -45,7 +61,7 @@ function rowToQuote(row: QuoteRow): QuoteRequest {
     relatedProductId: row.relatedProductId ?? undefined,
     relatedProductSlug: row.relatedProductSlug ?? undefined,
     relatedProductName: row.relatedProductName ?? undefined,
-    attachments: JSON.parse(row.attachments) as string[],
+    attachments: parseAttachments(row.attachments, row.id),
     status: row.status as QuoteStatus,
     priority: row.priority as QuotePriority,
     adminNotes: row.adminNotes ?? undefined,
@@ -197,6 +213,40 @@ export async function updateQuoteCustomerReply(
   } catch {
     return null;
   }
+}
+
+/**
+ * Atomically claims a quote for conversion.
+ *
+ * The convert route used to read `convertedToOrderId`, create the order, and
+ * only then mark the quote — so two concurrent admin clicks both saw `null`,
+ * both created an order, and only the second id was recorded. The first order
+ * became an untracked duplicate.
+ *
+ * Claiming first means exactly one caller can proceed. Returns false if the
+ * quote is missing or already converted.
+ */
+export async function claimQuoteForConversion(
+  id: string,
+  orderId: string
+): Promise<boolean> {
+  const { count } = await prisma.quote.updateMany({
+    where: { id, convertedToOrderId: null },
+    data: {
+      status: 'converted_to_order',
+      convertedToOrderId: orderId,
+      updatedAt: new Date(),
+    },
+  });
+  return count === 1;
+}
+
+/** Releases a claim when order creation fails, so the quote stays convertible. */
+export async function releaseQuoteClaim(id: string, orderId: string): Promise<void> {
+  await prisma.quote.updateMany({
+    where: { id, convertedToOrderId: orderId },
+    data: { status: 'quoted', convertedToOrderId: null, updatedAt: new Date() },
+  });
 }
 
 export async function convertQuoteToOrder(

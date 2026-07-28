@@ -1,6 +1,7 @@
 import { NextResponse, after } from 'next/server';
+import { randomUUID } from 'crypto';
 import { requireAdmin, handleAdminError } from '@/lib/admin';
-import { getQuoteById, convertQuoteToOrder } from '@/lib/quotes';
+import { getQuoteById, claimQuoteForConversion, releaseQuoteClaim } from '@/lib/quotes';
 import { createOrder, generateOrderRef } from '@/lib/orders';
 import { getProductBySlug } from '@/lib/products';
 import { getSettings } from '@/lib/settings';
@@ -26,6 +27,22 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
     if (quote.convertedToOrderId) {
       return NextResponse.json(
         { error: 'This quote has already been converted to an order.', orderId: quote.convertedToOrderId },
+        { status: 409 }
+      );
+    }
+
+    // Claim the quote BEFORE creating the order. The read above is advisory
+    // only — without an atomic claim, two concurrent admin clicks both saw
+    // convertedToOrderId === null and each created an order, leaving the first
+    // one untracked. The order is created with this exact id below.
+    const orderId = randomUUID();
+    if (!(await claimQuoteForConversion(quote.id, orderId))) {
+      const fresh = await getQuoteById(id);
+      return NextResponse.json(
+        {
+          error: 'This quote has already been converted to an order.',
+          orderId: fresh?.convertedToOrderId,
+        },
         { status: 409 }
       );
     }
@@ -73,42 +90,52 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
       settings.taxRate
     );
 
-    const order = await createOrder({
-      ref: generateOrderRef(),
-      userId: quote.userId,
-      customer: {
-        fullName: quote.customerName,
-        email: quote.customerEmail,
-        phone: quote.customerPhone,
-        address: '',
-      },
-      vehicle: {
-        make: quote.vehicleMake,
-        model: quote.vehicleModel,
-        year: quote.vehicleYear,
-        engine: quote.vehicleEngine,
-        currentMods: quote.currentModifications ?? '',
-        serviceDate: '',
-      },
-      items,
-      payment: 'shop',
-      paymentStatus: 'unpaid',
-      subtotal,
-      tax,
-      total,
-      currency,
-      adminNotes: `Created from quote ${quote.quoteNumber}.`,
-      initialHistoryEntry: {
-        fromStatus: null,
-        toStatus: 'pending',
-        changedByUserId: admin.id,
-        changedByName: admin.name,
-        note: `Converted from quote ${quote.quoteNumber}`,
-        createdAt: new Date().toISOString(),
-      },
-    });
+    let order;
+    try {
+      order = await createOrder({
+        id: orderId,
+        ref: generateOrderRef(),
+        userId: quote.userId,
+        customer: {
+          fullName: quote.customerName,
+          email: quote.customerEmail,
+          phone: quote.customerPhone,
+          address: '',
+        },
+        vehicle: {
+          make: quote.vehicleMake,
+          model: quote.vehicleModel,
+          year: quote.vehicleYear,
+          engine: quote.vehicleEngine,
+          currentMods: quote.currentModifications ?? '',
+          serviceDate: '',
+        },
+        items,
+        payment: 'shop',
+        paymentStatus: 'unpaid',
+        subtotal,
+        tax,
+        total,
+        currency,
+        adminNotes: `Created from quote ${quote.quoteNumber}.`,
+        initialHistoryEntry: {
+          fromStatus: null,
+          toStatus: 'pending',
+          changedByUserId: admin.id,
+          changedByName: admin.name,
+          note: `Converted from quote ${quote.quoteNumber}`,
+          createdAt: new Date().toISOString(),
+        },
+        });
+    } catch (err) {
+      // Order creation failed after the claim — release it so the quote stays
+      // convertible instead of being permanently marked as converted to an
+      // order that does not exist.
+      await releaseQuoteClaim(quote.id, orderId);
+      throw err;
+    }
 
-    const updatedQuote = await convertQuoteToOrder(quote.id, order.id);
+    const updatedQuote = await getQuoteById(quote.id);
     if (updatedQuote) after(() => notifyQuoteConvertedToOrder(updatedQuote));
 
     return NextResponse.json({ orderId: order.id, ref: order.ref }, { status: 201 });

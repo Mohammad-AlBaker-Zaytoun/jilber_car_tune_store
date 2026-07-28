@@ -80,21 +80,38 @@ passing** (was 58), production build succeeds.
 - [ ] **Reviews still auto-publish** (`AUTO_APPROVE_REVIEWS = true`) despite the
       moderation UI existing. Needs a product decision.
 
-## Phase 2 — Medium
+## Phase 2 — Medium ✅ DONE
 
-- [ ] Foreign keys + cascades (deleting a product orphans its reviews).
-- [ ] Indexes: `Product.category`, `Product.featured`, `Order.createdAt`,
-      `Order.paymentStatus`.
-- [ ] `updatedAt` should be `@updatedAt`, not `@default(now())`.
-- [ ] Guard the bare `JSON.parse` calls in `lib/products.ts` — one malformed row
-      takes down the whole listing.
-- [ ] TOCTOU guards on quote→order conversion and order status transitions.
-- [ ] `images` config in `next.config.ts` (external URLs throw at runtime today).
-- [ ] **README.md has ~8 concrete inaccuracies** — documents `lib/*.dev.ts` paths
-      that no longer exist, lists 3 env vars when there are 20+, omits
-      `db:seed:admin`, describes an unimplemented preloader, never mentions
-      `docs/deployment.md`.
-- [ ] Remove tracked build junk (`alter code.bat`, `graphify-out/`).
+Verified: audit clean, typecheck clean, lint clean, **86 tests passing**, build
+succeeds, and all 8 migrations apply cleanly to a scratch database from scratch
+(the same thing a fresh production deploy does).
+
+| Issue | Fix |
+|---|---|
+| **Missing indexes on hot paths** — `products.category` (related products, storefront filter) and `products.featured` (home page) were full scans; `orders.createdAt` is the sort key for every list; `orders.paymentStatus` drives the revenue aggregate and the reconciliation query | Migration `20260728210000_add_indexes_and_updated_at` adds all four, guarded with `IF NOT EXISTS` so it is re-runnable |
+| **`updatedAt` was `@default(now())`** — set on INSERT and then only if a writer remembered; `attachWhishExternalId()` did not, so an order sent to payment kept a stale timestamp | Switched to Prisma's `@updatedAt` on Order/Quote/Review/ContactInquiry; the DB DEFAULT constraints are dropped in the same migration |
+| **Deleting a product orphaned its reviews** — `Review.productId` has no FK and no cascade, so reviews survived, stayed visible in `/admin/reviews` pointing at nothing, and the `@@unique([userId, productId])` constraint then blocked reviewing a re-created product with the same id | `deleteProduct()` removes the product and its reviews in one `$transaction` |
+| **Unguarded `JSON.parse`** on the four product array columns and on quote attachments — one malformed row took down the ENTIRE listing, not just that row | `parseJsonArray()` degrades to `[]` and logs; 5 tests cover malformed, non-array, JSON-null, and the one-bad-row-among-good-ones case |
+| **Quote→order conversion TOCTOU** — the route read `convertedToOrderId`, created the order, then marked the quote; two concurrent admin clicks each created an order and only the second id was recorded, leaving the first untracked | `claimQuoteForConversion()` claims the quote atomically against a pre-generated order id *before* the order is created; `releaseQuoteClaim()` rolls the claim back if creation fails |
+| **Order status TOCTOU** — two admins could both pass `canTransition()` against the same `from` state and both apply their transition | `updateOrderStatus()` scopes the update to the status it read; the loser matches zero rows and gets a retry |
+| **Schema drift** — `contact_inquiries` declared bare `String` columns while the committed migration created tighter widths (`NVarChar(320)` etc.), so Prisma reported permanent drift against a correctly-migrated database | Schema annotated to match what the migration actually creates. The only remaining reported drift is the **deliberate** filtered unique index on `orders.whishExternalId` (MSSQL treats multiple NULLs as duplicates); documented inline so nobody regenerates it |
+| **Tracked build junk** | Removed `alter code.bat` and the generated `graphify-out/` (1.6 MB) from tracking; added to `.gitignore` |
+
+### Deliberately deferred: foreign-key constraints
+
+`Order.userId`, `Quote.userId`, `Review.userId`, `Review.productId` and
+`Quote.convertedToOrderId` are still plain strings with no FK.
+
+Adding the constraints requires knowing the production data is already
+consistent — on MSSQL the `ALTER TABLE ... ADD CONSTRAINT` **fails** if any
+orphan row exists, which would abort a release mid-deploy. The observable defect
+(orphaned reviews) is fixed in application code above.
+
+To add them later: audit for orphans first
+(`SELECT * FROM reviews WHERE productId NOT IN (SELECT id FROM products)` and
+equivalents), decide per relation whether history should survive deletion
+(`onDelete: SetNull` for orders, so a deleted customer does not erase their
+order history), then write the migration.
 
 ## Phase 3 — Pre-launch validation
 

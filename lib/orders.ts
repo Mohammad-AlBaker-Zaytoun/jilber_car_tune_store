@@ -240,10 +240,16 @@ export async function estimatedRevenue(): Promise<number> {
 export async function createOrder(
   data: Omit<Order, 'id' | 'createdAt' | 'updatedAt' | 'status' | 'statusHistory'> & {
     initialHistoryEntry?: Omit<OrderStatusHistoryEntry, 'id' | 'orderId'>;
+    /**
+     * Pre-generated order id. Used by quote conversion, which must atomically
+     * claim the quote against a known order id BEFORE creating the order —
+     * otherwise two concurrent clicks each create one.
+     */
+    id?: string;
   }
 ): Promise<Order> {
-  const id = randomUUID();
-  const { initialHistoryEntry, customer, vehicle, items, ...rest } = data;
+  const { id: providedId, initialHistoryEntry, customer, vehicle, items, ...rest } = data;
+  const id = providedId ?? randomUUID();
 
   const row = await prisma.order.create({
     data: {
@@ -314,27 +320,37 @@ export async function updateOrderStatus(
   if (!prev) return null;
 
   const now = new Date();
-  const row = await prisma.order.update({
-    where: { id },
+
+  // Conditional on the status we read. Two admins acting on the same order used
+  // to both pass canTransition() against the same `from` state and both apply
+  // their transition, producing a bogus history (e.g. two separate moves out of
+  // "pending"). Scoping the update to `status: prev.status` means the second
+  // writer matches zero rows and is told to retry.
+  const { count } = await prisma.order.updateMany({
+    where: { id, status: prev.status },
     data: {
       status,
       updatedAt: now,
       completedAt: status === 'completed' ? now : prev.completedAt,
       cancelledAt: status === 'cancelled' ? now : prev.cancelledAt,
-      statusHistory: {
-        create: {
-          id: randomUUID(),
-          fromStatus: prev.status,
-          toStatus: status,
-          changedByUserId: actor.userId,
-          changedByName: actor.name,
-          note,
-        },
-      },
     },
-    include: includeChildren,
   });
-  return rowToOrder(row);
+  if (count === 0) return null;
+
+  await prisma.orderStatusHistory.create({
+    data: {
+      id: randomUUID(),
+      orderId: id,
+      fromStatus: prev.status,
+      toStatus: status,
+      changedByUserId: actor.userId,
+      changedByName: actor.name,
+      note,
+    },
+  });
+
+  const row = await prisma.order.findUnique({ where: { id }, include: includeChildren });
+  return row ? rowToOrder(row) : null;
 }
 
 export async function updateOrderAdminNotes(

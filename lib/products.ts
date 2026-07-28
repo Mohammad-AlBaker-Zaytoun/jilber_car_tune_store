@@ -10,10 +10,38 @@
 import { randomUUID } from 'crypto';
 import { cache } from 'react';
 import { prisma } from '@/lib/db/prisma';
+import { logger } from '@/lib/logger';
 import type { Product as ProductRow } from '@prisma/client';
 import type { Product, ProductSpec, Category } from '@/data/products';
 
 export type { Product };
+
+/**
+ * Parses one of the JSON-string array columns.
+ *
+ * MSSQL has no array type, so specs/compatibility/includedItems/images are
+ * stored as JSON strings (see the note at the top of schema.prisma). A bare
+ * JSON.parse meant a single malformed row — a bad import, a manual edit, a
+ * truncated write — threw and took down the ENTIRE product listing, not just
+ * that product. Degrade to an empty array and log instead.
+ */
+function parseJsonArray<T>(value: string, field: string, slug: string): T[] {
+  try {
+    const parsed: unknown = JSON.parse(value);
+    if (!Array.isArray(parsed)) {
+      logger.warn('product.json_column_not_array', { slug, field });
+      return [];
+    }
+    return parsed as T[];
+  } catch {
+    logger.error('product.json_column_malformed', undefined, {
+      slug,
+      field,
+      preview: value?.slice(0, 120),
+    });
+    return [];
+  }
+}
 
 function rowToProduct(row: ProductRow): Product {
   return {
@@ -31,12 +59,12 @@ function rowToProduct(row: ProductRow): Product {
     reviewCount: row.reviewCount,
     inStock: row.inStock,
     featured: row.featured,
-    images: JSON.parse(row.images) as string[],
+    images: parseJsonArray<string>(row.images, 'images', row.slug),
     visualColor: row.visualColor,
     visualColor2: row.visualColor2,
-    specs: JSON.parse(row.specs) as ProductSpec[],
-    compatibility: JSON.parse(row.compatibility) as string[],
-    includedItems: JSON.parse(row.includedItems) as string[],
+    specs: parseJsonArray<ProductSpec>(row.specs, 'specs', row.slug),
+    compatibility: parseJsonArray<string>(row.compatibility, 'compatibility', row.slug),
+    includedItems: parseJsonArray<string>(row.includedItems, 'includedItems', row.slug),
   };
 }
 
@@ -165,9 +193,30 @@ export async function updateProduct(
   return rowToProduct(row);
 }
 
+/**
+ * Deletes a product and the reviews attached to it.
+ *
+ * `Review.productId` is a plain string with no foreign key and no cascade, so
+ * deleting a product used to leave its reviews behind: they stayed visible in
+ * /admin/reviews pointing at a product that no longer exists, and the
+ * `@@unique([userId, productId])` constraint then blocked a user from reviewing
+ * a re-created product that reused the id.
+ *
+ * Both statements run in one transaction so a product can never be removed
+ * while its reviews survive.
+ */
 export async function deleteProduct(slug: string): Promise<boolean> {
   try {
-    await prisma.product.delete({ where: { slug } });
+    const product = await prisma.product.findUnique({
+      where: { slug },
+      select: { id: true },
+    });
+    if (!product) return false;
+
+    await prisma.$transaction([
+      prisma.review.deleteMany({ where: { productId: product.id } }),
+      prisma.product.delete({ where: { slug } }),
+    ]);
     return true;
   } catch {
     return false;
