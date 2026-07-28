@@ -62,6 +62,21 @@ export async function getProductBySlug(slug: string): Promise<Product | undefine
   return row ? rowToProduct(row) : undefined;
 }
 
+/**
+ * Resolves many products in ONE query, keyed by slug.
+ *
+ * Checkout previously awaited getProductBySlug() inside a loop, so a 50-item
+ * cart (the schema maximum) cost 50 sequential MSSQL round trips before the
+ * order was written.
+ */
+export async function getProductsBySlugs(slugs: string[]): Promise<Map<string, Product>> {
+  if (slugs.length === 0) return new Map();
+  const rows = await prisma.product.findMany({
+    where: { slug: { in: [...new Set(slugs)] } },
+  });
+  return new Map(rows.map((row) => [row.slug, rowToProduct(row)]));
+}
+
 export async function getRelatedProducts(product: Product, count = 3): Promise<Product[]> {
   const rows = await prisma.product.findMany({
     where: { category: product.category, id: { not: product.id } },

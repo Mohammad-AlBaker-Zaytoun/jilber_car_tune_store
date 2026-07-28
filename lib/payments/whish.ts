@@ -14,8 +14,26 @@ import {
   type StatusResponse,
 } from 'whish-pay';
 import { siteConfig } from '@/lib/seo/site-config';
+import { STORE_CURRENCY } from '@/lib/currency';
 
 let cached: WhishClient | null | undefined;
+
+/**
+ * True when the whish-pay client will talk to the PRODUCTION Whish API.
+ *
+ * whish-pay derives this from NODE_ENV internally and exposes no accessor, so we
+ * mirror the same rule here. Any deploy where NODE_ENV !== 'production' runs
+ * against lb.sandbox.whish.money — checkout appears to succeed and no money
+ * moves. instrumentation.ts asserts on this at boot so it can never be silent.
+ */
+export function isWhishProduction(): boolean {
+  return process.env.NODE_ENV === 'production';
+}
+
+/** True when Whish credentials are configured at all. */
+export function isWhishConfigured(): boolean {
+  return Boolean(process.env.WHISH_CHANNEL && process.env.WHISH_SECRET);
+}
 
 /**
  * Returns a configured WhishClient, or null when WHISH_CHANNEL / WHISH_SECRET
@@ -33,9 +51,23 @@ export function getWhishClient(): WhishClient | null {
   return cached;
 }
 
-/** Maps an arbitrary settings currency to a Whish-supported one (default USD). */
+/**
+ * Maps an order currency to a Whish-supported one.
+ *
+ * This used to silently fall back to USD for any unrecognised currency, which
+ * meant an order in e.g. EUR was *charged* as USD while shouldMarkPaid() then
+ * rejected the same currency — the customer paid and the order stayed unpaid
+ * forever. Now it throws: refusing to start a payment is always better than
+ * charging the wrong currency.
+ */
 export function toWhishCurrency(currency: string): WhishCurrency {
-  return isValidCurrency(currency) ? currency : 'USD';
+  if (!isValidCurrency(currency)) {
+    throw new Error(
+      `Unsupported payment currency "${currency}" — refusing to charge. ` +
+        `The store is ${STORE_CURRENCY}-only (see lib/currency.ts).`
+    );
+  }
+  return currency;
 }
 
 /**

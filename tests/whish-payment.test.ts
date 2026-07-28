@@ -43,8 +43,21 @@ describe('toWhishCurrency', () => {
     expect(toWhishCurrency('AED')).toBe('AED');
   });
 
-  it('falls back to USD for anything unsupported', () => {
-    expect(toWhishCurrency('EUR')).toBe('USD');
-    expect(toWhishCurrency('')).toBe('USD');
+  // Regression: this used to fall back to USD, which combined with
+  // shouldMarkPaid() rejecting the same currency meant an EUR order was CHARGED
+  // as USD and then never marked paid — money taken, no order record, no email.
+  // Refusing to start the payment is the only safe behaviour.
+  it('throws rather than silently charging an unsupported currency as USD', () => {
+    expect(() => toWhishCurrency('EUR')).toThrow(/refusing to charge/i);
+    expect(() => toWhishCurrency('')).toThrow(/refusing to charge/i);
+  });
+
+  it('never disagrees with shouldMarkPaid about what is chargeable', () => {
+    // Any currency toWhishCurrency accepts must also be one shouldMarkPaid can
+    // confirm — otherwise the charge/confirm pair can diverge again.
+    for (const currency of ['USD', 'LBP', 'AED']) {
+      expect(toWhishCurrency(currency)).toBe(currency);
+      expect(shouldMarkPaid(status({ currency }), 100, currency)).toBe(true);
+    }
   });
 });

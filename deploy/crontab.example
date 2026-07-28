@@ -1,0 +1,34 @@
+# Scheduled jobs for the JILBER store.
+#
+#   sudo crontab -u jilber -e     # then paste the lines below
+#
+# Adjust APP_DIR if the app does not live in /srv/jilber.
+
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+APP_DIR=/srv/jilber
+# cron mails output here — point it at a real inbox or the failures are invisible.
+MAILTO=ops@yourdomain.com
+
+# ---------------------------------------------------------------------------
+# Payment reconciliation — every 15 minutes.
+#
+# The Whish success callback is the only path that marks a card order paid. If it
+# is dropped or times out, the customer has been charged and the order sits
+# `unpaid` forever with no confirmation email. This re-queries Whish for orders
+# older than 10 minutes and settles them. Exits non-zero (-> cron mail) when it
+# cannot reach Whish, so "we don't know" is never silent.
+# ---------------------------------------------------------------------------
+*/15 * * * * cd $APP_DIR && npm run --silent reconcile:payments >> /var/log/jilber/reconcile.log 2>&1
+
+# ---------------------------------------------------------------------------
+# Nightly backup (database + uploaded product images), 03:10.
+# ---------------------------------------------------------------------------
+10 3 * * * cd $APP_DIR && ./deploy/backup.sh >> /var/log/jilber/backup.log 2>&1
+
+# ---------------------------------------------------------------------------
+# Monthly restore drill, 04:00 on the 1st.
+# Restores the most recent dump into a scratch DB and drops it again. An untested
+# backup is not a backup — this is what makes it one.
+# ---------------------------------------------------------------------------
+0 4 1 * * cd $APP_DIR && ./deploy/restore-drill.sh "$(ls -t /var/backups/jilber/*.bak | head -1)" >> /var/log/jilber/restore-drill.log 2>&1

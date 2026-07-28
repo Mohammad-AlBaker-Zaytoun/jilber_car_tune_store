@@ -90,7 +90,12 @@ const PAYMENT_OPTIONS: { id: PaymentMethod; label: string; sub: string; Icon: Re
   },
 ];
 
-export default function CheckoutPage() {
+interface Props {
+  /** From admin settings, resolved on the server. See lib/currency.ts. */
+  taxRate: number;
+}
+
+export default function CheckoutForm({ taxRate }: Props) {
   const router = useRouter();
   const items = useCartStore((s) => s.items);
   const clearCart = useCartStore((s) => s.clearCart);
@@ -409,6 +414,7 @@ export default function CheckoutPage() {
                 </div>
               )}
               <OrderSummary
+                taxRate={taxRate}
                 showCheckoutButton
                 showItems
                 onCheckout={placeOrder}

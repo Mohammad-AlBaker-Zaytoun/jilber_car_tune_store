@@ -1,5 +1,20 @@
 # Production-Readiness Review #2 — Deep Audit
 
+> ## ⚠️ SUPERSEDED — see [`docs/TASKS_3.md`](./TASKS_3.md)
+>
+> This document is **stale as of 2026-07-28** and will mislead you. It lists as
+> *open* three items that have since shipped:
+>
+> - **P0-2 payment gateway** — Whish is integrated (`lib/payments/whish.ts`).
+> - **P1-2 session revocation** — `tokenVersion` shipped (`lib/session.ts`).
+> - **P2-8 email verification** — shipped (`lib/email-verification.ts`).
+>
+> Items that were genuinely still open (P1-4 XFF spoofing, P1-6 invisible email
+> failures, P2-2 observability, P2-3 migrations on deploy) are tracked in
+> TASKS_3 along with a further 12 blockers this review did not catch.
+>
+> Kept for history only.
+
 _Date: 2026-06-16 · Reviewer pass after `feat/production-readiness` (TASKS.md)._
 _Method: traced code against TASKS.md claims + graphify map (`graphify-out/`). Ran `npx tsc --noEmit` (exit 0) and `npm test` (25/25 pass)._
 _**Deployment target: self-managed VPS** (long-lived `next start` Node process behind a reverse proxy) — **not** Vercel/serverless. Severities below are reassessed for that target._

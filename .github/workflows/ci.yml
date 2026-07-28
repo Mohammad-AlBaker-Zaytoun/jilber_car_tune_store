@@ -5,20 +5,35 @@ on:
   push:
     branches: [main]
 
+# Superseded runs on the same ref are pointless — cancel them.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
 jobs:
   verify:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version-file: .nvmrc
           cache: npm
 
       # `npm ci` runs the postinstall `prisma generate` (no DB needed).
       - name: Install
         run: npm ci
+
+      # Gate on the PRODUCTION dependency tree only. Dev-only advisories (today:
+      # brace-expansion via eslint's minimatch@3) have no runtime exposure and
+      # can't be fixed without breaking eslint, so they must not block a release.
+      - name: Audit (production deps)
+        run: npm audit --omit=dev --audit-level=high
 
       - name: Type-check
         run: npx tsc --noEmit
@@ -33,4 +48,5 @@ jobs:
 
 # Note: `next build` is intentionally not run here — it prerenders pages that read
 # from MSSQL, so it needs a live database. The production build runs on the deploy
-# server with a real DATABASE_URL. CI gates on type-check + tests + lint.
+# server with a real DATABASE_URL. CI gates on audit + type-check + tests + lint.
+# Phase 1 adds an MSSQL service container so the build runs here too.

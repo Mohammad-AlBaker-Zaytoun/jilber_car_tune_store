@@ -3,8 +3,9 @@ import { z } from 'zod';
 import { randomBytes } from 'crypto';
 import { createOrder, attachWhishExternalId } from '@/lib/orders';
 import { getSession } from '@/lib/session';
-import { getProductBySlug } from '@/lib/products';
+import { getProductsBySlugs } from '@/lib/products';
 import { getSettings } from '@/lib/settings';
+import { STORE_CURRENCY, computeTotals } from '@/lib/currency';
 import { notifyOrderCreated } from '@/lib/order-notifications';
 import { getWhishClient, toWhishCurrency } from '@/lib/payments/whish';
 import { siteConfig } from '@/lib/seo/site-config';
@@ -75,13 +76,37 @@ export async function POST(request: Request) {
       );
     }
 
+    // One query for the whole cart, not one per line item.
+    const productsBySlug = await getProductsBySlugs(items.map((i) => i.slug));
+
     const resolvedItems = [];
     for (const item of items) {
-      const product = await getProductBySlug(item.slug);
+      const product = productsBySlug.get(item.slug);
       if (!product) {
         return NextResponse.json(
           { error: `Product not found: ${item.slug}` },
           { status: 400 }
+        );
+      }
+      // `inStock` was previously enforced only by AddToCartButton in the browser,
+      // so a hand-crafted request could order anything an admin had marked
+      // unavailable. The server is the only place this can actually be enforced.
+      if (!product.inStock) {
+        return NextResponse.json(
+          { error: `${product.name} is no longer available. Please remove it from your cart.` },
+          { status: 409 }
+        );
+      }
+      // The store is USD-only (see lib/currency.ts). A product row carrying some
+      // other currency would be summed into the total as a bare scalar and then
+      // charged as USD, so refuse rather than silently mis-charge.
+      if (product.currency !== STORE_CURRENCY) {
+        console.error(
+          `[orders/POST] product ${product.slug} has currency ${product.currency}, expected ${STORE_CURRENCY}`
+        );
+        return NextResponse.json(
+          { error: `${product.name} is temporarily unavailable. Please contact us to complete this order.` },
+          { status: 409 }
         );
       }
       resolvedItems.push({
@@ -90,19 +115,19 @@ export async function POST(request: Request) {
         name: product.name,
         category: product.category,
         price: product.price,
-        currency: product.currency,
+        currency: STORE_CURRENCY,
         quantity: item.quantity,
         visualColor: product.visualColor,
       });
     }
 
-    const { taxRate, currency } = await getSettings();
-    const clampedRate = Math.min(Math.max(taxRate, 0), 100) / 100;
-    const subtotal = Math.round(
-      resolvedItems.reduce((s, i) => s + i.price * i.quantity, 0) * 100
-    ) / 100;
-    const tax = Math.round(subtotal * clampedRate * 100) / 100;
-    const total = Math.round((subtotal + tax) * 100) / 100;
+    // Same helper the cart UI uses, so the displayed total and the charged total
+    // cannot drift apart.
+    const { taxRate } = await getSettings();
+    const { subtotal, tax, total } = computeTotals(
+      resolvedItems.reduce((s, i) => s + i.price * i.quantity, 0),
+      taxRate
+    );
 
     const session = await getSession();
     const ref = generateRef();
@@ -117,7 +142,7 @@ export async function POST(request: Request) {
       subtotal,
       tax,
       total,
-      currency: currency ?? 'USD',
+      currency: STORE_CURRENCY,
       userId: session?.id,
       initialHistoryEntry: {
         fromStatus: null,

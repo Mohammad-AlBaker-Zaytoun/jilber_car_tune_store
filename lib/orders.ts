@@ -335,19 +335,56 @@ export async function markOrderPaidByWhish(
   orderId: string,
   transactionId?: string
 ): Promise<'paid_now' | 'already_paid' | 'missing'> {
-  const existing = await prisma.order.findUnique({ where: { id: orderId } });
-  if (!existing) return 'missing';
-  if (existing.paymentStatus === 'paid') return 'already_paid';
-
-  await prisma.order.update({
-    where: { id: orderId },
+  // Conditional update, NOT read-then-write. Whish delivers both a server-to-
+  // server callback and a browser redirect to this same endpoint, so two
+  // requests routinely race here. A read-check-write let both observe 'unpaid'
+  // and both return 'paid_now', sending the customer two confirmation emails and
+  // the admin two alerts. The `paymentStatus: { not: 'paid' }` filter makes the
+  // transition atomic in the database — exactly one caller can see count === 1.
+  // (Same pattern as the single-use token consumption in lib/password-reset.ts.)
+  const { count } = await prisma.order.updateMany({
+    where: { id: orderId, paymentStatus: { not: 'paid' } },
     data: {
       paymentStatus: 'paid',
-      whishTransactionId: transactionId ?? existing.whishTransactionId,
+      ...(transactionId ? { whishTransactionId: transactionId } : {}),
       updatedAt: new Date(),
     },
   });
-  return 'paid_now';
+
+  if (count === 1) return 'paid_now';
+
+  // Nothing updated: either already paid, or the order does not exist.
+  const existing = await prisma.order.findUnique({
+    where: { id: orderId },
+    select: { id: true },
+  });
+  return existing ? 'already_paid' : 'missing';
+}
+
+/**
+ * Orders that were sent to Whish but never confirmed paid.
+ *
+ * The success callback is the ONLY path that marks a card order paid. If Whish's
+ * request is dropped, times out, or the status query throws, the customer has
+ * paid and the order sits `unpaid` forever with no confirmation email and no
+ * alert. This backs the reconciliation job (scripts/reconcile-payments.ts) that
+ * re-queries Whish for these and settles them.
+ *
+ * `olderThanMs` skips in-flight checkouts where the customer is still on the
+ * Whish payment page.
+ */
+export async function getUnconfirmedWhishOrders(olderThanMs = 10 * 60_000): Promise<Order[]> {
+  const rows = await prisma.order.findMany({
+    where: {
+      whishExternalId: { not: null },
+      paymentStatus: { not: 'paid' },
+      status: { not: 'cancelled' },
+      createdAt: { lt: new Date(Date.now() - olderThanMs) },
+    },
+    include: includeChildren,
+    orderBy: { createdAt: 'asc' },
+  });
+  return rows.map(rowToOrder);
 }
 
 // ---------------------------------------------------------------------------

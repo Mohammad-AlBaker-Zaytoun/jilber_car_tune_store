@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
+import { computeTotals } from '@/lib/currency';
 
 export interface CartItem {
   id: string;
@@ -21,8 +22,11 @@ interface CartStore {
   clearCart: () => void;
   itemCount: () => number;
   subtotal: () => number;
-  tax: () => number;
-  total: () => number;
+  /** Tax for a given rate (0–100). The rate comes from admin settings via the
+   *  server — never hardcoded here, or the cart would display a different total
+   *  than the one actually charged. */
+  tax: (taxRatePercent: number) => number;
+  total: (taxRatePercent: number) => number;
 }
 
 export const useCartStore = create<CartStore>()(
@@ -64,10 +68,9 @@ export const useCartStore = create<CartStore>()(
       subtotal: () =>
         get().items.reduce((sum, i) => sum + i.price * i.quantity, 0),
 
-      tax: () => Math.round(get().subtotal() * 0.1 * 100) / 100,
+      tax: (taxRatePercent) => computeTotals(get().subtotal(), taxRatePercent).tax,
 
-      total: () =>
-        Math.round((get().subtotal() + get().tax()) * 100) / 100,
+      total: (taxRatePercent) => computeTotals(get().subtotal(), taxRatePercent).total,
     }),
     {
       name: 'jilber-cart',

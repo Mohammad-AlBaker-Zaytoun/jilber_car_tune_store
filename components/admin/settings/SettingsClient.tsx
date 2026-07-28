@@ -4,6 +4,7 @@ import { useState, useEffect, type ChangeEvent } from 'react';
 import { CheckCircle, AlertCircle, Phone, MessageCircle, MapPin, Clock, ExternalLink, Eye, EyeOff } from 'lucide-react';
 import type { AdminSettings } from '@/types/admin';
 import { buildWhatsAppUrl, buildTelUrl, normalizeWhatsAppNumber } from '@/lib/contact';
+import { STORE_CURRENCY } from '@/lib/currency';
 
 const inputCls =
   'w-full bg-zinc-900 border border-zinc-800 focus:border-cyan-400/50 text-zinc-100 text-sm px-4 py-3 outline-none transition-colors duration-200 placeholder:text-zinc-600';
@@ -14,7 +15,7 @@ const EMPTY: AdminSettings = {
   contactEmail: '',
   contactPhone: '',
   address: '',
-  currency: 'USD',
+  currency: STORE_CURRENCY,
   taxRate: 10,
   bookingMessage: '',
   whatsappNumber: '',
@@ -154,7 +155,17 @@ export default function SettingsClient() {
           </div>
           <div>
             <label className={labelCls}>Currency</label>
-            <input type="text" value={form.currency} onChange={set('currency')} className={inputCls} placeholder="USD" />
+            <input
+              type="text"
+              value={STORE_CURRENCY}
+              readOnly
+              disabled
+              className={`${inputCls} opacity-60 cursor-not-allowed`}
+            />
+            <FieldHint>
+              The store is USD-only. Changing this needs a code change — see
+              lib/currency.ts.
+            </FieldHint>
           </div>
           <div className="sm:col-span-2">
             <label className={labelCls}>Address</label>

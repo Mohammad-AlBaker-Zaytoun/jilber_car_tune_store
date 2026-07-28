@@ -113,6 +113,9 @@ async function seedUsers() {
   const users = readJson<U[]>('.dev-users.json') ?? [];
   for (const u of users) {
     const email = u.email.toLowerCase();
+    // Never seed an admin. The snapshot is git-tracked, so its bcrypt hashes are
+    // public — granting one the admin role would hand repo readers the admin
+    // panel. `npm run db:seed:admin` (env-driven) is the only admin path.
     await prisma.user.upsert({
       where: { email },
       create: {
@@ -121,13 +124,15 @@ async function seedUsers() {
         name: u.name,
         phone: u.phone ?? null,
         passwordHash: u.passwordHash,
-        role: u.role ?? 'user',
+        role: 'user',
         createdAt: toDate(u.createdAt),
       },
-      update: { name: u.name, phone: u.phone ?? null, role: u.role ?? 'user' },
+      // Deliberately does not touch `role` — re-running the seed must not demote
+      // a real admin who happens to share an email with the snapshot.
+      update: { name: u.name, phone: u.phone ?? null },
     });
   }
-  console.log(`✓ users: ${users.length}`);
+  console.log(`✓ users: ${users.length} (seeded as role=user; use db:seed:admin for admins)`);
 }
 
 async function seedReviews() {
@@ -322,7 +327,55 @@ async function seedQuotes() {
   console.log(`✓ quotes: ${quotes.length}`);
 }
 
+/**
+ * Refuses to run against production.
+ *
+ * This seeder is destructive, not additive: it overwrites every product field
+ * (including admin-edited prices and inStock), resets Settings to the snapshot,
+ * and hard-deletes+recreates orders in seedOrders(). Running it against a live
+ * store silently reverts admin changes and destroys order history.
+ *
+ * Two independent signals are checked, because NODE_ENV alone is easy to get
+ * wrong on a VPS shell. The SEED_ALLOW_DESTRUCTIVE escape hatch exists for
+ * restoring a staging box from the snapshots on purpose.
+ */
+function assertNotProduction() {
+  if (process.env.SEED_ALLOW_DESTRUCTIVE === 'yes-i-know-this-wipes-data') {
+    console.warn('! SEED_ALLOW_DESTRUCTIVE is set — running the destructive seed anyway.');
+    return;
+  }
+
+  const reasons: string[] = [];
+  if (process.env.NODE_ENV === 'production') reasons.push('NODE_ENV=production');
+
+  // A production DATABASE_URL almost never points at localhost. Catches the
+  // case where NODE_ENV is unset but .env holds live credentials.
+  const url = process.env.DATABASE_URL ?? '';
+  const host = url.match(/sqlserver:\/\/([^:;,/]+)/i)?.[1]?.toLowerCase();
+  if (host && !['localhost', '127.0.0.1', '::1', '.', '(local)'].includes(host)) {
+    reasons.push(`DATABASE_URL points at a non-local host (${host})`);
+  }
+
+  if (reasons.length === 0) return;
+
+  console.error(
+    [
+      '',
+      'REFUSING TO SEED — this looks like a production database.',
+      ...reasons.map((r) => `  • ${r}`),
+      '',
+      'This seeder overwrites products/settings and DELETES orders.',
+      'To create the first admin on a real deployment use:  npm run db:seed:admin',
+      'If you genuinely mean to wipe this database, set:',
+      "  SEED_ALLOW_DESTRUCTIVE=yes-i-know-this-wipes-data",
+      '',
+    ].join('\n')
+  );
+  process.exit(1);
+}
+
 async function main() {
+  assertNotProduction();
   console.log('Seeding MSSQL from legacy JSON stores…');
   await seedCategories();
   await seedProducts();

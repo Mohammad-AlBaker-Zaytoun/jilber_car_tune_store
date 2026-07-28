@@ -6,5 +6,8 @@ export async function register() {
     // Throws immediately on startup if AUTH_SECRET is missing or too short,
     // surfacing the misconfiguration before any request is served.
     validateAuthSecret();
+
+    const { assertWhishEnvironment } = await import('./lib/payments/whish-boot');
+    assertWhishEnvironment();
   }
 }

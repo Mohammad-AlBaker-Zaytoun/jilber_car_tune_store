@@ -1,2 +1,10 @@
 # Auto detect text files and perform LF normalization
 * text=auto
+
+# Files executed by Linux on the VPS MUST keep LF endings. A CRLF shell script
+# fails at the shebang with "bad interpreter: /usr/bin/env bash^M", and CRLF
+# nginx/cron files are silently misparsed. Without this, `* text=auto` gives them
+# CRLF in a Windows checkout and they get committed that way.
+*.sh              text eol=lf
+deploy/*          text eol=lf
+.nvmrc            text eol=lf

@@ -4,6 +4,7 @@ import { getQuoteById, convertQuoteToOrder } from '@/lib/quotes';
 import { createOrder, generateOrderRef } from '@/lib/orders';
 import { getProductBySlug } from '@/lib/products';
 import { getSettings } from '@/lib/settings';
+import { STORE_CURRENCY, computeTotals } from '@/lib/currency';
 import { notifyQuoteConvertedToOrder } from '@/lib/quote-notifications';
 import type { OrderItem } from '@/types/admin';
 
@@ -30,7 +31,8 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
     }
 
     const settings = await getSettings();
-    const currency = settings.currency || 'USD';
+    // Store is USD-only — see lib/currency.ts.
+    const currency = STORE_CURRENCY;
 
     // Build the first line item from the related product if present.
     let items: OrderItem[];
@@ -46,7 +48,7 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
           name: related.name,
           category: related.category,
           price: related.price,
-          currency: related.currency,
+          currency,
           quantity: 1,
           visualColor: related.visualColor,
         },
@@ -66,10 +68,10 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
       ];
     }
 
-    const subtotal = items.reduce((s, i) => s + i.price * i.quantity, 0);
-    const clampedRate = Math.min(Math.max(settings.taxRate, 0), 100) / 100;
-    const tax = Math.round(subtotal * clampedRate * 100) / 100;
-    const total = Math.round((subtotal + tax) * 100) / 100;
+    const { subtotal, tax, total } = computeTotals(
+      items.reduce((s, i) => s + i.price * i.quantity, 0),
+      settings.taxRate
+    );
 
     const order = await createOrder({
       ref: generateOrderRef(),

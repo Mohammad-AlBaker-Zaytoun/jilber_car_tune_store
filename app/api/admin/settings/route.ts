@@ -10,7 +10,10 @@ const schema = z.object({
   contactEmail: z.string().email().optional(),
   contactPhone: z.string().regex(phoneRegex, 'Invalid phone format').max(30).optional(),
   address: z.string().max(200).optional(),
-  currency: z.string().optional(),
+  // `currency` is deliberately NOT accepted. The store is USD-only and the
+  // constant lives in lib/currency.ts — see the comment there for why a
+  // configurable currency silently mis-charged customers. Any `currency` key in
+  // the body is stripped by zod rather than persisted.
   taxRate: z.number().min(0).max(100).optional(),
   bookingMessage: z.string().optional(),
   whatsappNumber: z.string().regex(phoneRegex, 'Invalid WhatsApp number format').max(30).optional(),

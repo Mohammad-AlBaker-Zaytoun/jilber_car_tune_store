@@ -3,8 +3,12 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { useCartStore } from '@/lib/cart';
+import { formatMoney } from '@/lib/currency';
 
 interface Props {
+  /** Tax rate as a percentage (0–100), read from admin settings on the server.
+   *  Must match what the order API charges — see lib/currency.ts. */
+  taxRate: number;
   showCheckoutButton?: boolean;
   showItems?: boolean;
   onCheckout?: () => void;
@@ -12,6 +16,7 @@ interface Props {
 }
 
 export default function OrderSummary({
+  taxRate,
   showCheckoutButton = true,
   showItems = false,
   onCheckout,
@@ -19,11 +24,13 @@ export default function OrderSummary({
 }: Props) {
   const items = useCartStore((s) => s.items);
   const subtotal = useCartStore((s) => s.subtotal());
-  const tax = useCartStore((s) => s.tax());
-  const total = useCartStore((s) => s.total());
+  const tax = useCartStore((s) => s.tax(taxRate));
+  const total = useCartStore((s) => s.total(taxRate));
   const itemCount = useCartStore((s) => s.itemCount());
 
-  const fmt = (n: number) => `$${n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  const fmt = formatMoney;
+  // Trim a trailing ".0" so 10 renders as "10%" but 8.5 stays "8.5%".
+  const taxLabel = `${Number(taxRate.toFixed(2))}%`;
 
   return (
     <div className="border border-zinc-800/50 bg-zinc-900/20 p-6 lg:p-7 flex flex-col gap-4 sticky top-24">
@@ -83,7 +90,7 @@ export default function OrderSummary({
           <span className="text-zinc-300 font-semibold">{fmt(subtotal)}</span>
         </div>
         <div className="flex justify-between">
-          <span className="text-zinc-400">Estimated Tax (10%)</span>
+          <span className="text-zinc-400">Estimated Tax ({taxLabel})</span>
           <span className="text-zinc-300 font-semibold">{fmt(tax)}</span>
         </div>
         <div className="flex justify-between">
@@ -127,7 +134,8 @@ export default function OrderSummary({
       )}
 
       <p className="text-[10px] text-zinc-500 leading-relaxed text-center">
-        Secure mock checkout. No real payment processed.
+        Card payments are processed securely by Whish Money. Your card details are
+        entered on their payment page and never reach our servers.
       </p>
     </div>
   );

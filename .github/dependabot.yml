@@ -1,0 +1,35 @@
+version: 2
+
+updates:
+  # Application dependencies. Security advisories are picked up automatically by
+  # Dependabot's security updates regardless of this schedule; the weekly cadence
+  # is for routine patch/minor drift so we never sit 9 advisories behind again
+  # (see docs/TASKS_3.md P0-1).
+  - package-ecosystem: npm
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    groups:
+      # Next.js and its lint config must move together — eslint-config-next is
+      # version-locked to next.
+      next:
+        patterns:
+          - "next"
+          - "eslint-config-next"
+      prisma:
+        patterns:
+          - "prisma"
+          - "@prisma/client"
+      dev-minor-patch:
+        dependency-type: development
+        update-types:
+          - minor
+          - patch
+
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday

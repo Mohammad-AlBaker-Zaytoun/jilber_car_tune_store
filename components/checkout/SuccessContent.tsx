@@ -1,17 +1,61 @@
 'use client';
 
 import { useSearchParams } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect } from 'react';
 import Link from 'next/link';
 import { CheckCircle, Home, ShoppingBag, Calendar, Mail, Package } from 'lucide-react';
 import { useAuth } from '@/components/auth/AuthProvider';
+import { useCartStore } from '@/lib/cart';
 
 export default function SuccessContent() {
   const params = useSearchParams();
-  // Lazy initializer runs once — keeps Math.random out of the render body (purity).
-  const [fallbackRef] = useState(() => `TUNE-${Math.floor(10000 + Math.random() * 90000)}`);
-  const ref = params.get('ref') ?? fallbackRef;
+  const ref = params.get('ref');
   const { user } = useAuth();
+  const clearCart = useCartStore((s) => s.clearCart);
+
+  // Card orders redirect here from the Whish callback *after* it has verified the
+  // charge, and the checkout form deliberately keeps the cart intact across that
+  // redirect so an abandoned payment is recoverable. Nothing else clears it — so
+  // without this the customer lands on "Order Confirmed" with a full cart and can
+  // pay a second time. Keyed on `ref` so it runs once per confirmed order.
+  useEffect(() => {
+    if (ref) clearCart();
+  }, [ref, clearCart]);
+
+  // No ref means this page was opened directly rather than reached from a real
+  // order. Never invent a reference number under an "Order Confirmed" heading.
+  if (!ref) {
+    return (
+      <div className="bg-zinc-950 min-h-screen pt-28 lg:pt-36 pb-24">
+        <div className="max-w-2xl mx-auto px-6 lg:px-8 text-center">
+          <h1 className="text-3xl sm:text-4xl font-black text-white tracking-tight mb-4">
+            NO ORDER TO SHOW
+          </h1>
+          <p className="text-sm text-zinc-400 leading-relaxed mb-8">
+            This page shows a confirmation after you place an order. If you have just
+            paid and landed here, check your email for the confirmation, or view your
+            orders below.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <Link
+              href={user ? '/account/orders' : '/'}
+              className="inline-flex items-center justify-center gap-2 px-6 py-3.5 bg-cyan-400 hover:bg-cyan-300 text-black font-black text-xs tracking-[0.2em] uppercase transition-all duration-200"
+            >
+              {user ? <Package size={13} aria-hidden="true" /> : <Home size={13} aria-hidden="true" />}
+              {user ? 'View My Orders' : 'Back to Home'}
+            </Link>
+            <Link
+              href="/store"
+              className="inline-flex items-center justify-center gap-2 px-6 py-3.5 border border-zinc-700 hover:border-cyan-400/40 text-zinc-300 hover:text-cyan-400 font-black text-xs tracking-[0.2em] uppercase transition-all duration-200"
+            >
+              <ShoppingBag size={13} aria-hidden="true" />
+              Continue Shopping
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-zinc-950 min-h-screen pt-28 lg:pt-36 pb-24">
