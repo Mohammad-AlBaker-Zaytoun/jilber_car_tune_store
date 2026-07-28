@@ -113,14 +113,30 @@ equivalents), decide per relation whether history should survive deletion
 (`onDelete: SetNull` for orders, so a deleted customer does not erase their
 order history), then write the migration.
 
-## Phase 3 — Pre-launch validation
+## Phase 3 — Pre-launch validation (requires the VPS)
 
-- [ ] End-to-end payment rehearsal on the VPS with sandbox keys, **including a
-      deliberately dropped callback** to prove reconciliation recovers it.
-- [ ] Run `deploy/restore-drill.sh` and record the date in `docs/deployment.md`.
-- [ ] Load sanity check on `/store` and `/api/admin/orders` with realistic volume.
-- [ ] Rotate every credential: `AUTH_SECRET`, Whish, Resend, DB password.
-- [ ] `chmod 600 .env`; confirm MSSQL:1433 is not publicly reachable; ufw on.
+These are the only remaining items, and they need someone with access to the
+production box. Everything mechanically checkable is now automated.
+
+**Run `./deploy/preflight.sh https://yourdomain.com`** — it checks Node version,
+`.env` permissions and contents, `NODE_ENV`, `AUTH_SECRET` strength, pending
+migrations, whether MSSQL is publicly bound, upload-directory writability, a
+recent backup, a recorded restore drill, a single PM2 instance, the health
+endpoint, the cron jobs, and the live security headers. Exit 0 = mechanically
+ready.
+
+**Then work through [`docs/PRE-LAUNCH.md`](./PRE-LAUNCH.md)** for the parts a
+script cannot verify:
+
+- [ ] Sandbox payment rehearsal on the real VPS, **including a deliberately
+      dropped callback** to prove `reconcile:payments` recovers it and sends
+      exactly one confirmation email.
+- [ ] One real low-value card transaction, confirmed as arriving in the Whish
+      account, then refunded.
+- [ ] Restore drill run and recorded.
+- [ ] Every credential rotated (`AUTH_SECRET`, Whish, Resend, DB password).
+- [ ] `ERROR_WEBHOOK_URL` pointed somewhere a human reads.
+- [ ] Break something on purpose (stop MSSQL) and confirm you find out.
 
 ---
 

@@ -234,6 +234,26 @@ npm run reconcile:payments -- --dry-run   # see what it would do
 
 ---
 
+## Before the first real payment
+
+Run the automated preflight, then work through the human checklist:
+
+```bash
+./deploy/preflight.sh https://yourdomain.com
+```
+
+It fails loudly on anything mechanically checkable — Node version, `.env`
+permissions, `NODE_ENV`, `AUTH_SECRET` strength, pending migrations, a publicly
+bound MSSQL, upload-directory writability, a stale or missing backup, a missing
+restore drill, more than one PM2 instance, missing cron jobs, and missing
+security headers on the live domain.
+
+The rest — the sandbox payment rehearsal, the deliberately dropped callback, the
+restore drill, credential rotation — is in
+**[`docs/PRE-LAUNCH.md`](./PRE-LAUNCH.md)**.
+
+---
+
 ## Release checklist (every deploy)
 
 Run **`./deploy/deploy.sh`**. It performs the whole sequence and aborts on any
