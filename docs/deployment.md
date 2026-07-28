@@ -36,9 +36,10 @@ by the app user. Required:
 | `UPLOAD_PUBLIC_PATH` | URL prefix nginx serves uploads from, e.g. `/products/uploads`. |
 | `TRUSTED_PROXY_COUNT` | Proxies in front of the app. **1** with `deploy/nginx.conf`. Too high = clients can forge their IP and bypass all rate limits. |
 | `DB_USER`, `DB_PASS`, `BACKUP_DIR`, `OFFSITE_DEST` | Used by `deploy/backup.sh` (§7). |
+| `ERROR_WEBHOOK_URL` | Optional. Errors are POSTed here (Slack/Discord webhook works). Unset = structured JSON in PM2 logs only, which you have to go looking for. |
+| `WHISH_ALLOW_SANDBOX` | Leave **unset** in production. Set to `1` only to deliberately test against the Whish sandbox. |
 
-Node: use the version in `.nvmrc`. **Node 20 reached end-of-life in April 2026** —
-it no longer receives security patches, so do not deploy onto it.
+`.env.example` documents the full set — read it before filling this in.
 
 ---
 
@@ -182,7 +183,20 @@ Both are scheduled in `deploy/crontab.example` (nightly backup, monthly drill).
 - Point an uptime monitor / load-balancer probe at **`GET /api/health`** (returns
   200 with a DB ping, 503 if the DB is down).
 - PM2 captures stdout/stderr; add rotation: `pm2 install pm2-logrotate`.
-- (Optional, recommended) wire an error tracker — see P2-2 in `docs/TASKS_2.md`.
+- **Logs are structured JSON**, one object per line (`lib/logger.ts`), so they
+  can be shipped to Vector/Promtail/Filebeat or filtered with `jq`:
+
+  ```bash
+  pm2 logs jilber --raw | jq 'select(.level=="error")'
+  pm2 logs jilber --raw | jq 'select(.event|startswith("payment."))'
+  ```
+
+- **Set `ERROR_WEBHOOK_URL`** to a Slack/Discord incoming webhook so errors reach
+  you off-box. Without it nothing is lost — `logger.error` still writes a
+  structured line — but you have to go looking. To use an SDK instead, wire it in
+  `lib/observability.ts`; nothing else in the codebase needs to change.
+- Events worth alerting on: `payment.*` (any), `email.send_failed`,
+  `request.unhandled`, `orders.product_currency_mismatch`.
 
 ---
 
