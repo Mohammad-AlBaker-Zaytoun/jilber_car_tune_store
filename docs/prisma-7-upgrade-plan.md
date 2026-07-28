@@ -51,7 +51,7 @@ Two deprecation warnings already surface on `prisma generate`:
      - Add the output dir to `.gitignore` and to ESLint/TS ignores if generated.
      - Update the single import site `lib/db/prisma.ts` and re-point
        `import type { ... } from '@prisma/client'` usages in the repo
-       (currently in `lib/*.dev.ts` repositories) to the new client path.
+       (currently in `lib/*.ts` repositories) to the new client path.
    - Update `serverExternalPackages` in `next.config.ts` if the package name changes.
 
 5. **Regenerate + typecheck + test.**
@@ -66,7 +66,7 @@ Two deprecation warnings already surface on `prisma generate`:
 
 ## Risk notes
 
-- The data layer is well isolated: every DB call goes through the `lib/*.dev.ts`
+- The data layer is well isolated: every DB call goes through the `lib/*.ts`
   repositories and `lib/db/prisma.ts`. A generator/client change touches only
   those files plus `@prisma/client` type imports — small blast radius.
 - MSSQL is a less-exercised connector than Postgres; treat connector behaviour

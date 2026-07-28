@@ -86,31 +86,74 @@ export default function ScrollFrameSequence({
     return () => window.removeEventListener('resize', resize);
   }, [drawFrame]);
 
-  // Kick off preloading; hide loading screen the moment frame 0 is ready
+  /**
+   * Preloads frames in bounded batches instead of all at once.
+   *
+   * This previously fired `new Image()` for every frame in one synchronous loop
+   * on mount: 241 parallel requests / ~27 MB on the home page, 96 / ~17 MB on
+   * /store. That saturates the connection, delays the first paint behind
+   * hundreds of competing requests, and pins every decoded frame in memory —
+   * a serious problem on mobile.
+   *
+   * Now: a small eager batch so the hero is interactive immediately, then the
+   * remainder in sequential windows. Aborts cleanly on unmount so navigating
+   * away mid-load doesn't keep downloading.
+   */
   useEffect(() => {
     imagesRef.current = Array.from({ length: frameCount }, () => null);
     let loadedCount = 0;
+    let cancelled = false;
 
-    const onLoaded = (i: number) => () => {
-      loadedCount++;
-      setLoadProgress(Math.round((loadedCount / frameCount) * 100));
-      if (i === 0) {
-        drawFrame(0);
-        setLoading(false);
+    // Enough frames to cover the first moments of scroll before the rest land.
+    const EAGER = Math.min(24, frameCount);
+    const BATCH = 12;
+
+    const loadFrame = (i: number) =>
+      new Promise<void>((resolve) => {
+        if (cancelled) return resolve();
+        const img = new Image();
+        imagesRef.current[i] = img;
+        const done = () => {
+          if (cancelled) return resolve();
+          loadedCount++;
+          setLoadProgress(Math.round((loadedCount / frameCount) * 100));
+          if (i === 0) {
+            drawFrame(0);
+            setLoading(false);
+          }
+          resolve();
+        };
+        img.onload = done;
+        img.onerror = done;
+        img.src = framePathRef.current(i);
+      });
+
+    (async () => {
+      // Eager window first — these decide when the loading screen clears.
+      await Promise.all(Array.from({ length: EAGER }, (_, i) => loadFrame(i)));
+
+      for (let start = EAGER; start < frameCount && !cancelled; start += BATCH) {
+        const end = Math.min(start + BATCH, frameCount);
+        await Promise.all(
+          Array.from({ length: end - start }, (_, k) => loadFrame(start + k))
+        );
+      }
+    })();
+
+    // Safety valve — never leave the loading screen up for more than 5 s
+    const fallback = setTimeout(() => setLoading(false), 5000);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(fallback);
+      // Drop references so decoded bitmaps can be collected.
+      for (const img of imagesRef.current) {
+        if (img) {
+          img.onload = null;
+          img.onerror = null;
+        }
       }
     };
-
-    for (let i = 0; i < frameCount; i++) {
-      const img = new Image();
-      imagesRef.current[i] = img;
-      img.onload = onLoaded(i);
-      img.onerror = onLoaded(i);
-      img.src = framePathRef.current(i);
-    }
-
-    // Safety valve — never leave loading screen up for more than 5 s
-    const fallback = setTimeout(() => setLoading(false), 5000);
-    return () => clearTimeout(fallback);
   }, [frameCount, drawFrame]);
 
   // Scroll → frame mapping via RAF (one pending RAF at a time)

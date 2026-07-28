@@ -81,25 +81,63 @@ export function PageTransitionProvider({ children }: { children: ReactNode }) {
     currentPathnameRef.current = pathname;
   }, [pathname]);
 
-  // Preload all 60 frames during browser idle time so the first click feels instant
+  /**
+   * Preloads the transition frames during idle time, in batches.
+   *
+   * This provider is mounted in the root layout, so it runs on EVERY route.
+   * Requesting all 72 frames (~5.4 MB) in one synchronous loop competed with the
+   * page's own above-the-fold assets on every navigation. Batching inside idle
+   * callbacks keeps it genuinely background work.
+   *
+   * Also skipped entirely when the visitor has asked for reduced motion — the
+   * overlay respects that preference, so downloading the frames is pure waste.
+   */
   useEffect(() => {
-    const load = () => {
-      const images: HTMLImageElement[] = [];
-      for (let i = 1; i <= PAGE_TRANSITION_FRAME_COUNT; i++) {
+    if (
+      typeof window !== 'undefined' &&
+      window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+    ) {
+      return;
+    }
+
+    const images: HTMLImageElement[] = [];
+    let next = 1;
+    let idleId: number | null = null;
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+    let cancelled = false;
+
+    const BATCH = 12;
+
+    const loadBatch = () => {
+      if (cancelled) return;
+      const end = Math.min(next + BATCH - 1, PAGE_TRANSITION_FRAME_COUNT);
+      for (; next <= end; next++) {
         const img = new window.Image();
-        img.src = PAGE_TRANSITION_FRAME_PATH(i);
+        img.src = PAGE_TRANSITION_FRAME_PATH(next);
         img.decoding = 'async';
         images.push(img);
       }
       framesRef.current = images;
+      if (next <= PAGE_TRANSITION_FRAME_COUNT) schedule();
     };
 
-    if (typeof requestIdleCallback !== 'undefined') {
-      const id = requestIdleCallback(load, { timeout: 3000 });
-      return () => cancelIdleCallback(id);
-    }
-    const t = setTimeout(load, 500);
-    return () => clearTimeout(t);
+    const schedule = () => {
+      if (typeof requestIdleCallback !== 'undefined') {
+        idleId = requestIdleCallback(loadBatch, { timeout: 3000 });
+      } else {
+        timeoutId = setTimeout(loadBatch, 200);
+      }
+    };
+
+    schedule();
+
+    return () => {
+      cancelled = true;
+      if (idleId !== null && typeof cancelIdleCallback !== 'undefined') {
+        cancelIdleCallback(idleId);
+      }
+      if (timeoutId !== null) clearTimeout(timeoutId);
+    };
   }, []);
 
   // ── State machine ─────────────────────────────────────────────────────

@@ -279,9 +279,9 @@ sequenceDiagram
     participant Canvas
 
     Browser->>ScrollFrameHero: mount
-    ScrollFrameHero->>ImageCache: preload frames 1–30 (eager)
-    ScrollFrameHero->>ImageCache: preload frames 31–241 (background)
-    ImageCache-->>ScrollFrameHero: onload × 30 → hide overlay
+    ScrollFrameHero->>ImageCache: preload frames 1–24 (eager batch)
+    ScrollFrameHero->>ImageCache: preload remainder in batches of 12
+    ImageCache-->>ScrollFrameHero: frame 0 onload → hide overlay
     Browser->>ScrollFrameHero: scroll event
     ScrollFrameHero->>ScrollFrameHero: compute frameIndex from scrollY
     ScrollFrameHero->>Canvas: requestAnimationFrame → drawImage()
@@ -370,13 +370,22 @@ lib/
   cart.ts                       Zustand cart store
   contact.ts                    WhatsApp/phone URL builders
   seo/                          site-config.ts + helpers.ts
-  users.dev.ts                  file-based user store
-  products.dev.ts               file-based product store
-  orders.dev.ts                 file-based order store
-  categories.dev.ts             file-based category store
-  quotes.dev.ts                 file-based quote store
-  reviews.dev.ts                file-based review store
-  settings.dev.ts               file-based settings store
+  currency.ts                   STORE_CURRENCY + shared money/total maths
+  logger.ts                     structured JSON logging
+  observability.ts              error-reporter seam (optional webhook)
+  login-throttle.ts             per-account login lockout
+  rate-limit.ts                 in-memory IP rate limiter
+  db/prisma.ts                  PrismaClient singleton
+  users.ts                      user repository (Prisma/MSSQL)
+  products.ts                   product repository
+  orders.ts                     order repository
+  categories.ts                 category repository
+  quotes.ts                     quote repository
+  reviews.ts                    review repository
+  settings.ts                   settings repository
+  payments/whish.ts             Whish client + pure predicates
+  payments/whish-settle.ts      authoritative payment settlement
+  payments/whish-boot.ts        sandbox-vs-production boot assertion
 
 types/
   admin.ts                      Order, Quote, User, Settings types
@@ -442,6 +451,16 @@ For local development, set `NEXT_PUBLIC_SITE_URL=http://localhost:3000`. The
 `.env` file contains secrets and is intentionally ignored by Git, so it must be
 created separately on every machine.
 
+The three variables above are the only **required** ones. `.env.example`
+documents the full set — email (Resend), Whish card payments, upload paths,
+`TRUSTED_PROXY_COUNT`, admin bootstrap, and backup credentials. Read it before
+deploying; several have security consequences if left at their defaults.
+
+> **`NODE_ENV=production` is load-bearing.** `whish-pay` selects its API host
+> from it alone, so a production deploy without it silently runs against the
+> Whish **sandbox** — checkout appears to succeed and no money is collected. The
+> app now refuses to boot in that state. See [`docs/deployment.md`](docs/deployment.md).
+
 ### 3. Start SQL Server, migrate, and seed
 
 Start a local SQL Server (Docker):
@@ -458,6 +477,16 @@ legacy `.dev-*.json` data that is present:
 npx prisma migrate deploy
 npm run db:seed
 ```
+
+> **`npm run db:seed` is development-only.** It overwrites every product field,
+> resets settings, and deletes orders. It refuses to run when `NODE_ENV=production`
+> or when `DATABASE_URL` points at a non-local host. On a real deployment create
+> the first admin with `npm run db:seed:admin` instead — that is the only
+> supported path, and it is env-driven:
+>
+> ```bash
+> ADMIN_BOOTSTRAP_EMAIL=you@example.com > ADMIN_BOOTSTRAP_PASSWORD='a-strong-password' > npm run db:seed:admin
+> ```
 
 Use `npm run db:migrate` (`prisma migrate dev`) only while developing a schema
 change and creating a new migration. Do not create an extra migration during a
@@ -480,7 +509,14 @@ npm run start
 
 ### 5. Create an admin account
 
-Register a user at `/signup`, then promote them to admin:
+On a fresh database no admin exists, so use the env-driven bootstrap — this is
+the only path that works before anyone has signed up:
+
+```bash
+ADMIN_BOOTSTRAP_EMAIL=you@example.com ADMIN_BOOTSTRAP_PASSWORD='a-strong-password' npm run db:seed:admin
+```
+
+To promote a user who has **already registered** at `/signup`:
 
 ```bash
 node scripts/make-admin.mjs user@example.com
@@ -510,8 +546,21 @@ Recommended resolution: **1280×720**.
 | `npm run start` | Serve the production build locally |
 | `npm run lint` | ESLint check |
 | `npm run db:migrate` | Create/apply Prisma migrations (`prisma migrate dev`) |
-| `npm run db:seed` | Seed catalog + import legacy JSON (`prisma db seed`) |
+| `npm run test` | Run the Vitest suite once |
+| `npm run test:watch` | Vitest in watch mode |
+| `npm run db:seed` | **Dev only.** Seed catalog + import legacy JSON. Refuses to run against production |
+| `npm run db:seed:admin` | Create/promote the first admin from `ADMIN_BOOTSTRAP_*` |
 | `npm run db:studio` | Open Prisma Studio to browse the database |
+| `npm run reconcile:payments` | Recover card orders whose Whish callback never arrived |
+
+### Deployment
+
+Production runs on a self-managed VPS. The runbook and the committed artifacts
+(`deploy/ecosystem.config.js`, `deploy/nginx.conf`, `deploy/deploy.sh`,
+`deploy/backup.sh`, `deploy/restore-drill.sh`, `deploy/crontab.example`) are
+documented in **[`docs/deployment.md`](docs/deployment.md)**. Outstanding
+production-readiness work is tracked in
+**[`docs/TASKS_3.md`](docs/TASKS_3.md)**.
 
 ### Files that must remain committed
 
@@ -527,7 +576,7 @@ Do not add these files to `.gitignore`. Local secrets (`.env`), dependencies
 
 ## Data Storage
 
-The project persists all data in **Microsoft SQL Server** via **Prisma**. The schema lives in [`prisma/schema.prisma`](prisma/schema.prisma); the data-access layer is a set of repository modules under `lib/*.dev.ts` that expose stable, async function signatures (`getProducts`, `createOrder`, `findUserByEmail`, …) so API routes and server components never touch SQL directly.
+The project persists all data in **Microsoft SQL Server** via **Prisma**. The schema lives in [`prisma/schema.prisma`](prisma/schema.prisma); the data-access layer is a set of repository modules under `lib/*.ts` that expose stable, async function signatures (`getProducts`, `createOrder`, `findUserByEmail`, …) so API routes and server components never touch SQL directly.
 
 | Table | Contents |
 | --- | --- |
