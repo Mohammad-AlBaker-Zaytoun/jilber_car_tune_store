@@ -6,6 +6,7 @@ import StoreScrollHero from '@/components/store/StoreScrollHero';
 import StoreContent from '@/components/store/StoreContent';
 import { siteConfig } from '@/lib/seo/site-config';
 import { absoluteUrl } from '@/lib/seo/helpers';
+import { getCategoryNames } from '@/lib/categories';
 
 export const metadata: Metadata = {
   title: 'Performance Parts Store',
@@ -38,16 +39,17 @@ export default async function StorePage() {
   // Filter in SQL, not JS. This previously pulled the entire reviews table
   // (including every reviewer's email) and discarded the non-approved rows in
   // memory, bypassing the reviews_status_idx that exists for this query.
-  const [products, approvedReviews] = await Promise.all([
+  const [products, approvedReviews, categories] = await Promise.all([
     getProducts(),
     getApprovedReviews(),
+    getCategoryNames(),
   ]);
   const ratings = buildRatingsMap(products, approvedReviews);
 
   return (
     <>
       <StoreScrollHero />
-      <StoreContent products={products} ratings={ratings} />
+      <StoreContent products={products} categories={categories} ratings={ratings} />
     </>
   );
 }

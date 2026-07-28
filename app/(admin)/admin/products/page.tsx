@@ -2,8 +2,11 @@ import Link from 'next/link';
 import { Plus } from 'lucide-react';
 import AdminPageHeader from '@/components/admin/AdminPageHeader';
 import ProductsClient from '@/components/admin/products/ProductsClient';
+import { getCategoryNames } from '@/lib/categories';
 
-export default function AdminProductsPage() {
+export default async function AdminProductsPage() {
+  const categories = await getCategoryNames();
+
   return (
     <>
       <AdminPageHeader
@@ -20,7 +23,7 @@ export default function AdminProductsPage() {
           </Link>
         }
       />
-      <ProductsClient />
+      <ProductsClient categories={categories} />
     </>
   );
 }

@@ -2,13 +2,17 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { requireAdmin, handleAdminError } from '@/lib/admin';
 import { getProductBySlug, updateProduct, deleteProduct } from '@/lib/products';
+import { getCategoryNames } from '@/lib/categories';
 
 const specSchema = z.object({ label: z.string(), value: z.string() });
 
 const updateSchema = z.object({
   name: z.string().min(1).optional(),
   slug: z.string().min(1).regex(/^[a-z0-9-]+$/).optional(),
-  category: z.string().optional(),
+  // Validated against the Category table after parsing. An unchecked string
+  // here could set a category no filter or listing would ever match, silently
+  // hiding the product from the storefront.
+  category: z.string().min(1).optional(),
   shortDescription: z.string().optional(),
   description: z.string().optional(),
   price: z.number().positive().optional(),
@@ -48,6 +52,19 @@ export async function PUT(request: Request, { params }: { params: Promise<{ slug
     if (!result.success) {
       return NextResponse.json({ error: 'Validation failed', issues: result.error.flatten() }, { status: 400 });
     }
+
+    // Same DB-backed check as POST. This route previously accepted any string,
+    // so an edit could set a category that no filter or listing matches.
+    if (result.data.category !== undefined) {
+      const allowed = await getCategoryNames();
+      if (!allowed.includes(result.data.category)) {
+        return NextResponse.json(
+          { error: `Unknown category "${result.data.category}". Create it under Categories first.` },
+          { status: 400 }
+        );
+      }
+    }
+
     const updated = await updateProduct(slug, result.data as Parameters<typeof updateProduct>[1]);
     if (!updated) return NextResponse.json({ error: 'Not found' }, { status: 404 });
     return NextResponse.json(updated);

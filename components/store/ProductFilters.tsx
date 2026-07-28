@@ -1,11 +1,13 @@
 'use client';
 
 import { Search, SlidersHorizontal } from 'lucide-react';
-import { CATEGORIES, type Category } from '@/data/products';
+import { type Category } from '@/data/products';
 
 export type SortOption = 'featured' | 'price-asc' | 'price-desc' | 'rating';
 
 interface Props {
+  /** Category names from the DB, resolved server-side. */
+  categories: string[];
   search: string;
   onSearchChange: (v: string) => void;
   activeCategory: Category | null;
@@ -23,6 +25,7 @@ const SORT_OPTIONS: { value: SortOption; label: string }[] = [
 ];
 
 export default function ProductFilters({
+  categories,
   search,
   onSearchChange,
   activeCategory,
@@ -82,7 +85,7 @@ export default function ProductFilters({
         >
           All
         </button>
-        {CATEGORIES.map((cat) => (
+        {categories.map((cat) => (
           <button
             key={cat}
             onClick={() => onCategoryChange(cat === activeCategory ? null : cat)}

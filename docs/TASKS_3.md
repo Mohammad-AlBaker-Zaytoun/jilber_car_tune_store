@@ -48,37 +48,37 @@ tree that actually executes.
 
 ---
 
-## Phase 1 — High (must close before go-live)
+## Phase 1 — High ✅ DONE
+
+Verified: `npm audit --omit=dev` clean, typecheck clean, lint clean, **81 tests
+passing** (was 58), production build succeeds.
+
+| Area | What was wrong | Fix |
+|---|---|---|
+| **Observability** | No tracker, no `onRequestError`, 25 unstructured `console.*`, and **zero** error boundaries — a production failure was invisible unless someone SSHed in and grepped PM2 logs | `lib/logger.ts` (single-line JSON, levels, pluggable reporter); `onRequestError` implemented; `lib/observability.ts` vendor-neutral seam with optional `ERROR_WEBHOOK_URL` and secret redaction; `error.tsx`, `global-error.tsx`, `not-found.tsx`, admin `error.tsx`, store `loading.tsx`; email failures now surface (closes TASKS_2 P1-6) |
+| **Build-time staleness** | `/`, `/contact`, `/store` were prerendered at build time with **no revalidation** — products added in admin and contact details changed in settings never reached the storefront | ISR at 60s (sitemap 1h). `/cart` and `/checkout` forced dynamic so the tax rate can't go stale |
+| **CI never built** | The production build was first exercised on the live server during a release | Second CI job with an MSSQL service container running `prisma migrate deploy` + `next build`; also `concurrency`, `permissions`, `timeout-minutes` |
+| **Unbounded admin reads** | `/api/admin/orders` returned every order with every line item and every status-history row; reviews returned every reviewer email; users returned every row | Server-side pagination + filtering on all three; `hooks/usePagedResource.ts` shares abort/debounce/error handling; status tiles use SQL counts so they describe the whole table |
+| **N+1 / full scans** | 50-item cart = 50 sequential queries; `/store` pulled the whole reviews table and filtered in JS; `POST /api/reviews` pulled the whole product table to find one row; `/store/[slug]` queried the product twice per render | `getProductsBySlugs`, `getApprovedReviews`, `getProductById`, and `getProductBySlug` wrapped in React `cache()` |
+| **Auth** | Login skipped bcrypt for unknown emails (timing oracle); no per-account lockout; register returned a definitive 409; sliding session never expired; role change didn't revoke | Dummy-hash compare (measured 578ms vs 568ms); `lib/login-throttle.ts` with backoff and a 15m cap; neutral register response + `lib/auth-notifications.ts` emails the real owner; 7-day absolute lifetime via a non-renewing `sat` claim; role change bumps `tokenVersion` |
+| **CSP** | `next.config.ts` had a comment describing a policy but **no directive** | Full CSP added. Nonces deliberately skipped — they force fully dynamic rendering, which would undo the ISR above; rationale documented inline. Also `poweredByHeader: false`, `X-Frame-Options: DENY`, images config with SVG blocked |
+| **Upload** | `formData()` buffered the whole body before the 5 MB check; MIME type was client-asserted | `Content-Length` pre-check (413) and magic-byte sniffing — a disguised payload can no longer be stored with an image extension |
+| **Dead `Category` table** | `/admin/categories` was write-only: products validated against a hardcoded array, so a created category could never be assigned, and deleting one silently hid its products | `getCategoryNames()` is now the source of truth for validation and every dropdown/filter; `Category` type loosened to `string`; delete refuses while products still reference it (409) |
+| **Fire-and-forget email** | Order/quote notifications raced the response | `after()` from `next/server`; the order is snapshotted so the email reflects the state at the status change |
+| **Assets** | ~32 MB on a first visit; 8.5 MB of it dead | Deleted the unreferenced `public/page-transition-frames/` (97 files); both preloaders batched and cancellable; transition frames skipped under `prefers-reduced-motion` |
+| **Docs** | README documented an unimplemented preloader, `lib/*.dev.ts` paths that no longer exist, 3 of 20+ env vars, and a "create an admin" flow that cannot work on a fresh DB | All corrected; added the `NODE_ENV`/sandbox warning, the `db:seed` destructiveness warning, and a deployment section |
+
+### Still open from Phase 1
 
 - [ ] **Upgrade Node to 24 LTS** on the dev machine and the VPS, then raise
-      `engines.node` to match `.nvmrc`. Currently local is 20.17.0 (EOL line).
-- [ ] **Error tracking + structured logging.** No tracker, no `onRequestError`
-      hook, 36 raw `console.*` calls, and **zero** `error.tsx` /
-      `global-error.tsx` / `not-found.tsx` files. On the VPS a failure is
-      invisible unless someone SSHes in and greps PM2 logs.
-- [ ] **CI must run `next build`** (needs an MSSQL service container). Today the
-      first time the production build runs is on the live server.
-- [ ] **Test the money path.** 58 tests exist but still nothing covers route
-      handlers, `requireAdmin()` (the single control on all 24 admin routes),
-      callback idempotency under concurrent delivery, or any E2E flow.
-- [ ] **Pagination** on `GET /api/admin/orders|reviews|users` — currently every
-      order with every item and every status-history row in one response.
-- [ ] **Caching.** No `use cache`/ISR anywhere; `/store` re-queries all products
-      *and* all reviews per request, `/store/[slug]` queries twice per request.
-- [ ] **CSP header** — `next.config.ts` has a comment describing the policy but
-      no `Content-Security-Policy` key. Also set `poweredByHeader: false`.
-- [ ] **Account enumeration** — register returns a distinct 409; login skips the
-      bcrypt compare for unknown emails (timing oracle).
-- [ ] **Per-account brute-force protection** — login is IP-keyed only.
-- [ ] **Dead `Category` table** — admin category CRUD cannot affect the catalogue
-      (products validate against the hardcoded `CATEGORIES` array). Either wire
-      it through or remove the UI.
-- [ ] **Floating notification promises** — order/quote emails fired without
-      `await`/`after()`.
-- [ ] **Assets** — delete the unreferenced `public/page-transition-frames/`
-      (97 files, 8.5 MB); batch the frame preloader (~32 MB on first visit).
-- [ ] Session absolute max lifetime; revoke tokens on role change; review
-      auto-publish decision; upload `Content-Length` pre-check.
+      `engines.node` to match `.nvmrc`. Local is still 20.17.0 — an EOL line.
+      `.nvmrc` and CI already target 24.18.0.
+- [ ] **No route-handler or E2E tests.** The 81 tests cover pure logic
+      (money maths, throttling, IP resolution, magic bytes, session lifetime,
+      CSRF, escaping). `requireAdmin()`, the Whish callback, and the checkout
+      flow still have no automated coverage — they need a test database.
+- [ ] **Reviews still auto-publish** (`AUTO_APPROVE_REVIEWS = true`) despite the
+      moderation UI existing. Needs a product decision.
 
 ## Phase 2 — Medium
 

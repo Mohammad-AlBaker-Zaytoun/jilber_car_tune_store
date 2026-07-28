@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation';
 import { getProductBySlug } from '@/lib/products';
+import { getCategoryNames } from '@/lib/categories';
 import AdminPageHeader from '@/components/admin/AdminPageHeader';
 import ProductForm from '@/components/admin/products/ProductForm';
 
@@ -9,7 +10,10 @@ export default async function AdminEditProductPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const product = await getProductBySlug(slug);
+  const [product, categories] = await Promise.all([
+    getProductBySlug(slug),
+    getCategoryNames(),
+  ]);
   if (!product) notFound();
 
   return (
@@ -21,7 +25,7 @@ export default async function AdminEditProductPage({
           { label: product.name },
         ]}
       />
-      <ProductForm mode="edit" initial={product} />
+      <ProductForm mode="edit" initial={product} categories={categories} />
     </>
   );
 }

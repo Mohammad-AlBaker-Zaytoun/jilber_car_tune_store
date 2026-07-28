@@ -2,14 +2,16 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { requireAdmin, handleAdminError } from '@/lib/admin';
 import { getProducts, createProduct } from '@/lib/products';
-import { CATEGORIES, type Product } from '@/data/products';
+import { getCategoryNames } from '@/lib/categories';
+import { type Product } from '@/data/products';
 
 const specSchema = z.object({ label: z.string(), value: z.string() });
 
 const productSchema = z.object({
   slug: z.string().min(1).regex(/^[a-z0-9-]+$/, 'Slug must be lowercase letters, numbers, hyphens'),
   name: z.string().min(1),
-  category: z.enum(CATEGORIES as unknown as [string, ...string[]]),
+  // Validated against the Category table after parsing — see below.
+  category: z.string().min(1),
   shortDescription: z.string().min(1),
   description: z.string().min(1),
   price: z.number().positive(),
@@ -45,6 +47,18 @@ export async function POST(request: Request) {
     if (!result.success) {
       return NextResponse.json({ error: 'Validation failed', issues: result.error.flatten() }, { status: 400 });
     }
+
+    // Categories are admin-managed rows, so the allowed set comes from the
+    // database rather than a hardcoded array. Previously the array was the
+    // gate, which made /admin/categories a write-only UI.
+    const allowed = await getCategoryNames();
+    if (!allowed.includes(result.data.category)) {
+      return NextResponse.json(
+        { error: `Unknown category "${result.data.category}". Create it under Categories first.` },
+        { status: 400 }
+      );
+    }
+
     const product = await createProduct(result.data as Omit<Product, 'id'>);
     return NextResponse.json(product, { status: 201 });
   } catch (err) {

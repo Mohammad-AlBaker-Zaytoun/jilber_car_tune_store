@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { requireAdmin, handleAdminError } from '@/lib/admin';
-import { updateCategory, deleteCategory } from '@/lib/categories';
+import { updateCategory, deleteCategory, CategoryInUseError } from '@/lib/categories';
 
 const schema = z.object({
   name: z.string().min(1).optional(),
@@ -37,6 +37,17 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
     if (!deleted) return NextResponse.json({ error: 'Not found' }, { status: 404 });
     return NextResponse.json({ success: true });
   } catch (err) {
+    // Product.category is a plain string with no foreign key, so deleting a
+    // category in use would leave those products pointing at a value no filter
+    // matches — effectively hiding them from the storefront.
+    if (err instanceof CategoryInUseError) {
+      return NextResponse.json(
+        {
+          error: `Cannot delete: ${err.productCount} product(s) still use this category. Reassign them first.`,
+        },
+        { status: 409 }
+      );
+    }
     return handleAdminError(err);
   }
 }

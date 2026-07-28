@@ -10,11 +10,14 @@ import EmptyState from './EmptyState';
 
 interface Props {
   products: Product[];
+  /** Category names from the DB — the storefront filter must reflect what an
+   *  admin has actually created, not a hardcoded list. */
+  categories: string[];
   /** Map of productId → effective { rating, count } computed server-side. */
   ratings?: Record<string, { rating: number; count: number }>;
 }
 
-export default function StoreContent({ products, ratings }: Props) {
+export default function StoreContent({ products, categories, ratings }: Props) {
   const [search, setSearch] = useState('');
   const [activeCategory, setActiveCategory] = useState<Category | null>(null);
   const [sort, setSort] = useState<SortOption>('featured');
@@ -58,6 +61,7 @@ export default function StoreContent({ products, ratings }: Props) {
       <div className="max-w-7xl mx-auto px-6 lg:px-8">
         <div className="sticky top-16 lg:top-20 z-30 bg-zinc-950/95 backdrop-blur-sm py-4 -mx-6 lg:-mx-8 px-6 lg:px-8 border-b border-zinc-900">
           <ProductFilters
+            categories={categories}
             search={search}
             onSearchChange={setSearch}
             activeCategory={activeCategory}

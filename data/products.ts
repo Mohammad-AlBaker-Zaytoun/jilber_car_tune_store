@@ -1,13 +1,18 @@
-export type Category =
-  | 'ECU Tuning'
-  | 'Exhaust'
-  | 'Suspension'
-  | 'Wheels'
-  | 'Brakes'
-  | 'Aero'
-  | 'Diagnostics'
-  | 'Maintenance';
+/**
+ * Product categories are admin-managed rows in the `Category` table, so this is
+ * a plain string rather than a closed union.
+ *
+ * It used to be a union of the eight names below, which meant `/admin/categories`
+ * was a write-only UI: a category created there could never be assigned to a
+ * product, because POST /api/admin/products validated against the hardcoded
+ * list. Validation now runs against the database — see lib/categories.ts.
+ */
+export type Category = string;
 
+/**
+ * Bootstrap categories, used to seed an empty `Category` table and as the
+ * fallback when it has not been seeded yet. NOT the source of truth at runtime.
+ */
 export const CATEGORIES: Category[] = [
   'ECU Tuning',
   'Exhaust',

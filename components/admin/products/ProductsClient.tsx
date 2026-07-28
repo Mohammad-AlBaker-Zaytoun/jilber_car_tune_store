@@ -6,14 +6,14 @@ import Image from 'next/image';
 import { Plus, Search, Pencil, Trash2, Star, Package, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
 import ConfirmDialog from '@/components/admin/ConfirmDialog';
 import type { Product } from '@/data/products';
-import { CATEGORIES } from '@/data/products';
+
 
 async function fetchProducts(): Promise<Product[]> {
   const r = await fetch('/api/admin/products');
   return (await r.json()) as Product[];
 }
 
-export default function ProductsClient() {
+export default function ProductsClient({ categories }: { categories: string[] }) {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -139,7 +139,7 @@ export default function ProductsClient() {
           className="bg-zinc-900 border border-zinc-800 focus:border-cyan-400/50 text-zinc-400 text-xs px-3 py-2.5 outline-none transition-colors"
         >
           <option value="">All Categories</option>
-          {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+          {categories.map((c) => <option key={c} value={c}>{c}</option>)}
         </select>
 
         <select

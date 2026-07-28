@@ -4,7 +4,7 @@ import { useState, type ChangeEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { Plus, Trash2, AlertCircle, CheckCircle } from 'lucide-react';
 import type { Product } from '@/data/products';
-import { CATEGORIES } from '@/data/products';
+
 import ProductImageUploader from './ProductImageUploader';
 
 type FormProduct = Omit<Product, 'id'>;
@@ -34,6 +34,8 @@ const EMPTY: FormProduct = {
 interface Props {
   initial?: Product;
   mode: 'new' | 'edit';
+  /** Category names from the DB — must match what the API will accept. */
+  categories: string[];
 }
 
 const inputCls =
@@ -73,7 +75,7 @@ function slugify(str: string): string {
     .trim();
 }
 
-export default function ProductForm({ initial, mode }: Props) {
+export default function ProductForm({ initial, mode, categories }: Props) {
   const router = useRouter();
   const [form, setForm] = useState<FormProduct>(initial ?? EMPTY);
   const [slugManual, setSlugManual] = useState(mode === 'edit');
@@ -223,7 +225,7 @@ export default function ProductForm({ initial, mode }: Props) {
 
           <Field label="Category" required>
             <select value={form.category} onChange={set('category')} className={inputCls}>
-              {CATEGORIES.map((c) => (
+              {categories.map((c) => (
                 <option key={c} value={c}>{c}</option>
               ))}
             </select>
