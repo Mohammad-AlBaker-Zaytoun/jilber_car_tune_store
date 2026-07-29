@@ -35,11 +35,17 @@ function trustedProxyCount(): number {
   return Number.isFinite(n) && n >= 0 ? n : 1;
 }
 
-const IPV4 = /^\d{1,3}(\.\d{1,3}){3}$/;
-const IPV6 = /^[0-9a-f:]+$/i;
+const IPV4 = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/;
+// Permits the IPv4-mapped form (::ffff:203.0.113.5), which the previous pattern
+// rejected — those clients then fell through to 'unknown' and ALL SHARED ONE
+// BUCKET, so one of them could exhaust the limit for every other.
+const IPV6 = /^[0-9a-f:]+(:\d{1,3}(\.\d{1,3}){3})?$/i;
 
 function looksLikeIp(value: string): boolean {
-  return IPV4.test(value) || (value.includes(':') && IPV6.test(value));
+  const v4 = IPV4.exec(value);
+  // Range-check the octets; the old pattern accepted 999.999.999.999.
+  if (v4) return v4.slice(1).every((o) => Number(o) <= 255);
+  return value.includes(':') && IPV6.test(value);
 }
 
 /**
@@ -74,11 +80,16 @@ export function getClientIp(req: Request): string {
       .split(',')
       .map((p) => p.trim())
       .filter(Boolean);
-    if (parts.length > 0) {
-      // Nth from the right, clamped: a client can lengthen this list but only by
-      // prepending, which pushes its own entries further left, never into this slot.
-      const index = Math.max(0, parts.length - proxies);
-      const candidate = parts[index]!;
+    // FAIL CLOSED on a shorter chain than configured. Clamping to index 0
+    // instead would hand back the LEFTMOST entry — the one the client typed —
+    // which is precisely the spoof this function exists to prevent. That is
+    // reachable whenever TRUSTED_PROXY_COUNT is set higher than the real number
+    // of proxies (e.g. configured 2 for "Cloudflare + nginx" but only nginx is
+    // actually in front).
+    if (parts.length >= proxies) {
+      // Nth from the right: a client can lengthen this list only by prepending,
+      // which pushes its own entries further left, never into this slot.
+      const candidate = parts[parts.length - proxies]!;
       if (looksLikeIp(candidate)) return candidate;
     }
   }
@@ -97,8 +108,12 @@ export function getClientIp(req: Request): string {
 export function rateLimit(key: string, limit: number, windowMs: number): RateLimitResult {
   const now = Date.now();
 
+  // Opportunistic prune, then a hard ceiling. Pruning only expired entries
+  // cannot shrink a map whose entries are all live, so a flood of distinct keys
+  // would grow it without bound AND make every later call scan the lot.
   if (buckets.size > 5000) {
     for (const [k, b] of buckets) if (now > b.resetAt) buckets.delete(k);
+    if (buckets.size > 20000) buckets.clear();
   }
 
   const bucket = buckets.get(key);

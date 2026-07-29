@@ -59,6 +59,11 @@ export async function POST(request: Request) {
       role: user.role,
       createdAt: user.createdAt,
       tokenVersion: newVersion ?? (user.tokenVersion + 1),
+      // `sessionStartedAt` is deliberately NOT carried over here: the caller has
+      // just re-authenticated with their current password, so this is a genuine
+      // new authentication and restarting the absolute 7-day window is correct.
+      // (Contrast /api/account/profile, which must preserve it — omitting it
+      // there would let a stolen cookie be refreshed indefinitely.)
     };
     const token = await createToken(sessionUser);
     const response = NextResponse.json({ success: true });

@@ -32,8 +32,33 @@ const LEVEL_RANK: Record<Level, number> = { debug: 10, info: 20, warn: 30, error
 
 function minLevel(): Level {
   const raw = process.env.LOG_LEVEL as Level | undefined;
-  if (raw && raw in LEVEL_RANK) return raw;
+  // Object.hasOwn, not `in`: `in` walks the prototype chain, so LOG_LEVEL=toString
+  // passed the guard, LEVEL_RANK['toString'] resolved to a function, and every
+  // numeric comparison against it was false — silently disabling the filter.
+  if (raw && Object.hasOwn(LEVEL_RANK, raw)) return raw;
   return process.env.NODE_ENV === 'production' ? 'info' : 'debug';
+}
+
+/**
+ * JSON.stringify replacer that survives the values that actually reach this
+ * logger.
+ *
+ * BigInt in particular is not hypothetical: orders.whishExternalId is a BigInt,
+ * so a Prisma error carrying it in `meta` made the whole line unserialisable —
+ * and the old fallback then discarded the message, stack and digest, losing
+ * exactly the line you need at 2am.
+ */
+function safeReplacer() {
+  const seen = new WeakSet<object>();
+  return (_key: string, value: unknown) => {
+    if (typeof value === 'bigint') return `${value}n`;
+    if (typeof value === 'function') return `[Function ${value.name || 'anonymous'}]`;
+    if (typeof value === 'object' && value !== null) {
+      if (seen.has(value)) return '[Circular]';
+      seen.add(value);
+    }
+    return value;
+  };
 }
 
 /** Serialises an Error without losing the name/stack, and without exploding. */
@@ -74,21 +99,36 @@ export function hasErrorReporter(): boolean {
 function emit(level: Level, event: string, context: LogContext = {}): void {
   if (LEVEL_RANK[level] < LEVEL_RANK[minLevel()]) return;
 
+  // Context is spread FIRST so a caller-supplied `level`/`event`/`ts` cannot
+  // overwrite the fields alerting is keyed on.
   const line = {
+    ...context,
     ts: new Date().toISOString(),
     level,
     event,
-    ...context,
   };
 
   // One line, one JSON object. console.error goes to stderr so PM2 splits it
   // into error.log — keep that behaviour.
   const out = level === 'error' || level === 'warn' ? console.error : console.log;
+  let serialised: string;
   try {
-    out(JSON.stringify(line));
+    serialised = JSON.stringify(line, safeReplacer());
+  } catch (err) {
+    // Keep the identifying fields. Discarding them (as this used to) threw away
+    // the only thing that made the line actionable.
+    serialised = JSON.stringify({
+      ts: line.ts,
+      level,
+      event,
+      logSerialisationFailed: err instanceof Error ? err.message : String(err),
+    });
+  }
+  try {
+    out(serialised);
   } catch {
-    // Circular structure in the context — never let logging throw.
-    out(JSON.stringify({ ts: line.ts, level, event, logSerialisationFailed: true }));
+    // stdout/stderr itself failed (EPIPE when PM2's log pipe is gone). Swallow:
+    // this module must never throw from inside somebody else's catch block.
   }
 }
 

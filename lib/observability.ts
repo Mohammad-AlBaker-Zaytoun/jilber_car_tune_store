@@ -25,10 +25,25 @@ import { setErrorReporter, logger, type LogContext } from '@/lib/logger';
 /** Fields that must never leave the server in an error report. */
 const REDACT = /password|secret|token|authorization|cookie|apikey|api_key/i;
 
-function redact(context: LogContext): LogContext {
-  const out: LogContext = {};
-  for (const [key, value] of Object.entries(context)) {
-    out[key] = REDACT.test(key) ? '[redacted]' : value;
+/**
+ * Recursive redaction.
+ *
+ * A one-level pass was not enough: `context` is arbitrary and this payload is
+ * POSTed off-box to a webhook (in practice a Slack/Discord channel, which is a
+ * chat log, not a secrets store). `{ body: { password } }` or
+ * `{ headers: { cookie } }` sailed straight through.
+ */
+function redact(value: unknown, depth = 0, seen = new WeakSet<object>()): unknown {
+  if (depth > 6) return '[depth-limit]';
+  if (value === null || typeof value !== 'object') return value;
+  if (seen.has(value)) return '[Circular]';
+  seen.add(value);
+
+  if (Array.isArray(value)) return value.map((v) => redact(v, depth + 1, seen));
+
+  const out: Record<string, unknown> = {};
+  for (const [key, v] of Object.entries(value)) {
+    out[key] = REDACT.test(key) ? '[redacted]' : redact(v, depth + 1, seen);
   }
   return out;
 }
@@ -59,7 +74,7 @@ export function registerErrorReporter(): void {
         env: process.env.NODE_ENV,
         message,
         stack,
-        context: redact(context),
+        context: redact(context) as LogContext,
         ts: new Date().toISOString(),
       }),
       signal: AbortSignal.timeout(5000),

@@ -4,6 +4,7 @@ import { getOrderByWhishExternalId } from '@/lib/orders';
 import { settleWhishOrder } from '@/lib/payments/whish-settle';
 import { siteConfig } from '@/lib/seo/site-config';
 import { logger } from '@/lib/logger';
+import { rateLimit, getClientIp, tooManyRequests } from '@/lib/rate-limit';
 
 // Whish redirects the browser here (GET) after payment and also calls it
 // server-to-server. This is cross-origin, so the proxy CSRF gate (which only
@@ -53,6 +54,13 @@ async function handleCallback(request: Request) {
  */
 export async function POST(request: Request) {
   try {
+    // This route is exempt from the CSRF origin gate (proxy.ts) so the gateway
+    // can reach it, and `externalId` is a largely-predictable counter — so it
+    // needs its own limit. Without one it is an unauthenticated amplifier that
+    // burns Whish API quota and does a DB write per guess.
+    const rl = rateLimit('whish-cb:' + getClientIp(request), 30, 60_000);
+    if (!rl.ok) return tooManyRequests(rl.retryAfter);
+
     const { outcome } = await handleCallback(request);
     if (outcome === 'unavailable') {
       // Non-2xx invites the gateway to retry, which is what we want.
@@ -71,9 +79,18 @@ export async function POST(request: Request) {
  */
 export async function GET(request: Request) {
   try {
+    const rl = rateLimit('whish-cb:' + getClientIp(request), 30, 60_000);
+    if (!rl.ok) return tooManyRequests(rl.retryAfter);
+
     const { outcome, ref } = await handleCallback(request);
     const refQs = ref ? `?ref=${encodeURIComponent(ref)}` : '';
 
+    // The ref IS echoed back deliberately: /checkout/success keys both the
+    // confirmation display and the cart clearing on it, so dropping it would
+    // leave a paying customer on "no order to show" with a full cart — a worse
+    // outcome than the disclosure. The ref alone grants nothing (there is no
+    // public order-by-ref endpoint), and the rate limit above is what actually
+    // stops an externalId sweep.
     if (outcome === 'paid_now' || outcome === 'already_paid') {
       return redirect(`/checkout/success${refQs}`);
     }

@@ -7,6 +7,7 @@ import {
   markOrderPaidByWhish,
   updateOrderStatus,
   attachWhishExternalId,
+  clearWhishExternalId,
   getUnconfirmedWhishOrders,
 } from '@/lib/orders';
 import { getProductsBySlugs, deleteProduct, createProduct } from '@/lib/products';
@@ -150,6 +151,53 @@ describe('payment settlement is atomic', () => {
 
   it('reports a missing order rather than throwing', async () => {
     expect(await markOrderPaidByWhish(randomUUID())).toBe('missing');
+  });
+
+  // REGRESSION: the guard was `paymentStatus: { not: 'paid' }`, which also
+  // matched 'refunded'. A refunded order still had a whishExternalId, so the
+  // reconciliation cron picked it up, Whish still reported the original
+  // collection as successful, and the order was flipped back to paid — erasing
+  // the refund and emailing the customer a second confirmation.
+  it('refuses to re-settle a refunded order', async () => {
+    const order = await createOrder(orderInput());
+    createdOrderIds.push(order.id);
+
+    expect(await markOrderPaidByWhish(order.id, 'txn-1')).toBe('paid_now');
+    await prisma.order.update({
+      where: { id: order.id },
+      data: { paymentStatus: 'refunded' },
+    });
+
+    expect(await markOrderPaidByWhish(order.id, 'txn-2')).toBe('not_settleable');
+
+    const read = await getOrderById(order.id);
+    expect(read!.paymentStatus).toBe('refunded');
+  });
+
+  it('excludes refunded orders from the reconciliation queue', async () => {
+    const order = await createOrder(orderInput());
+    createdOrderIds.push(order.id);
+    await attachWhishExternalId(order.id, Number(String(Date.now()).slice(-9)));
+    await prisma.order.update({
+      where: { id: order.id },
+      data: { paymentStatus: 'refunded' },
+    });
+
+    const unconfirmed = await getUnconfirmedWhishOrders(0);
+    expect(unconfirmed.some((o) => o.id === order.id)).toBe(false);
+  });
+
+  // REGRESSION: a failed createPayment used to leave the externalId attached, so
+  // the reconciler chased a payment Whish had never heard of on every run and
+  // exited non-zero forever.
+  it('clearWhishExternalId takes an order out of the reconciliation queue', async () => {
+    const order = await createOrder(orderInput());
+    createdOrderIds.push(order.id);
+    await attachWhishExternalId(order.id, Number(String(Date.now()).slice(-9)) + 1);
+    expect((await getUnconfirmedWhishOrders(0)).some((o) => o.id === order.id)).toBe(true);
+
+    await clearWhishExternalId(order.id);
+    expect((await getUnconfirmedWhishOrders(0)).some((o) => o.id === order.id)).toBe(false);
   });
 });
 

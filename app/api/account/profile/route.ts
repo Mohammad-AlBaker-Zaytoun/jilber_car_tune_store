@@ -44,6 +44,11 @@ export async function PATCH(request: Request) {
       role: updated.role,
       createdAt: user.createdAt,
       tokenVersion: user.tokenVersion,
+      // MUST be carried over. Omitting it makes createToken() stamp a fresh
+      // `sat`, restarting the absolute session lifetime — so anyone holding a
+      // stolen cookie could PATCH this endpoint with an empty body once a day
+      // and keep the session alive forever, defeating the ceiling entirely.
+      sessionStartedAt: session.sessionStartedAt,
     };
     const token = await createToken(sessionUser);
     const response = NextResponse.json({ user: sessionUser });

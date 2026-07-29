@@ -118,7 +118,12 @@ export default function ScrollFrameSequence({
           loadedCount++;
           setLoadProgress(Math.round((loadedCount / frameCount) * 100));
           if (i === 0) {
-            drawFrame(0);
+            // Draw whatever frame the scroll position currently calls for, not
+            // frame 0. The loading overlay does not lock scrolling, so on a slow
+            // connection the user can already be at frame 36 by the time frame 0
+            // lands; painting 0 over it left the hero visually stuck, because
+            // currentFrameRef was still 36 and the scroll handler saw no change.
+            drawFrame(currentFrameRef.current);
             setLoading(false);
           }
           resolve();

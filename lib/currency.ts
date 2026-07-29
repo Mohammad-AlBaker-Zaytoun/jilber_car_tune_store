@@ -53,8 +53,14 @@ export function round2(n: number): number {
  * server charged the admin-configured rate.
  */
 export function computeTotals(subtotal: number, taxRatePercent: number) {
-  const clamped = Math.min(Math.max(taxRatePercent, 0), 100) / 100;
-  const roundedSubtotal = round2(subtotal);
+  // Guard non-finite input explicitly. Math.min/max propagate NaN, so a NaN rate
+  // produced NaN totals which JSON.stringify then serialised as `null` — silent
+  // corruption in the one function documented as the source of truth for what a
+  // customer is charged. Validation lives two modules away; do not depend on it.
+  const safeRate = Number.isFinite(taxRatePercent) ? taxRatePercent : 0;
+  const safeSubtotal = Number.isFinite(subtotal) ? subtotal : 0;
+  const clamped = Math.min(Math.max(safeRate, 0), 100) / 100;
+  const roundedSubtotal = round2(safeSubtotal);
   const tax = round2(roundedSubtotal * clamped);
   return { subtotal: roundedSubtotal, tax, total: round2(roundedSubtotal + tax) };
 }

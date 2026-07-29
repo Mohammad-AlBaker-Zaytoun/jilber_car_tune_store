@@ -421,6 +421,22 @@ export async function attachWhishExternalId(
   });
 }
 
+/**
+ * Detaches a Whish externalId from an order.
+ *
+ * Used when createPayment fails: the id was reserved before the call (so a
+ * successful charge can always be correlated back), but if Whish never accepted
+ * it, no payment can ever arrive against it. Leaving it attached makes the order
+ * permanently visible to getUnconfirmedWhishOrders(), so the reconciliation cron
+ * retries it forever and exits non-zero on every run.
+ */
+export async function clearWhishExternalId(orderId: string): Promise<void> {
+  await prisma.order.updateMany({
+    where: { id: orderId, paymentStatus: { in: SETTLEABLE_PAYMENT_STATUSES } },
+    data: { whishExternalId: null, updatedAt: new Date() },
+  });
+}
+
 /** Looks up the order a Whish callback refers to by its externalId. */
 export async function getOrderByWhishExternalId(externalId: number): Promise<Order | null> {
   const row = await prisma.order.findUnique({
@@ -431,24 +447,39 @@ export async function getOrderByWhishExternalId(externalId: number): Promise<Ord
 }
 
 /**
- * Marks an order paid via Whish and records the transaction id. Idempotent: a
- * second call (callback replay) is a no-op once paymentStatus is already 'paid'.
- * Returns 'paid_now' only on the transition to paid (so callers send the
- * confirmation email exactly once), 'already_paid' on replay, 'missing' if gone.
+ * The only payment states a Whish settlement may transition OUT of.
+ *
+ * Deliberately an allow-list, not `{ not: 'paid' }`. That negation also matched
+ * `refunded`, `deposit_paid` and `not_required`, so a refunded order still had a
+ * `whishExternalId` and still looked "unsettled": the reconciliation cron picked
+ * it up, Whish still reported the original collection as successful (a refund is
+ * a separate transaction), and the order was flipped back to `paid` — erasing the
+ * refund from the books, re-inflating estimatedRevenue(), and emailing the
+ * customer a second "order received".
+ */
+const SETTLEABLE_PAYMENT_STATUSES = ['unpaid', 'deposit_pending'];
+
+/**
+ * Marks an order paid via Whish and records the transaction id.
+ *
+ * Idempotent and one-way. Returns 'paid_now' only on a genuine transition (so
+ * callers notify exactly once), 'already_paid' on replay, 'not_settleable' when
+ * the order has reached a terminal state a payment must not overwrite
+ * (refunded/paid-by-other-means), and 'missing' if the order is gone.
  */
 export async function markOrderPaidByWhish(
   orderId: string,
   transactionId?: string
-): Promise<'paid_now' | 'already_paid' | 'missing'> {
+): Promise<'paid_now' | 'already_paid' | 'not_settleable' | 'missing'> {
   // Conditional update, NOT read-then-write. Whish delivers both a server-to-
   // server callback and a browser redirect to this same endpoint, so two
   // requests routinely race here. A read-check-write let both observe 'unpaid'
   // and both return 'paid_now', sending the customer two confirmation emails and
-  // the admin two alerts. The `paymentStatus: { not: 'paid' }` filter makes the
-  // transition atomic in the database — exactly one caller can see count === 1.
+  // the admin two alerts. Scoping the update makes the transition atomic in the
+  // database — exactly one caller can see count === 1.
   // (Same pattern as the single-use token consumption in lib/password-reset.ts.)
   const { count } = await prisma.order.updateMany({
-    where: { id: orderId, paymentStatus: { not: 'paid' } },
+    where: { id: orderId, paymentStatus: { in: SETTLEABLE_PAYMENT_STATUSES } },
     data: {
       paymentStatus: 'paid',
       ...(transactionId ? { whishTransactionId: transactionId } : {}),
@@ -458,12 +489,13 @@ export async function markOrderPaidByWhish(
 
   if (count === 1) return 'paid_now';
 
-  // Nothing updated: either already paid, or the order does not exist.
+  // Nothing updated — distinguish "already settled" from "must not settle".
   const existing = await prisma.order.findUnique({
     where: { id: orderId },
-    select: { id: true },
+    select: { paymentStatus: true },
   });
-  return existing ? 'already_paid' : 'missing';
+  if (!existing) return 'missing';
+  return existing.paymentStatus === 'paid' ? 'already_paid' : 'not_settleable';
 }
 
 /**
@@ -482,7 +514,10 @@ export async function getUnconfirmedWhishOrders(olderThanMs = 10 * 60_000): Prom
   const rows = await prisma.order.findMany({
     where: {
       whishExternalId: { not: null },
-      paymentStatus: { not: 'paid' },
+      // Same allow-list as markOrderPaidByWhish: a refunded order must not be
+      // re-examined by the reconciler at all, or the cron re-settles it every
+      // 15 minutes.
+      paymentStatus: { in: SETTLEABLE_PAYMENT_STATUSES },
       status: { not: 'cancelled' },
       createdAt: { lt: new Date(Date.now() - olderThanMs) },
     },

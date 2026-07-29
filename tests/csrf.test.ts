@@ -58,3 +58,19 @@ describe('isSameOriginRequest', () => {
     expect(isSameOriginRequest(mockRequest({ method: 'POST', origin: 'not-a-url' }))).toBe(false);
   });
 });
+
+/**
+ * The origin gate correctly treats a request with neither Origin nor Referer as
+ * untrusted — which is exactly the shape of a server-to-server payment callback.
+ * proxy.ts therefore exempts that one path (CSRF_EXEMPT); without the exemption
+ * Whish's POST was answered 403 and every abandoned-redirect payment depended on
+ * the reconciliation cron to be recovered.
+ *
+ * This pins the property the exemption relies on, so nobody "fixes" isSameOriginRequest
+ * into accepting header-less POSTs generally.
+ */
+describe('payment callback shape', () => {
+  it('a header-less POST is still untrusted by the generic gate', () => {
+    expect(isSameOriginRequest(mockRequest({ method: 'POST' }))).toBe(false);
+  });
+});

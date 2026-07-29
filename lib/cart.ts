@@ -19,6 +19,16 @@ interface CartStore {
   addItem: (item: Omit<CartItem, 'quantity'>, qty?: number) => void;
   removeItem: (id: string) => void;
   updateQuantity: (id: string, quantity: number) => void;
+  /**
+   * Rewrites unit prices from authoritative server values.
+   *
+   * The cart is persisted to localStorage with no expiry, so a price edited in
+   * admin leaves the customer looking at a stale number while the server charges
+   * the live one. POST /api/orders detects that and returns 409 PRICE_CHANGED;
+   * this applies the corrected prices so the displayed total matches what will
+   * actually be charged on the next attempt.
+   */
+  repriceItems: (prices: { slug: string; now: number }[]) => void;
   clearCart: () => void;
   itemCount: () => number;
   subtotal: () => number;
@@ -58,6 +68,15 @@ export const useCartStore = create<CartStore>()(
         }
         set((state) => ({
           items: state.items.map((i) => (i.id === id ? { ...i, quantity } : i)),
+        }));
+      },
+
+      repriceItems: (prices) => {
+        const bySlug = new Map(prices.map((p) => [p.slug, p.now]));
+        set((state) => ({
+          items: state.items.map((i) =>
+            bySlug.has(i.slug) ? { ...i, price: bySlug.get(i.slug)! } : i
+          ),
         }));
       },
 

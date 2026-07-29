@@ -9,12 +9,32 @@ import { isSameOriginRequest } from '@/lib/csrf';
 const PROTECTED = ['/account', '/checkout'];
 const AUTH_ONLY = ['/signin', '/signup'];
 
+/**
+ * Endpoints called by external systems, which are exempt from the origin check.
+ *
+ * A server-to-server POST carries no `Origin` and no `Referer`, so
+ * isSameOriginRequest() correctly classifies it as untrusted and the gate
+ * answered 403 — meaning Whish's payment callback could never reach its handler.
+ * Every abandoned-redirect payment then depended entirely on the reconciliation
+ * cron to be recovered.
+ *
+ * Exempting it is safe because the handler derives no authority from the
+ * request: it re-queries Whish for the authoritative status and verifies the
+ * charged amount before marking anything paid (lib/payments/whish-settle.ts).
+ * It is rate-limited in the handler itself.
+ */
+const CSRF_EXEMPT = ['/api/whish/callback'];
+
 export default async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // CSRF: reject cross-origin state-changing requests to the API before they
   // reach any handler. Read-only methods and same-origin requests pass through.
-  if (pathname.startsWith('/api/') && !isSameOriginRequest(request)) {
+  if (
+    pathname.startsWith('/api/') &&
+    !CSRF_EXEMPT.includes(pathname) &&
+    !isSameOriginRequest(request)
+  ) {
     return NextResponse.json(
       { error: 'Cross-origin request blocked.' },
       { status: 403 }

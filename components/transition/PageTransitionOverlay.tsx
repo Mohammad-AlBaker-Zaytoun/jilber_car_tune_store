@@ -175,7 +175,12 @@ export default function PageTransitionOverlay({ phase, framesRef }: Props) {
         transition: isExiting
           ? 'opacity 500ms ease'
           : 'opacity 240ms cubic-bezier(0.16, 1, 0.3, 1)',
-        pointerEvents: 'all',
+        // Must go transparent to input during the fade-out. The overlay stays
+        // mounted at zIndex 9999 for the full 600ms exit phase, so an
+        // unconditional 'all' meant every click, tap and scrollbar drag on the
+        // freshly-arrived page was swallowed for 600ms after EVERY navigation —
+        // the destination looked interactive and simply ignored you.
+        pointerEvents: isExiting ? 'none' : 'all',
         willChange: 'opacity',
       }}
     >

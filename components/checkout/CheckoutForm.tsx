@@ -99,6 +99,7 @@ export default function CheckoutForm({ taxRate }: Props) {
   const router = useRouter();
   const items = useCartStore((s) => s.items);
   const clearCart = useCartStore((s) => s.clearCart);
+  const repriceItems = useCartStore((s) => s.repriceItems);
   const { user } = useAuth();
   const [form, setForm] = useState<FormData>(INITIAL_FORM);
   // Prefill contact fields once the signed-in user resolves (arrives async from
@@ -172,14 +173,34 @@ export default function CheckoutForm({ taxRate }: Props) {
             currentMods: form.currentMods,
             serviceDate: form.serviceDate,
           },
-          // Send only the fields the server needs; price/totals are derived server-side
-          items: items.map((i) => ({ slug: i.slug, quantity: i.quantity })),
+          // Totals are always derived server-side from live DB prices.
+          // `expectedPrice` is what the customer is currently being SHOWN — sent
+          // only so the server can detect a stale cart and make us re-confirm,
+          // never as an input to pricing.
+          items: items.map((i) => ({
+            slug: i.slug,
+            quantity: i.quantity,
+            expectedPrice: i.price,
+          })),
           payment,
         }),
       });
 
       if (!res.ok) {
-        const data = (await res.json()) as { error?: string };
+        const data = (await res.json()) as {
+          error?: string;
+          code?: string;
+          repriced?: { slug: string; name: string; was: number; now: number }[];
+        };
+
+        // A price moved while the item sat in the cart. Apply the server's
+        // prices so the summary now shows what will actually be charged, and
+        // make the customer press the button again rather than silently
+        // charging them a different number than the one they were looking at.
+        if (data.code === 'PRICE_CHANGED' && data.repriced?.length) {
+          repriceItems(data.repriced);
+        }
+
         setSubmitError(data.error ?? 'Failed to place order. Please try again.');
         return;
       }

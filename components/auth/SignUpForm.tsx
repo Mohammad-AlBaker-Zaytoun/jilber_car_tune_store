@@ -93,21 +93,19 @@ export default function SignUpForm() {
         return;
       }
 
-      // Auto sign-in after registration
-      const loginRes = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: form.email, password: form.password }),
-      });
-
-      if (loginRes.ok) {
-        await refresh();
-        setSuccess(true);
-        // replace so Back doesn't return to the sign-up page after account creation
-        router.replace(redirect);
-      } else {
-        router.replace('/signin');
-      }
+      // No follow-up login call. /api/auth/register now signs a new user in
+      // itself and returns an identical body either way, so this client cannot
+      // distinguish "address was free" from "address was taken" — the separate
+      // login POST used to answer exactly that with 200 vs 401, which was a
+      // sharper enumeration oracle than the 409 the endpoint stopped returning.
+      //
+      // Both paths navigate to the same place. A genuinely new account arrives
+      // authenticated; an existing one is bounced to sign-in by the proxy, which
+      // is also the correct destination for someone who already has an account.
+      await refresh();
+      setSuccess(true);
+      // replace so Back doesn't return to the sign-up page after account creation
+      router.replace(redirect);
     } catch {
       setServerError('Something went wrong. Please try again.');
     } finally {

@@ -1,16 +1,17 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import {
-  Search, ShoppingBag, Clock, Wrench, CheckCircle2, XCircle, Package2,
-  ChevronLeft, ChevronRight, AlertCircle,
+  Search, ShoppingBag, Clock, Wrench, CheckCircle2, XCircle, Package2, AlertCircle,
 } from 'lucide-react';
 import type { Order, OrderStatus, PaymentStatus } from '@/types/admin';
 import { STATUSES, formatStatus, PAYMENT_STATUSES, formatPaymentStatus } from '@/components/admin/orderStatus';
 import OrderStatusBadge from '@/components/orders/OrderStatusBadge';
 import PaymentStatusBadge from '@/components/orders/PaymentStatusBadge';
 import { formatMoneyCompact } from '@/lib/currency';
+import Pagination from '@/components/admin/Pagination';
+import { usePagedResource } from '@/hooks/usePagedResource';
 
 interface OrderPageResponse {
   orders: Order[];
@@ -31,71 +32,19 @@ const TILES: { label: string; status: OrderStatus | ''; icon: typeof Package2; c
 ];
 
 export default function OrdersClient() {
-  const [data, setData] = useState<OrderPageResponse | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-
   const [search, setSearch] = useState('');
-  // Filtering and paging happen in SQL now, so the input is debounced rather
-  // than firing a query on every keystroke.
-  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<OrderStatus | ''>('');
   const [paymentFilter, setPaymentFilter] = useState<PaymentStatus | ''>('');
-  const [page, setPage] = useState(1);
-  const [reloadToken, setReloadToken] = useState(0);
 
-  useEffect(() => {
-    const t = setTimeout(() => setDebouncedSearch(search), 300);
-    return () => clearTimeout(t);
-  }, [search]);
-
-  /**
-   * Every control funnels through here so a filter change resets the page and
-   * flips the spinner in the same user event. Setting `loading` from the event
-   * rather than from inside the effect keeps the effect free of synchronous
-   * setState (react-hooks/set-state-in-effect) and avoids a cascading render.
-   */
-  const applyFilters = useCallback((update: () => void, resetPage = true) => {
-    setLoading(true);
-    update();
-    if (resetPage) setPage(1);
-  }, []);
-
-  // Fetching is the only thing the effect does; it settles `loading` when done.
-  useEffect(() => {
-    let active = true;
-    const controller = new AbortController();
-
-    const params = new URLSearchParams({ page: String(page) });
-    if (debouncedSearch) params.set('search', debouncedSearch);
-    if (statusFilter) params.set('status', statusFilter);
-    if (paymentFilter) params.set('paymentStatus', paymentFilter);
-
-    (async () => {
-      try {
-        const res = await fetch(`/api/admin/orders?${params}`, { signal: controller.signal });
-        if (!res.ok) throw new Error(`Request failed (${res.status})`);
-        const payload = (await res.json()) as OrderPageResponse;
-        if (active) {
-          setData(payload);
-          setError('');
-        }
-      } catch (err) {
-        // Previously `.catch(console.error)` — the table just stayed empty and
-        // looked like "no orders" when the request had actually failed.
-        if (active && !controller.signal.aborted) {
-          setError(err instanceof Error ? err.message : 'Could not load orders.');
-        }
-      } finally {
-        if (active) setLoading(false);
-      }
-    })();
-
-    return () => {
-      active = false;
-      controller.abort();
-    };
-  }, [page, debouncedSearch, statusFilter, paymentFilter, reloadToken]);
+  // Uses the shared hook rather than a private copy. The copy that used to live
+  // here had the same defect: `page` was a raw effect dependency while filters
+  // were debounced, so changing a filter on page 3 fired a request with the old
+  // filters before the corrected one.
+  const { data, loading, error, page, applyFilters, reload, goToPage } =
+    usePagedResource<OrderPageResponse>({
+      endpoint: '/api/admin/orders',
+      filters: { search, status: statusFilter, paymentStatus: paymentFilter },
+    });
 
   const orders = data?.orders ?? [];
   const counts = data?.statusCounts ?? {};
@@ -178,7 +127,7 @@ export default function OrdersClient() {
           <AlertCircle size={32} className="text-red-400" aria-hidden="true" />
           <p className="text-xs text-red-400">{error}</p>
           <button
-            onClick={() => applyFilters(() => setReloadToken((t) => t + 1), false)}
+            onClick={reload}
             className="px-4 py-2 border border-zinc-700 hover:border-cyan-400/40 text-zinc-300 hover:text-cyan-400 text-[10px] font-black tracking-[0.2em] uppercase transition-colors"
           >
             Retry
@@ -256,31 +205,7 @@ export default function OrdersClient() {
             </table>
           </div>
 
-          {(data?.totalPages ?? 1) > 1 && (
-            <div className="flex items-center justify-between mt-5">
-              <button
-                onClick={() => applyFilters(() => setPage((p) => Math.max(1, p - 1)), false)}
-                disabled={page <= 1}
-                className="inline-flex items-center gap-1.5 px-4 py-2 border border-zinc-800 hover:border-cyan-400/40 text-zinc-400 hover:text-cyan-400 text-[10px] font-black tracking-[0.2em] uppercase transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:border-zinc-800 disabled:hover:text-zinc-400"
-              >
-                <ChevronLeft size={13} aria-hidden="true" />
-                Prev
-              </button>
-
-              <span className="text-[10px] text-zinc-600 tracking-[0.2em] uppercase font-bold">
-                Page {data?.page ?? 1} of {data?.totalPages ?? 1}
-              </span>
-
-              <button
-                onClick={() => applyFilters(() => setPage((p) => Math.min(data?.totalPages ?? 1, p + 1)), false)}
-                disabled={page >= (data?.totalPages ?? 1)}
-                className="inline-flex items-center gap-1.5 px-4 py-2 border border-zinc-800 hover:border-cyan-400/40 text-zinc-400 hover:text-cyan-400 text-[10px] font-black tracking-[0.2em] uppercase transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:border-zinc-800 disabled:hover:text-zinc-400"
-              >
-                Next
-                <ChevronRight size={13} aria-hidden="true" />
-              </button>
-            </div>
-          )}
+          <Pagination page={page} totalPages={data?.totalPages ?? 1} onChange={goToPage} />
         </>
       )}
     </>

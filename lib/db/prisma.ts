@@ -22,31 +22,78 @@ import { createPrismaAdapter } from './adapter';
 
 const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
 
-function createClient(): PrismaClient {
-  return new PrismaClient({
+function getClient(): PrismaClient {
+  // Cached on globalThis in every environment: in dev to survive HMR, in
+  // production because the module registry is not a guaranteed singleton across
+  // Next's server bundles.
+  globalForPrisma.prisma ??= new PrismaClient({
     adapter: createPrismaAdapter(),
     log: process.env.NODE_ENV === 'development' ? ['warn', 'error'] : ['error'],
   });
-}
-
-function getClient(): PrismaClient {
-  if (!globalForPrisma.prisma) {
-    const client = createClient();
-    // Cache in dev to survive HMR; in production the module itself is the cache.
-    if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = client;
-    else globalForPrisma.prisma = client;
-  }
   return globalForPrisma.prisma;
 }
 
+/**
+ * Bound-method cache.
+ *
+ * Without it every property access mints a new bound function, so
+ * `prisma.$transaction !== prisma.$transaction`. That breaks identity
+ * comparison and anything keyed on a client method in a Map/Set.
+ */
+const boundMethods = new WeakMap<object, Map<PropertyKey, unknown>>();
+
+function bindOnce(client: PrismaClient, prop: PropertyKey, fn: (...a: never[]) => unknown) {
+  let perClient = boundMethods.get(client);
+  if (!perClient) {
+    perClient = new Map();
+    boundMethods.set(client, perClient);
+  }
+  let bound = perClient.get(prop);
+  if (!bound) {
+    bound = fn.bind(client);
+    perClient.set(prop, bound);
+  }
+  return bound;
+}
+
 export const prisma: PrismaClient = new Proxy({} as PrismaClient, {
-  get(_target, prop, receiver) {
+  get(_target, prop) {
     const client = getClient();
-    const value = Reflect.get(client, prop, receiver);
-    // Model delegates and $-methods must stay bound to the real client.
-    return typeof value === 'function' ? value.bind(client) : value;
+    // Deliberately NOT forwarding the proxy as `receiver`. The receiver exists
+    // to support inheritance, which this proxy does not model — and any real
+    // prototype getter on the client would then run with `this` bound to a proxy
+    // whose target is `{}`, breaking private-field access.
+    const value = Reflect.get(client, prop);
+    return typeof value === 'function'
+      ? bindOnce(client, prop, value as (...a: never[]) => unknown)
+      : value;
+  },
+  set(_target, prop, value) {
+    // Without this, assignments fall through to the empty target and vanish:
+    // `get` never consults the target, so the write is silently unobservable.
+    return Reflect.set(getClient(), prop, value);
   },
   has(_target, prop) {
-    return prop in getClient();
+    // `'order' in prisma` must not construct a client — feature-detection is a
+    // normal thing for a test harness to do, and throwing here would defeat the
+    // whole point of the lazy wrapper.
+    if (!globalForPrisma.prisma) return false;
+    return Reflect.has(globalForPrisma.prisma, prop);
+  },
+  deleteProperty(_target, prop) {
+    return Reflect.deleteProperty(getClient(), prop);
+  },
+  ownKeys() {
+    // Otherwise Object.keys(prisma) and {...prisma} return [].
+    return Reflect.ownKeys(getClient());
+  },
+  getOwnPropertyDescriptor(_target, prop) {
+    const desc = Reflect.getOwnPropertyDescriptor(getClient(), prop);
+    // A proxy may only report a non-configurable property if the target has it;
+    // the target here is `{}`, so force configurable to keep the invariant.
+    return desc ? { ...desc, configurable: true } : undefined;
+  },
+  getPrototypeOf() {
+    return Reflect.getPrototypeOf(getClient());
   },
 });

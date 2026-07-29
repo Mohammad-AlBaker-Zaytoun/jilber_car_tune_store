@@ -5,7 +5,9 @@ import { findUserByEmail, createUser } from '@/lib/users';
 import { sendVerificationEmail } from '@/lib/email-verification';
 import { notifyRegistrationAttemptOnExistingAccount } from '@/lib/auth-notifications';
 import { rateLimit, getClientIp, tooManyRequests } from '@/lib/rate-limit';
+import { createToken, setSessionCookie, type SessionUser } from '@/lib/auth';
 import { logger } from '@/lib/logger';
+import { hashEmail } from '@/lib/log-privacy';
 
 const schema = z
   .object({
@@ -53,9 +55,16 @@ export async function POST(request: Request) {
 
       // Tell the real account holder, not the requester. If this was them, it is
       // the nudge they need; if it was someone probing, they learn nothing.
-      after(() => notifyRegistrationAttemptOnExistingAccount(existing.name, existing.email));
+      //
+      // Throttled PER RECIPIENT, not per source IP: without that, this endpoint
+      // is an unauthenticated email bomb aimed at any address an attacker names,
+      // since the IP limit just means they rotate proxies.
+      const notifyKey = 'register-notice:' + hashEmail(email);
+      if (rateLimit(notifyKey, 1, 24 * 60 * 60_000).ok) {
+        after(() => notifyRegistrationAttemptOnExistingAccount(existing.name, existing.email));
+      }
 
-      logger.info('auth.register_existing_email', { email });
+      logger.info('auth.register_existing_email', { emailHash: hashEmail(email) });
       return NextResponse.json({ success: true }, { status: 201 });
     }
 
@@ -64,7 +73,24 @@ export async function POST(request: Request) {
 
     after(() => sendVerificationEmail(created.id, created.name, created.email));
 
-    return NextResponse.json({ success: true }, { status: 201 });
+    // Sign the new user in HERE rather than having the client follow up with a
+    // separate POST /api/auth/login. That follow-up call was a crisp
+    // enumeration oracle: 200 meant the address was free, 401 meant it was
+    // taken — strictly more informative than the 409 this endpoint stopped
+    // returning. Both branches now return an identical body and status; only
+    // the presence of a Set-Cookie differs.
+    const sessionUser: SessionUser = {
+      id: created.id,
+      email: created.email,
+      name: created.name,
+      phone: created.phone,
+      role: created.role ?? 'user',
+      createdAt: created.createdAt,
+      tokenVersion: created.tokenVersion,
+    };
+    const response = NextResponse.json({ success: true }, { status: 201 });
+    setSessionCookie(response, await createToken(sessionUser));
+    return response;
   } catch (err) {
     logger.error('register.unhandled', err);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

@@ -1,7 +1,7 @@
 import { NextResponse, after } from 'next/server';
 import { z } from 'zod';
 import { randomBytes } from 'crypto';
-import { createOrder, attachWhishExternalId } from '@/lib/orders';
+import { createOrder, attachWhishExternalId, clearWhishExternalId } from '@/lib/orders';
 import { getSession } from '@/lib/session';
 import { getProductsBySlugs } from '@/lib/products';
 import { getSettings } from '@/lib/settings';
@@ -16,6 +16,20 @@ import { logger } from '@/lib/logger';
 const itemSchema = z.object({
   slug: z.string().min(1),
   quantity: z.number().int().positive().max(99),
+  /**
+   * The unit price the customer was actually SHOWN, from their cart.
+   *
+   * Never used for pricing — the server always charges the live DB price. It
+   * exists only so a mismatch can be detected and the customer re-shown the
+   * real total instead of being silently charged a different one. The cart is
+   * persisted in localStorage with no TTL, so a price edited in admin after the
+   * item was added would otherwise be displayed at the old price and charged at
+   * the new one.
+   *
+   * Optional so older clients with a stale bundle still work; they simply lose
+   * the check rather than failing outright.
+   */
+  expectedPrice: z.number().nonnegative().optional(),
 });
 
 const schema = z.object({
@@ -81,6 +95,7 @@ export async function POST(request: Request) {
     const productsBySlug = await getProductsBySlugs(items.map((i) => i.slug));
 
     const resolvedItems = [];
+    const repricedItems: { slug: string; name: string; was: number; now: number }[] = [];
     for (const item of items) {
       const product = productsBySlug.get(item.slug);
       if (!product) {
@@ -112,6 +127,23 @@ export async function POST(request: Request) {
           { status: 409 }
         );
       }
+      // The cart lives in localStorage with no TTL, so the price the customer is
+      // looking at can be arbitrarily old. The server always charges the live
+      // price — but charging a different number than the one on screen is the
+      // exact failure this codebase already fixed for tax, so detect it and send
+      // the customer back to re-confirm instead.
+      if (
+        item.expectedPrice !== undefined &&
+        Math.abs(item.expectedPrice - product.price) > 0.009
+      ) {
+        repricedItems.push({
+          slug: product.slug,
+          name: product.name,
+          was: item.expectedPrice,
+          now: product.price,
+        });
+      }
+
       resolvedItems.push({
         id: product.id,
         slug: product.slug,
@@ -122,6 +154,21 @@ export async function POST(request: Request) {
         quantity: item.quantity,
         visualColor: product.visualColor,
       });
+    }
+
+    if (repricedItems.length > 0) {
+      logger.info('orders.price_changed_since_cart', { items: repricedItems });
+      return NextResponse.json(
+        {
+          error:
+            repricedItems.length === 1
+              ? `The price of ${repricedItems[0].name} changed since you added it. Please review the updated total.`
+              : 'Some prices changed since you added these items. Please review the updated total.',
+          code: 'PRICE_CHANGED',
+          repriced: repricedItems,
+        },
+        { status: 409 }
+      );
     }
 
     // Same helper the cart UI uses, so the displayed total and the charged total
@@ -181,6 +228,13 @@ export async function POST(request: Request) {
           failureRedirectUrl: `${siteConfig.siteUrl}/checkout/failure?ref=${encodeURIComponent(order.ref)}`,
         });
         if (!result.success || !result.collectUrl) {
+          // Whish never accepted this externalId, so no money can ever arrive
+          // against it. Detach it: otherwise the order looks "sent to payment
+          // but unconfirmed" forever, the reconciliation cron retries it every
+          // 15 minutes, getPaymentStatus errors, and the job exits non-zero on
+          // every tick — training the operator to ignore the alert that exists
+          // to catch genuinely lost money.
+          await clearWhishExternalId(order.id);
           return NextResponse.json(
             { error: result.dialog?.message ?? 'Could not start the card payment. Please try another method.' },
             { status: 502 }
@@ -199,6 +253,9 @@ export async function POST(request: Request) {
           orderId: order.id,
           total: order.total,
         });
+        // Same reasoning as the !success branch above — do not leave a dangling
+        // externalId for the reconciler to chase forever.
+        await clearWhishExternalId(order.id);
         return NextResponse.json(
           { error: 'Could not start the card payment. Please try another method.' },
           { status: 502 }
