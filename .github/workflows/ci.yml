@@ -115,5 +115,12 @@ jobs:
       - name: Apply migrations
         run: npx prisma migrate deploy
 
+      # Write-path coverage the unit suite cannot give: transactions, nested
+      # creates, the conditional updateMany guards behind payment settlement and
+      # status transitions, and Decimal/BigInt round-tripping. The build below
+      # only exercises READ paths (prerendering).
+      - name: Integration tests (real MSSQL)
+        run: npm run test:integration
+
       - name: Build
         run: npm run build

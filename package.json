@@ -14,7 +14,8 @@
     "db:seed": "prisma db seed",
     "db:seed:admin": "tsx prisma/seed-admin.ts",
     "db:studio": "prisma studio",
-    "reconcile:payments": "tsx scripts/reconcile-payments.ts"
+    "reconcile:payments": "tsx scripts/reconcile-payments.ts",
+    "test:integration": "vitest run --config vitest.integration.config.ts"
   },
   "engines": {
     "node": ">=20.19.0"

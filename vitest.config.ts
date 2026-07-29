@@ -8,5 +8,7 @@ export default defineConfig({
   test: {
     environment: 'node',
     include: ['tests/**/*.test.ts'],
+    // Integration tests need a real database — see vitest.integration.config.ts.
+    exclude: ['tests/integration/**'],
   },
 });
