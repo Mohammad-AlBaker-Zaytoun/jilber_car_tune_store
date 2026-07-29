@@ -16,8 +16,10 @@
 import { randomUUID } from 'crypto';
 import bcrypt from 'bcryptjs';
 import { PrismaClient } from '@prisma/client';
+import { createPrismaAdapter } from '../lib/db/adapter';
 
-const prisma = new PrismaClient();
+// Prisma 7 requires a driver adapter — same wiring as lib/db/prisma.ts.
+const prisma = new PrismaClient({ adapter: createPrismaAdapter() });
 
 async function main() {
   const email = process.env.ADMIN_BOOTSTRAP_EMAIL?.trim().toLowerCase();

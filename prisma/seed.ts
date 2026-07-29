@@ -13,9 +13,11 @@ import fs from 'fs';
 import path from 'path';
 import { randomUUID } from 'crypto';
 import { PrismaClient } from '@prisma/client';
+import { createPrismaAdapter } from '../lib/db/adapter';
 import { products as staticProducts, CATEGORIES } from '../data/products';
 
-const prisma = new PrismaClient();
+// Prisma 7 requires a driver adapter — same wiring as lib/db/prisma.ts.
+const prisma = new PrismaClient({ adapter: createPrismaAdapter() });
 const SAMPLE_DIR = path.join(process.cwd(), 'sample_docs');
 
 function readJson<T>(file: string): T | null {

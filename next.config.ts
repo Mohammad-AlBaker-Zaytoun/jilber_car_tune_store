@@ -66,7 +66,15 @@ const nextConfig: NextConfig = {
   },
   // Prisma's engine is a native binary — keep it external so the server bundle
   // loads it at runtime instead of trying to bundle it.
-  serverExternalPackages: ["@prisma/client", "prisma"],
+  // Prisma and the mssql driver load native/dynamic code at runtime — keep them
+  // out of the server bundle. `@prisma/adapter-mssql` and `mssql` were added
+  // for Prisma 7, which requires a driver adapter instead of a built-in engine.
+  serverExternalPackages: [
+    "@prisma/client",
+    "prisma",
+    "@prisma/adapter-mssql",
+    "mssql",
+  ],
 
   images: {
     // All product images are same-origin today (uploads are written to
