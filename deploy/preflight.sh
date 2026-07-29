@@ -43,7 +43,14 @@ if [ -f .nvmrc ]; then
   else
     want_major="${want%%.*}"; have_major="${have%%.*}"
     if [ "$have_major" = "$want_major" ]; then
-      warn "Node $have, .nvmrc wants $want" "Same major, but pin them to match."
+      # 20.19 is the floor for Prisma 7 / vitest 4, so a same-major mismatch
+      # can still be fatal.
+      minor="${have#*.}"; minor="${minor%%.*}"
+      if [ "$have_major" = "20" ] && [ "$minor" -lt 19 ]; then
+        bad "Node $have is below 20.19"             "Prisma 7 will not install and vitest 4 will not run. Install $want."
+      else
+        warn "Node $have, .nvmrc wants $want" "Same major, but pin them to match."
+      fi
     else
       bad "Node $have but .nvmrc wants $want" \
           "Node 20 reached EOL in April 2026 — no security patches. Install $want."

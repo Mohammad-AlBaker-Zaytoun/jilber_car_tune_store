@@ -70,13 +70,19 @@ passing** (was 58), production build succeeds.
 
 ### Still open from Phase 1
 
-- [ ] **Upgrade Node to 24 LTS** on the dev machine and the VPS, then raise
-      `engines.node` to match `.nvmrc`. Local is still 20.17.0 — an EOL line.
-      `.nvmrc` and CI already target 24.18.0.
-- [ ] **No route-handler or E2E tests.** The 81 tests cover pure logic
-      (money maths, throttling, IP resolution, magic bytes, session lifetime,
-      CSRF, escaping). `requireAdmin()`, the Whish callback, and the checkout
-      flow still have no automated coverage — they need a test database.
+- [ ] ⚠️ **Upgrade Node — now REQUIRED, not advisory.** Prisma 7 and vitest 4
+      both refuse to run below Node 20.19; Prisma 7 will not even install.
+      `.nvmrc` says **24.18.0** and CI runs it. Until the dev machine and the VPS
+      are upgraded, `npm ci`, `npm test` and `npm run build` will fail locally.
+      `engines.node` is set to `>=20.19.0`.
+- [x] **Data-layer write coverage** — 10 integration tests now run against real
+      MSSQL in CI (`npm run test:integration`): transactions, nested creates, the
+      concurrent payment-settlement and status-transition guards, Decimal/BigInt
+      round-tripping, and cascade delete.
+- [ ] **Still no route-handler or E2E tests.** The 86 unit tests cover pure logic
+      and the 10 integration tests cover the data layer, but `requireAdmin()`,
+      the Whish callback handler and the checkout flow are still only verified
+      manually via `docs/PRE-LAUNCH.md`.
 - [ ] **Reviews still auto-publish** (`AUTO_APPROVE_REVIEWS = true`) despite the
       moderation UI existing. Needs a product decision.
 
@@ -149,6 +155,8 @@ script cannot verify:
   PM2 `instances: 1` is a correctness constraint, not a tuning choice.
 - **Email verification is not required to place an order** — order confirmations
   can go to unverified addresses.
-- **Prisma 6→7 upgrade** deferred (`docs/prisma-7-upgrade-plan.md`).
+- ~~Prisma 6→7 upgrade deferred~~ — **completed 2026-07-29**; see the banner in
+  `docs/prisma-7-upgrade-plan.md`. Note this made Node ≥20.19 a hard install
+  requirement.
 - **Dev-only advisory** `brace-expansion` via eslint's `minimatch@3`; not fixable
   without breaking eslint, never executed at runtime.

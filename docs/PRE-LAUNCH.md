@@ -15,6 +15,9 @@ cd /srv/jilber
 ./deploy/preflight.sh https://yourdomain.com
 ```
 
+> **Node ≥ 20.19 is now a hard requirement** — Prisma 7 will not install below
+> it. Use the version in `.nvmrc` (24.18.0). Preflight checks this first.
+
 Exit code 0 means every mechanical check passed: Node version, `.env`
 permissions and contents, `NODE_ENV`, `AUTH_SECRET` strength, migrations
 applied, MSSQL not publicly bound, upload directory writable, a recent backup, a
@@ -129,7 +132,7 @@ know about them.
 | **Email verification is not required to order.** | Order confirmations can go to unverified addresses. |
 | **Reviews auto-publish.** | The moderation UI exists but `AUTO_APPROVE_REVIEWS = true`. Spam goes live immediately. |
 | **No foreign-key constraints** on `Order.userId`, `Quote.userId`, `Review.userId`. | Direct database deletion can orphan rows. The application paths are guarded. See `docs/TASKS_3.md`. |
-| **No route-handler or E2E test coverage.** | 86 tests cover pure logic (money maths, throttling, IP resolution, magic bytes, sessions). The HTTP layer is verified manually via this checklist. |
+| **No route-handler or E2E test coverage.** | 86 unit tests cover pure logic and 10 integration tests cover the data layer against real MSSQL (transactions, concurrency guards, Decimal/BigInt). The HTTP layer is still verified manually via this checklist. |
 
 ---
 

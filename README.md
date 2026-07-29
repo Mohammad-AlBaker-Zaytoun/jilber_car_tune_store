@@ -414,6 +414,13 @@ Use `npm ci` on a fresh clone so npm installs exactly the versions recorded in
 `package-lock.json`. Use `npm install` only when intentionally adding or updating
 dependencies.
 
+> ### ⚠️ Node ≥ 20.19 is a hard requirement
+>
+> Prisma 7 **refuses to install** below it and vitest 4 refuses to run, so
+> `npm ci`, `npm test` and `npm run build` all fail on older versions.
+> Use the version in [`.nvmrc`](.nvmrc) (**24.18.0**, the current LTS — Node 20
+> reached end-of-life in April 2026).
+
 ### 2. Configure environment
 
 Copy `.env.example` to `.env` (Prisma reads `.env`) and fill in the values:

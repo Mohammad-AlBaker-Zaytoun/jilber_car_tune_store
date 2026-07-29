@@ -1,6 +1,35 @@
 # Prisma 7 Upgrade Plan (Q6)
 
-Status: **planning only** — not yet executed. Tracks the work to move this repo
+> ## ✅ COMPLETED 2026-07-29 — see commit `feat(prisma): migrate to Prisma 7`
+>
+> Executed in PR #14. What the plan did not anticipate:
+>
+> - **Driver adapters are mandatory in v7**, not optional. Added
+>   `@prisma/adapter-mssql`, which accepts the existing JDBC-style
+>   `DATABASE_URL` unchanged (`lib/db/adapter.ts`).
+> - **`url` is banned from the schema `datasource` block** (P1012). The Migrate
+>   connection moved to `prisma.config.ts`; the runtime connection now comes
+>   from the adapter. These are two separate connections in v7.
+> - **`prisma.config.ts` does not auto-load `.env`** — needs an explicit
+>   `dotenv/config` import, or `migrate deploy` on the VPS sees no DATABASE_URL.
+> - **`env()` in the config throws on a missing variable**, which broke
+>   `prisma generate` (and therefore `npm ci`) anywhere without a `.env`.
+>   The datasource is now declared only when the URL is present.
+> - **The client must be constructed lazily.** v7 builds the adapter eagerly, so
+>   module-scope construction made *importing* any repository module throw
+>   without a database. A proxy in `lib/db/prisma.ts` restores v6 behaviour.
+> - The `prisma-client-js` generator still works in v7 (deprecated), so the 11
+>   `@prisma/client` import sites did **not** need rewriting.
+>
+> Verification: 86 unit tests, **10 new write-path integration tests against real
+> MSSQL** (`npm run test:integration`), all 8 migrations applied by v7 Migrate,
+> and a full production build. Steps 1–5 of the plan are done; step 6 (manual
+> end-to-end smoke test) is in `docs/PRE-LAUNCH.md`.
+>
+> Kept for history.
+
+
+Status: **executed** — see the banner above. Tracks the work to move this repo
 from Prisma 6 to Prisma 7.
 
 ## Current state (as of this writing)
