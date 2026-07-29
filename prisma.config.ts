@@ -1,23 +1,33 @@
 import 'dotenv/config';
 import path from 'node:path';
-import { defineConfig } from 'prisma/config';
+import { defineConfig, env } from 'prisma/config';
 
 /**
  * Prisma CLI configuration.
  *
- * Prisma 7 makes this the configuration surface; the old `package.json#prisma`
- * block (which held the seed command) is no longer read and has been removed.
+ * Prisma 7 makes this the configuration surface. Two things moved here:
  *
- * NOTE: unlike the CLI's implicit behaviour under Prisma 6, this file does NOT
- * auto-load `.env` — hence the `dotenv/config` import above, without which
- * `prisma migrate deploy` on the VPS would not see DATABASE_URL.
+ *  1. The seed command, which used to live in `package.json#prisma` — that block
+ *     is no longer read at all.
+ *  2. The Migrate connection URL. Prisma 7 rejects `url` inside the schema's
+ *     `datasource` block; the schema now declares only `provider`. The RUNTIME
+ *     connection is separate and comes from the driver adapter passed to the
+ *     PrismaClient constructor (lib/db/adapter.ts) — this URL is used by the CLI
+ *     (`migrate deploy`, `migrate diff`, `db execute`) only.
+ *
+ * NOTE: this file does NOT auto-load `.env` the way the Prisma 6 CLI did, hence
+ * the `dotenv/config` import — without it `prisma migrate deploy` on the VPS
+ * would not see DATABASE_URL.
  */
 export default defineConfig({
   schema: path.join('prisma', 'schema.prisma'),
   migrations: {
     path: path.join('prisma', 'migrations'),
-    // `npm run db:seed` — still guarded to refuse against production, see
+    // `npm run db:seed` — still refuses to run against production, see
     // prisma/seed.ts. Use `npm run db:seed:admin` on a real deployment.
     seed: 'tsx prisma/seed.ts',
+  },
+  datasource: {
+    url: env('DATABASE_URL'),
   },
 });

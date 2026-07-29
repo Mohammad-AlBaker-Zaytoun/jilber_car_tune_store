@@ -15,8 +15,10 @@ generator client {
 }
 
 datasource db {
+  // Prisma 7 no longer accepts `url` here: the Migrate connection URL lives in
+  // prisma.config.ts, and the runtime connection comes from the driver adapter
+  // passed to the PrismaClient constructor (lib/db/adapter.ts).
   provider = "sqlserver"
-  url      = env("DATABASE_URL")
 }
 
 model User {
