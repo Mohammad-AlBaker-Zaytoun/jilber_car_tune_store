@@ -121,6 +121,38 @@ equivalents), decide per relation whether history should survive deletion
 (`onDelete: SetNull` for orders, so a deleted customer does not erase their
 order history), then write the migration.
 
+## Phase 2.5 — Adversarial review of the new code ✅ DONE (2026-07-29)
+
+Phases 0–2 added ~6,000 lines that nobody had reviewed. This round reviewed that
+new code specifically, on the assumption it contained bugs. It did — including
+one that meant a core payment path had **never worked**.
+
+| Severity | Defect | Fix |
+|---|---|---|
+| **CRITICAL** | The Whish **server-to-server callback was answered 403** and never reached its handler. `proxy.ts` applied the CSRF origin gate to all of `/api/*`, and a gateway POST carries neither `Origin` nor `Referer` — the exact shape the gate is designed to reject. Every payment where the customer closed the tab before the browser redirect relied entirely on the reconciliation cron; the "502 invites a retry" design was dead code. | Narrow `CSRF_EXEMPT` path in `proxy.ts`. Safe because the handler derives no authority from the request — it re-queries Whish and amount-checks. **Verified live**: callback POST now 200, `/api/contact` POST still 403. |
+| **HIGH** | A **refunded order was flipped back to `paid`** and the customer re-emailed. `markOrderPaidByWhish` guarded on `{ not: 'paid' }`, which also matches `refunded`. The order kept its `whishExternalId`, the reconciler re-examined it, and Whish still reported the original collection as successful. | Explicit allow-list (`unpaid`, `deposit_pending`) plus a new `not_settleable` outcome. 3 integration regressions. |
+| **HIGH** | The **7-day absolute session lifetime was bypassable**. `PATCH /api/account/profile` rebuilt the session without `sessionStartedAt`, so a stolen cookie could be refreshed indefinitely with an empty body once a day. | Carry `sessionStartedAt` through. The password route's reset is legitimate re-authentication and is now documented as deliberate. |
+| **HIGH** | **Displayed price ≠ charged price** — the same class as the tax bug, via a different vector. The cart persists unit prices to `localStorage` with no TTL, so an admin price edit left the customer looking at the old number. | Items carry the shown price; a mismatch returns `409 PRICE_CHANGED` and the client reprices so the customer confirms the real total. |
+| **HIGH** | **Login lockout was a remote account-denial primitive.** Keyed on email alone and evaluated *before* the password check, so ~4 requests/hour permanently locked out any known account — including the admin's. | Keyed on (account, source IP). A separate account-wide counter flags distributed attempts without denying. |
+| **HIGH** | **Register enumeration was restored by the client.** The neutral 201 was undone by SignUpForm's follow-up login POST: 200 = free, 401 = taken. Sharper than the 409 that was removed. | Register establishes the session itself; the client no longer probes. The "you already have an account" mail is throttled per recipient, closing an unauthenticated email bomb. |
+| **HIGH** | The **transition overlay swallowed every click for 600ms** after every navigation — `pointerEvents: 'all'` while it stayed mounted at z-index 9999 through the fade-out. | `pointerEvents: isExiting ? 'none' : 'all'`. |
+
+Also fixed: the paginated hook fetched with stale filters on every filter change
+(page and filters now move together; `loading` derived so it cannot stick);
+`OrdersClient` was a copy of that hook and inherited the same defect; the
+callback is rate-limited; an orphaned `whishExternalId` no longer makes the cron
+alert forever; the Prisma proxy gained `set`/`ownKeys`/`getPrototypeOf` traps, a
+non-throwing `has`, stable bound methods and no receiver forwarding; the logger
+survives BigInt and cycles and no longer lets context overwrite `level`/`event`;
+the rate limiter fails closed on a short XFF chain and bounds its map;
+`observability` redacts recursively before POSTing off-box; `computeTotals`
+guards non-finite input; the scroll hero draws the current frame instead of
+frame 0; auth logs hash email addresses.
+
+**Tests: 89 unit + 13 integration** against real MSSQL.
+
+---
+
 ## Phase 3 — Pre-launch validation (requires the VPS)
 
 These are the only remaining items, and they need someone with access to the
