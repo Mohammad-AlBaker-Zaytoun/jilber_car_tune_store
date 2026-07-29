@@ -1,6 +1,6 @@
 import 'dotenv/config';
 import path from 'node:path';
-import { defineConfig, env } from 'prisma/config';
+import { defineConfig } from 'prisma/config';
 
 /**
  * Prisma CLI configuration.
@@ -19,6 +19,18 @@ import { defineConfig, env } from 'prisma/config';
  * the `dotenv/config` import — without it `prisma migrate deploy` on the VPS
  * would not see DATABASE_URL.
  */
+/**
+ * Deliberately NOT `env('DATABASE_URL')`: that helper THROWS when the variable
+ * is missing, and it is evaluated whenever this config loads — including for
+ * `prisma generate`, which needs no database at all. That broke `npm ci`
+ * (postinstall runs generate) anywhere without a .env, such as the DB-free CI
+ * job and a fresh clone.
+ *
+ * Declaring the datasource only when the URL is actually present keeps codegen
+ * working offline while still giving Migrate what it needs.
+ */
+const databaseUrl = process.env.DATABASE_URL;
+
 export default defineConfig({
   schema: path.join('prisma', 'schema.prisma'),
   migrations: {
@@ -27,7 +39,5 @@ export default defineConfig({
     // prisma/seed.ts. Use `npm run db:seed:admin` on a real deployment.
     seed: 'tsx prisma/seed.ts',
   },
-  datasource: {
-    url: env('DATABASE_URL'),
-  },
+  ...(databaseUrl ? { datasource: { url: databaseUrl } } : {}),
 });
