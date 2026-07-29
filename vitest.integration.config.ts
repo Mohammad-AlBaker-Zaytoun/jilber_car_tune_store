@@ -1,3 +1,6 @@
+// Load .env so the suite works locally, not only in CI where DATABASE_URL comes
+// from the job environment. Vitest does not read .env by itself.
+import 'dotenv/config';
 import { defineConfig } from 'vitest/config';
 import path from 'path';
 

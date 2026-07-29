@@ -70,11 +70,13 @@ passing** (was 58), production build succeeds.
 
 ### Still open from Phase 1
 
-- [ ] ⚠️ **Upgrade Node — now REQUIRED, not advisory.** Prisma 7 and vitest 4
-      both refuse to run below Node 20.19; Prisma 7 will not even install.
-      `.nvmrc` says **24.18.0** and CI runs it. Until the dev machine and the VPS
-      are upgraded, `npm ci`, `npm test` and `npm run build` will fail locally.
-      `engines.node` is set to `>=20.19.0`.
+- [x] **Dev machine upgraded to Node 24.18.0** (2026-07-29), matching `.nvmrc`
+      and CI. Verified end to end: `npm ci`, audit (0 production advisories),
+      typecheck, lint, 86 unit tests, 10 integration tests against local MSSQL,
+      and a production build. Global CLIs survived (npm's user-scoped prefix).
+- [ ] ⚠️ **The VPS still needs Node ≥ 20.19** — Prisma 7 will not install below
+      it. `deploy/preflight.sh` hard-fails on this, so a deploy cannot silently
+      proceed. Use the version in `.nvmrc` (24.18.0).
 - [x] **Data-layer write coverage** — 10 integration tests now run against real
       MSSQL in CI (`npm run test:integration`): transactions, nested creates, the
       concurrent payment-settlement and status-transition guards, Decimal/BigInt
