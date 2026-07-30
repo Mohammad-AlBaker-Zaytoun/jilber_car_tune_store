@@ -3,6 +3,18 @@ import path from "path";
 
 const isDev = process.env.NODE_ENV === "development";
 
+/** See the CSP note on `upgrade-insecure-requests` below. */
+const allowPlaintextHttp = process.env.ALLOW_PLAINTEXT_HTTP === "1";
+if (allowPlaintextHttp && !isDev) {
+  // Loud on purpose: this weakens a production build if it is ever set by
+  // accident, and a silent downgrade of a security header is the worst kind.
+  console.warn(
+    "\n  !! ALLOW_PLAINTEXT_HTTP=1 — building WITHOUT upgrade-insecure-requests.\n" +
+      "     This build is only safe to serve over plain HTTP (tests/staging).\n" +
+      "     Do NOT deploy it to production.\n"
+  );
+}
+
 /**
  * Content-Security-Policy.
  *
@@ -38,7 +50,17 @@ const csp = [
   "form-action 'self'",
   "frame-src 'none'",
   "frame-ancestors 'none'",
-  ...(isDev ? [] : ["upgrade-insecure-requests"]),
+  // Safari honours `upgrade-insecure-requests` even when the page itself was
+  // served over plain http (Chrome exempts localhost). On a plaintext build every
+  // asset URL is rewritten to https://, nothing connects, and the app renders a
+  // blank page in Safari while looking perfectly fine in Chrome — a failure mode
+  // that is very easy to ship unnoticed.
+  //
+  // Production terminates TLS at nginx, so the directive belongs there. Set
+  // ALLOW_PLAINTEXT_HTTP=1 only for a build that will be served over plain HTTP:
+  // the Playwright suite (see scripts/build-e2e.mjs) or a staging box without a
+  // certificate. NEVER set it for the production build.
+  ...(isDev || allowPlaintextHttp ? [] : ["upgrade-insecure-requests"]),
 ].join("; ");
 
 // Baseline HTTP security headers applied to every response. HSTS is included but

@@ -6,6 +6,7 @@ import { Trash2 } from 'lucide-react';
 import type { CartItem } from '@/lib/cart';
 import { useCartStore } from '@/lib/cart';
 import QuantitySelector from '@/components/store/QuantitySelector';
+import { formatMoney } from '@/lib/currency';
 
 export default function CartItemRow({ item }: { item: CartItem }) {
   const updateQuantity = useCartStore((s) => s.updateQuantity);
@@ -54,7 +55,7 @@ export default function CartItemRow({ item }: { item: CartItem }) {
           {item.name}
         </Link>
         <p className="text-xs text-zinc-500">
-          {item.currency} {item.price.toLocaleString()} each
+          {formatMoney(item.price)} each
         </p>
 
         {/* Controls row */}
@@ -64,7 +65,7 @@ export default function CartItemRow({ item }: { item: CartItem }) {
             onChange={(q) => updateQuantity(item.id, q)}
           />
           <span className="text-sm font-black text-white">
-            ${(item.price * item.quantity).toLocaleString()}
+            {formatMoney((item.price * item.quantity))}
           </span>
           <button
             onClick={() => removeItem(item.id)}

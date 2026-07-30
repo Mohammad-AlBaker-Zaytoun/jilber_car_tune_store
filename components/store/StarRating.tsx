@@ -1,4 +1,5 @@
 import { Star, StarHalf } from 'lucide-react';
+import { formatNumber } from '@/lib/currency';
 
 interface Props {
   rating: number;
@@ -66,7 +67,7 @@ export default function StarRating({ rating, count, size = 11, className }: Prop
       </div>
       <span className="text-[10px] text-zinc-400 font-semibold">{safeRating}</span>
       {count !== undefined && count > 0 && (
-        <span className="text-[10px] text-zinc-600">({count.toLocaleString()})</span>
+        <span className="text-[10px] text-zinc-600">({formatNumber(count)})</span>
       )}
     </div>
   );

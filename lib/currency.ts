@@ -41,6 +41,11 @@ export function formatMoneyCompact(amount: number): string {
   }).format(amount);
 }
 
+/** A plain locale-pinned number, for places that supply their own symbol. */
+export function formatNumber(n: number): string {
+  return new Intl.NumberFormat(STORE_LOCALE).format(n);
+}
+
 /** Rounds to 2dp the way every money path in the app does. */
 export function round2(n: number): number {
   return Math.round(n * 100) / 100;

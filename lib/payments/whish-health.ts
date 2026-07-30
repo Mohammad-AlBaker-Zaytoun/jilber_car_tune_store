@@ -32,7 +32,23 @@ interface BreakerState {
   openUntil: number;
 }
 
-const state: BreakerState = { consecutiveFailures: 0, openUntil: 0 };
+/**
+ * Pinned to globalThis, following lib/db/prisma.ts.
+ *
+ * A plain module-level `const state` is NOT shared between a route handler and a
+ * page render: the build emits them as separate server chunks, so each gets its
+ * own instance of this module. That was observably broken — POST /api/orders
+ * would trip the breaker and correctly answer 503, while /checkout kept
+ * rendering the Card option from a copy of the state that had never seen a
+ * failure. The customer was still walked into the failing path, which is the
+ * exact outcome this breaker exists to prevent. globalThis is per-process, so
+ * both chunks now read the same counter.
+ */
+const globalForBreaker = globalThis as unknown as { whishBreaker?: BreakerState };
+
+const state: BreakerState =
+  globalForBreaker.whishBreaker ?? { consecutiveFailures: 0, openUntil: 0 };
+globalForBreaker.whishBreaker = state;
 
 /** True when the breaker is currently open (gateway treated as down). */
 export function isBreakerOpen(now = Date.now()): boolean {

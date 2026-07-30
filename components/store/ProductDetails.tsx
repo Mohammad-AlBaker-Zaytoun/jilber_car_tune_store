@@ -16,6 +16,7 @@ import ProductCard from './ProductCard';
 import StarRating from './StarRating';
 import ProductReviewsSection from './reviews/ProductReviewsSection';
 import ProductContactActions from '@/components/contact/ProductContactActions';
+import { formatMoneyCompact } from '@/lib/currency';
 
 interface Props {
   product: Product;
@@ -61,7 +62,10 @@ export default function ProductDetails({
 
       {/* Main product area */}
       <div className="max-w-7xl mx-auto px-6 lg:px-8">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16 mb-20">
+        <section
+          aria-labelledby="product-title"
+          className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16 mb-20"
+        >
           {/* Left: Visual / Gallery */}
           <div className="flex flex-col gap-4">
             <div className="border border-zinc-800/50 overflow-hidden">
@@ -154,7 +158,7 @@ export default function ProductDetails({
             </div>
 
             {/* Name */}
-            <h1 className="text-3xl sm:text-4xl font-black text-white leading-tight">
+            <h1 id="product-title" className="text-3xl sm:text-4xl font-black text-white leading-tight">
               {product.name}
             </h1>
 
@@ -173,16 +177,16 @@ export default function ProductDetails({
             {/* Price */}
             <div className="flex items-baseline gap-3">
               <span className="text-3xl font-black text-white">
-                ${product.price.toLocaleString()}
+                {formatMoneyCompact(product.price)}
               </span>
               {product.oldPrice && (
                 <span className="text-lg text-zinc-600 line-through">
-                  ${product.oldPrice.toLocaleString()}
+                  {formatMoneyCompact(product.oldPrice)}
                 </span>
               )}
               {product.oldPrice && (
                 <span className="text-xs font-black text-emerald-400 uppercase tracking-wide">
-                  Save ${(product.oldPrice - product.price).toLocaleString()}
+                  Save {formatMoneyCompact((product.oldPrice - product.price))}
                 </span>
               )}
             </div>
@@ -253,7 +257,7 @@ export default function ProductDetails({
               ))}
             </div>
           </div>
-        </div>
+        </section>
 
         {/* Tabs: Description / Specs / Compatibility / Included */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
@@ -339,10 +343,13 @@ export default function ProductDetails({
 
         {/* Related products */}
         {related.length > 0 && (
-          <div>
+          <section aria-labelledby="related-products-title">
             <div className="flex items-center gap-2.5 mb-8">
               <div className="w-7 h-px bg-cyan-400 shrink-0" aria-hidden="true" />
-              <h2 className="text-xs font-black text-white tracking-[0.25em] uppercase">
+              <h2
+                id="related-products-title"
+                className="text-xs font-black text-white tracking-[0.25em] uppercase"
+              >
                 Related Products
               </h2>
             </div>
@@ -351,7 +358,7 @@ export default function ProductDetails({
                 <ProductCard key={p.id} product={p} />
               ))}
             </div>
-          </div>
+          </section>
         )}
       </div>
     </div>

@@ -6,6 +6,7 @@ import ProductVisual from './ProductVisual';
 import ProductBadge from './ProductBadge';
 import AddToCartButton from './AddToCartButton';
 import StarRating from './StarRating';
+import { formatMoneyCompact } from '@/lib/currency';
 
 interface Props {
   product: Product;
@@ -77,11 +78,11 @@ export default function ProductCard({ product, effectiveRating, effectiveCount }
 
         <div className="flex items-baseline gap-2 pt-1 border-t border-zinc-800/50">
           <span className="text-base font-black text-white">
-            ${product.price.toLocaleString()}
+            {formatMoneyCompact(product.price)}
           </span>
           {product.oldPrice && (
             <span className="text-[11px] text-zinc-600 line-through">
-              ${product.oldPrice.toLocaleString()}
+              {formatMoneyCompact(product.oldPrice)}
             </span>
           )}
         </div>

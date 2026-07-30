@@ -18,6 +18,7 @@ import {
 import AdminStatCard from '@/components/admin/AdminStatCard';
 import { STATUS_COLORS, formatStatus } from '@/components/admin/orderStatus';
 import type { AdminStats, Order } from '@/types/admin';
+import { formatMoneyCompact } from '@/lib/currency';
 
 export default function DashboardClient() {
   const [stats, setStats] = useState<AdminStats | null>(null);
@@ -117,7 +118,7 @@ export default function DashboardClient() {
           />
           <AdminStatCard
             label="Est. Revenue"
-            value={`$${stats.estimatedRevenue.toLocaleString()}`}
+            value={`{formatMoneyCompact(stats.estimatedRevenue)}`}
             icon={DollarSign}
             accent="green"
             sub="Excludes cancelled orders"
@@ -238,7 +239,7 @@ export default function DashboardClient() {
                     </td>
                     <td className="px-4 py-3.5 hidden sm:table-cell">
                       <span className="text-xs text-zinc-300 font-semibold">
-                        ${order.total.toLocaleString()}
+                        {formatMoneyCompact(order.total)}
                       </span>
                     </td>
                     <td className="px-4 py-3.5">

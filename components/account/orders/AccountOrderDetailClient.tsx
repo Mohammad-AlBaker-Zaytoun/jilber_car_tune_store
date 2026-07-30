@@ -7,6 +7,7 @@ import PayNowPanel from '@/components/account/orders/PayNowPanel';
 import OrderStatusBadge from '@/components/orders/OrderStatusBadge';
 import PaymentStatusBadge from '@/components/orders/PaymentStatusBadge';
 import OrderStatusTimeline from '@/components/orders/OrderStatusTimeline';
+import { formatMoney } from '@/lib/currency';
 
 interface Props {
   order: Omit<Order, 'adminNotes'>;
@@ -106,7 +107,7 @@ export default function AccountOrderDetailClient({ order }: Props) {
                 </div>
               </div>
               <span className="text-xs font-black text-zinc-300 shrink-0">
-                ${(item.price * item.quantity).toLocaleString()}
+                {formatMoney((item.price * item.quantity))}
               </span>
             </div>
           ))}
@@ -114,15 +115,15 @@ export default function AccountOrderDetailClient({ order }: Props) {
         <div className="flex flex-col items-end gap-1.5 pt-3 border-t border-zinc-800/50">
           <div className="flex gap-8 text-[10px] text-zinc-500">
             <span>Subtotal</span>
-            <span>${order.subtotal.toLocaleString()}</span>
+            <span>{formatMoney(order.subtotal)}</span>
           </div>
           <div className="flex gap-8 text-[10px] text-zinc-500">
             <span>Tax</span>
-            <span>${order.tax.toLocaleString()}</span>
+            <span>{formatMoney(order.tax)}</span>
           </div>
           <div className="flex gap-8 text-sm font-black text-white mt-1">
             <span>Total</span>
-            <span>${order.total.toLocaleString()}</span>
+            <span>{formatMoney(order.total)}</span>
           </div>
         </div>
       </div>

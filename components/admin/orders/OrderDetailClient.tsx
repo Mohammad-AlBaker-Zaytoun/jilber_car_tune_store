@@ -29,6 +29,7 @@ import OrderStatusBadge from '@/components/orders/OrderStatusBadge';
 import PaymentStatusBadge from '@/components/orders/PaymentStatusBadge';
 import OrderStatusTimeline from '@/components/orders/OrderStatusTimeline';
 import ConfirmDialog from '@/components/admin/ConfirmDialog';
+import { formatMoney } from '@/lib/currency';
 
 interface Props {
   order: Order;
@@ -234,12 +235,12 @@ export default function OrderDetailClient({ order: initialOrder }: Props) {
                   <div>
                     <p className="text-xs font-black text-zinc-200">{item.name}</p>
                     <p className="text-[10px] text-zinc-600">
-                      {item.category} · qty {item.quantity} · ${item.price.toLocaleString()} ea
+                      {item.category} · qty {item.quantity} · {formatMoney(item.price)} ea
                     </p>
                   </div>
                 </div>
                 <span className="text-xs font-black text-zinc-300 shrink-0">
-                  ${(item.price * item.quantity).toLocaleString()}
+                  {formatMoney((item.price * item.quantity))}
                 </span>
               </div>
             ))}
@@ -247,15 +248,15 @@ export default function OrderDetailClient({ order: initialOrder }: Props) {
           <div className="flex flex-col items-end gap-1.5 pt-3 border-t border-zinc-800/50">
             <div className="flex gap-8 text-[10px] text-zinc-500">
               <span>Subtotal</span>
-              <span>${order.subtotal.toLocaleString()}</span>
+              <span>{formatMoney(order.subtotal)}</span>
             </div>
             <div className="flex gap-8 text-[10px] text-zinc-500">
               <span>Tax</span>
-              <span>${order.tax.toLocaleString()}</span>
+              <span>{formatMoney(order.tax)}</span>
             </div>
             <div className="flex gap-8 text-sm font-black text-white mt-1">
               <span>Total</span>
-              <span>${order.total.toLocaleString()}</span>
+              <span>{formatMoney(order.total)}</span>
             </div>
           </div>
         </div>
@@ -269,8 +270,9 @@ export default function OrderDetailClient({ order: initialOrder }: Props) {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-4">
             <div>
-              <label className={`${labelCls} block`}>New Status</label>
+              <label htmlFor="order-status" className={`${labelCls} block`}>New Status</label>
               <select
+                id="order-status"
                 value={pendingStatus}
                 onChange={(e) => setPendingStatus(e.target.value as OrderStatus)}
                 className="w-full bg-zinc-900 border border-zinc-800 focus:border-cyan-400/50 text-zinc-100 text-sm px-4 py-3 outline-none transition-colors"
@@ -293,8 +295,9 @@ export default function OrderDetailClient({ order: initialOrder }: Props) {
             </div>
 
             <div>
-              <label className={`${labelCls} block`}>Note (optional)</label>
+              <label htmlFor="order-status-note" className={`${labelCls} block`}>Note (optional)</label>
               <input
+                id="order-status-note"
                 type="text"
                 value={statusNote}
                 onChange={(e) => setStatusNote(e.target.value)}
@@ -370,8 +373,9 @@ export default function OrderDetailClient({ order: initialOrder }: Props) {
               )}
             </div>
             <div>
-              <label className={`${labelCls} block`}>Payment Status</label>
+              <label htmlFor="order-payment-status" className={`${labelCls} block`}>Payment Status</label>
               <select
+                id="order-payment-status"
                 value={pendingPayment}
                 onChange={(e) => setPendingPayment(e.target.value as PaymentStatus)}
                 className="w-full bg-zinc-900 border border-zinc-800 focus:border-cyan-400/50 text-zinc-100 text-sm px-4 py-3 outline-none transition-colors"

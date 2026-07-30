@@ -22,7 +22,14 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { slug } = await params;
   const product = await getProductBySlug(slug);
-  if (!product) return { title: 'Product Not Found' };
+  if (!product) {
+    // A streamed notFound() returns HTTP 200 (the headers are already sent), so
+    // `noindex` in the HTML is the only thing keeping dead product URLs out of
+    // the index. Next injects its own noindex, but the root layout inherits
+    // `index, follow` onto every page — leaving two contradictory robots tags
+    // and the outcome up to each crawler's conflict resolution. Override here.
+    return { title: 'Product Not Found', robots: { index: false, follow: false } };
+  }
 
   const description = truncateDescription(
     product.shortDescription || product.description,

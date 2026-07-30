@@ -7,6 +7,7 @@ import type { Order, OrderStatus } from '@/types/admin';
 import { STATUSES, formatStatus } from '@/components/admin/orderStatus';
 import OrderStatusBadge from '@/components/orders/OrderStatusBadge';
 import PaymentStatusBadge from '@/components/orders/PaymentStatusBadge';
+import { formatMoney } from '@/lib/currency';
 
 export default function AccountOrdersClient() {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -146,7 +147,7 @@ export default function AccountOrdersClient() {
                 </div>
                 <div>
                   <span className="text-zinc-600 uppercase tracking-wider font-bold">Total</span>
-                  <p className="text-zinc-200 font-black mt-0.5">${order.total.toLocaleString()}</p>
+                  <p className="text-zinc-200 font-black mt-0.5">{formatMoney(order.total)}</p>
                 </div>
               </div>
 

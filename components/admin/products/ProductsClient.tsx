@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { Plus, Search, Pencil, Trash2, Star, Package, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
 import ConfirmDialog from '@/components/admin/ConfirmDialog';
 import type { Product } from '@/data/products';
+import { formatMoneyCompact, formatNumber } from '@/lib/currency';
 
 
 async function fetchProducts(): Promise<Product[]> {
@@ -209,9 +210,9 @@ export default function ProductsClient({ categories }: { categories: string[] })
                   </td>
                   <td className="px-4 py-3.5">
                     <div>
-                      <span className="text-xs font-black text-zinc-200">${p.price.toLocaleString()}</span>
+                      <span className="text-xs font-black text-zinc-200">{formatMoneyCompact(p.price)}</span>
                       {p.oldPrice && (
-                        <span className="text-[10px] text-zinc-600 line-through ml-1.5">${p.oldPrice.toLocaleString()}</span>
+                        <span className="text-[10px] text-zinc-600 line-through ml-1.5">{formatMoneyCompact(p.oldPrice)}</span>
                       )}
                     </div>
                   </td>
@@ -238,7 +239,7 @@ export default function ProductsClient({ categories }: { categories: string[] })
                           ★ {p.rating}
                         </span>
                         <span className="text-[10px] text-zinc-600">
-                          {p.reviewCount.toLocaleString()} reviews
+                          {formatNumber(p.reviewCount)} reviews
                         </span>
                       </div>
                     ) : (

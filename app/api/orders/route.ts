@@ -125,9 +125,20 @@ async function captureWithoutPayment(order: Order, reason: string) {
   );
 }
 
+/**
+ * Orders accepted per minute from one IP. 8 suits a real storefront, but an
+ * automated suite legitimately places more than that from a single address, and
+ * a 429 there masks the very guard the test is asserting. Tunable so the E2E
+ * servers can raise it without weakening the default the VPS ships with.
+ */
+function orderRateLimit(): number {
+  const raw = Number(process.env.ORDER_RATE_LIMIT_PER_MINUTE);
+  return Number.isInteger(raw) && raw > 0 ? raw : 8;
+}
+
 export async function POST(request: Request) {
   try {
-    const rl = rateLimit('orders:' + getClientIp(request), 8, 60_000);
+    const rl = rateLimit('orders:' + getClientIp(request), orderRateLimit(), 60_000);
     if (!rl.ok) return tooManyRequests(rl.retryAfter);
 
     const body: unknown = await request.json();

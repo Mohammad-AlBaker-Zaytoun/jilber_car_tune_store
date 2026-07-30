@@ -3,6 +3,8 @@
  * Structure click handlers with data attributes so analytics can be layered on later.
  */
 
+import { formatNumber } from '@/lib/currency';
+
 export interface PublicContactInfo {
   contactPhone: string;
   contactEmail: string;
@@ -73,7 +75,7 @@ export function buildProductWhatsAppMessage(
 ): string {
   return interpolateMessage(template, {
     productName: product.name,
-    productPrice: product.price != null ? product.price.toLocaleString() : '',
+    productPrice: product.price != null ? formatNumber(product.price) : '',
     currency: product.currency ?? '',
   });
 }
