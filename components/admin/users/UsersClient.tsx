@@ -19,6 +19,79 @@ interface UserPageResponse {
   adminCount: number;
 }
 
+const thCls =
+  'text-left px-4 py-3 text-[9px] text-zinc-600 tracking-[0.2em] uppercase font-bold whitespace-nowrap';
+
+const USER_COLUMNS = ['Email', 'Role', 'Joined', 'Actions'] as const;
+type UserColumn = (typeof USER_COLUMNS)[number];
+
+/** Avatar and name — the row heading in both layouts. */
+function UserIdentity({ user: u, isMe }: { user: SafeUser; isMe: boolean }) {
+  const initials = u.name
+    .split(' ')
+    .filter(Boolean)
+    .map((n) => n[0])
+    .slice(0, 2)
+    .join('')
+    .toUpperCase();
+  return (
+    <div className="flex items-center gap-3 min-w-0">
+      <div className="w-7 h-7 shrink-0 flex items-center justify-center border border-zinc-800 bg-zinc-900">
+        <span className="text-[9px] font-black text-zinc-500">{initials}</span>
+      </div>
+      <p className="text-xs font-black text-zinc-200 min-w-0 wrap-anywhere">
+        {u.name}
+        {isMe && <span className="ml-2 text-[9px] text-cyan-400 font-bold">(You)</span>}
+      </p>
+    </div>
+  );
+}
+
+/**
+ * A row's cells, defined once for both layouts. Email used to be duplicated by
+ * hand into a `sm:hidden` line under the name; the card list makes that redundant.
+ */
+function userCells(
+  u: SafeUser,
+  isMe: boolean,
+  setPendingRole: (v: { user: SafeUser; newRole: 'user' | 'admin' }) => void
+): Record<UserColumn, React.ReactNode> {
+  return {
+    Email: <span className="text-xs text-zinc-500 wrap-anywhere">{u.email}</span>,
+    Role: (
+      <span
+        className={`inline-flex items-center gap-1.5 text-[9px] font-black tracking-widest uppercase border px-2 py-0.5 ${
+          u.role === 'admin'
+            ? 'text-cyan-400 border-cyan-400/30 bg-cyan-400/5'
+            : 'text-zinc-500 border-zinc-700 bg-zinc-900/30'
+        }`}
+      >
+        {u.role === 'admin' ? (
+          <Shield size={8} aria-hidden="true" />
+        ) : (
+          <User size={8} aria-hidden="true" />
+        )}
+        {u.role}
+      </span>
+    ),
+    Joined: (
+      <span className="text-[10px] text-zinc-600">
+        {new Date(u.createdAt).toLocaleDateString('en-US')}
+      </span>
+    ),
+    Actions: isMe ? (
+      <span className="text-[10px] text-zinc-700 italic">—</span>
+    ) : (
+      <button
+        onClick={() => setPendingRole({ user: u, newRole: u.role === 'admin' ? 'user' : 'admin' })}
+        className="text-[10px] border border-zinc-700 hover:border-cyan-400/40 text-zinc-500 hover:text-cyan-400 px-3 py-1.5 font-bold tracking-widest uppercase transition-all duration-200"
+      >
+        {u.role === 'admin' ? 'Demote' : 'Make Admin'}
+      </button>
+    ),
+  };
+}
+
 export default function UsersClient() {
   const { user: me } = useAuth();
   const [search, setSearch] = useState('');
@@ -118,71 +191,60 @@ export default function UsersClient() {
         </div>
       ) : (
         <>
-        <div className="border border-zinc-800/50 bg-zinc-900/20 overflow-x-auto">
+        {/* Wide screens: a real table. */}
+        <div className="hidden lg:block border border-zinc-800/50 bg-zinc-900/20 overflow-x-auto">
           <table className="w-full">
             <thead>
               <tr className="border-b border-zinc-800/50">
-                <th className="text-left px-5 py-3 text-[9px] text-zinc-600 tracking-[0.2em] uppercase font-bold">User</th>
-                <th className="text-left px-4 py-3 text-[9px] text-zinc-600 tracking-[0.2em] uppercase font-bold hidden sm:table-cell">Email</th>
-                <th className="text-left px-4 py-3 text-[9px] text-zinc-600 tracking-[0.2em] uppercase font-bold">Role</th>
-                <th className="text-right px-5 py-3 text-[9px] text-zinc-600 tracking-[0.2em] uppercase font-bold hidden md:table-cell">Joined</th>
-                <th className="text-right px-5 py-3 text-[9px] text-zinc-600 tracking-[0.2em] uppercase font-bold">Actions</th>
+                <th className={thCls}>User</th>
+                {USER_COLUMNS.map((col) => (
+                  <th key={col} className={thCls}>{col}</th>
+                ))}
               </tr>
             </thead>
             <tbody>
               {users.map((u) => {
-                const isMe = u.id === me?.id;
-                const initials = u.name.split(' ').filter(Boolean).map((n) => n[0]).slice(0, 2).join('').toUpperCase();
+                const cells = userCells(u, u.id === me?.id, setPendingRole);
                 return (
                   <tr key={u.id} className="border-b border-zinc-800/30 hover:bg-zinc-900/30 transition-colors">
-                    <td className="px-5 py-3.5">
-                      <div className="flex items-center gap-3">
-                        <div className="w-7 h-7 shrink-0 flex items-center justify-center border border-zinc-800 bg-zinc-900">
-                          <span className="text-[9px] font-black text-zinc-500">{initials}</span>
-                        </div>
-                        <div>
-                          <p className="text-xs font-black text-zinc-200">
-                            {u.name}
-                            {isMe && <span className="ml-2 text-[9px] text-cyan-400 font-bold">(You)</span>}
-                          </p>
-                          <p className="text-[10px] text-zinc-600 sm:hidden">{u.email}</p>
-                        </div>
-                      </div>
+                    <td className="px-4 py-3.5 align-top">
+                      <UserIdentity user={u} isMe={u.id === me?.id} />
                     </td>
-                    <td className="px-4 py-3.5 hidden sm:table-cell">
-                      <span className="text-xs text-zinc-500">{u.email}</span>
-                    </td>
-                    <td className="px-4 py-3.5">
-                      <span className={`inline-flex items-center gap-1.5 text-[9px] font-black tracking-widest uppercase border px-2 py-0.5 ${
-                        u.role === 'admin'
-                          ? 'text-cyan-400 border-cyan-400/30 bg-cyan-400/5'
-                          : 'text-zinc-500 border-zinc-700 bg-zinc-900/30'
-                      }`}>
-                        {u.role === 'admin' ? <Shield size={8} aria-hidden="true" /> : <User size={8} aria-hidden="true" />}
-                        {u.role}
-                      </span>
-                    </td>
-                    <td className="px-5 py-3.5 text-right hidden md:table-cell">
-                      <span className="text-[10px] text-zinc-600">
-                        {new Date(u.createdAt).toLocaleDateString('en-US')}
-                      </span>
-                    </td>
-                    <td className="px-5 py-3.5 text-right">
-                      {!isMe && (
-                        <button
-                          onClick={() => setPendingRole({ user: u, newRole: u.role === 'admin' ? 'user' : 'admin' })}
-                          className="text-[10px] border border-zinc-700 hover:border-cyan-400/40 text-zinc-500 hover:text-cyan-400 px-3 py-1.5 font-bold tracking-widest uppercase transition-all duration-200"
-                        >
-                          {u.role === 'admin' ? 'Demote' : 'Make Admin'}
-                        </button>
-                      )}
-                    </td>
+                    {USER_COLUMNS.map((col) => (
+                      <td key={col} className="px-4 py-3.5 align-top">{cells[col]}</td>
+                    ))}
                   </tr>
                 );
               })}
             </tbody>
           </table>
           </div>
+
+          {/* Phones and tablets: one card per user. */}
+          <ul aria-label="Users" className="lg:hidden flex flex-col gap-3">
+            {users.map((u) => {
+              const cells = userCells(u, u.id === me?.id, setPendingRole);
+              return (
+                <li
+                  key={u.id}
+                  className="border border-zinc-800/50 bg-zinc-900/20 p-4 flex flex-col gap-3"
+                >
+                  <UserIdentity user={u} isMe={u.id === me?.id} />
+                  <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 items-center">
+                    {USER_COLUMNS.map((col) => (
+                      <div key={col} className="contents">
+                        <dt className="text-[9px] text-zinc-600 tracking-[0.15em] uppercase font-bold">
+                          {col}
+                        </dt>
+                        <dd className="min-w-0">{cells[col]}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                </li>
+              );
+            })}
+          </ul>
+
           <Pagination page={page} totalPages={data?.totalPages ?? 1} onChange={goToPage} />
         </>
       )}

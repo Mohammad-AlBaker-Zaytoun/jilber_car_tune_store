@@ -63,6 +63,42 @@ function StatCard({
   );
 }
 
+const thCls =
+  'text-left px-4 py-3 text-[9px] text-zinc-600 tracking-[0.2em] uppercase font-bold whitespace-nowrap';
+
+const QUOTE_COLUMNS = ['Customer', 'Vehicle', 'Service', 'Priority', 'Status', 'Date'] as const;
+type QuoteColumn = (typeof QUOTE_COLUMNS)[number];
+
+/**
+ * A row's cells, defined once for the table and the card list. Typed as a
+ * complete Record, so a new column without a cell is a type error rather than a
+ * gap at one breakpoint -- Vehicle, Service and Priority previously vanished
+ * below lg with no mobile equivalent.
+ */
+function quoteCells(quote: QuoteRequest): Record<QuoteColumn, React.ReactNode> {
+  return {
+    Customer: (
+      <>
+        <p className="text-xs text-zinc-300 font-semibold wrap-anywhere">{quote.customerName}</p>
+        <p className="text-[10px] text-zinc-600 wrap-anywhere">{quote.customerEmail}</p>
+      </>
+    ),
+    Vehicle: (
+      <span className="text-xs text-zinc-500">
+        {quote.vehicleYear} {quote.vehicleMake} {quote.vehicleModel}
+      </span>
+    ),
+    Service: <span className="text-xs text-zinc-500">{quote.serviceCategory}</span>,
+    Priority: <QuotePriorityBadge priority={quote.priority} />,
+    Status: <QuoteStatusBadge status={quote.status} />,
+    Date: (
+      <span className="text-[10px] text-zinc-600">
+        {new Date(quote.createdAt).toLocaleDateString('en-US')}
+      </span>
+    ),
+  };
+}
+
 export default function AdminQuotesClient() {
   const [quotes, setQuotes] = useState<QuoteRequest[]>([]);
   const [loading, setLoading] = useState(true);
@@ -232,75 +268,74 @@ export default function AdminQuotesClient() {
           </p>
         </div>
       ) : (
-        <div className="border border-zinc-800/50 bg-zinc-900/20 overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-zinc-800/50">
-                <th className="text-left px-5 py-3 text-[9px] text-zinc-600 tracking-[0.2em] uppercase font-bold">
-                  Quote
-                </th>
-                <th className="text-left px-4 py-3 text-[9px] text-zinc-600 tracking-[0.2em] uppercase font-bold">
-                  Customer
-                </th>
-                <th className="text-left px-4 py-3 text-[9px] text-zinc-600 tracking-[0.2em] uppercase font-bold hidden sm:table-cell">
-                  Vehicle
-                </th>
-                <th className="text-left px-4 py-3 text-[9px] text-zinc-600 tracking-[0.2em] uppercase font-bold hidden md:table-cell">
-                  Service
-                </th>
-                <th className="text-left px-4 py-3 text-[9px] text-zinc-600 tracking-[0.2em] uppercase font-bold hidden lg:table-cell">
-                  Priority
-                </th>
-                <th className="text-left px-4 py-3 text-[9px] text-zinc-600 tracking-[0.2em] uppercase font-bold">
-                  Status
-                </th>
-                <th className="text-right px-5 py-3 text-[9px] text-zinc-600 tracking-[0.2em] uppercase font-bold">
-                  Date
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((quote) => (
-                <tr
-                  key={quote.id}
-                  className="border-b border-zinc-800/30 hover:bg-zinc-900/30 transition-colors"
-                >
-                  <td className="px-5 py-3.5">
-                    <Link
-                      href={`/admin/quotes/${quote.id}`}
-                      className="text-xs font-black text-cyan-400 hover:text-cyan-300 transition-colors"
-                    >
-                      {quote.quoteNumber}
-                    </Link>
-                  </td>
-                  <td className="px-4 py-3.5">
-                    <p className="text-xs text-zinc-300 font-semibold">{quote.customerName}</p>
-                    <p className="text-[10px] text-zinc-600">{quote.customerEmail}</p>
-                  </td>
-                  <td className="px-4 py-3.5 hidden sm:table-cell">
-                    <span className="text-xs text-zinc-500">
-                      {quote.vehicleYear} {quote.vehicleMake} {quote.vehicleModel}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3.5 hidden md:table-cell">
-                    <span className="text-xs text-zinc-500">{quote.serviceCategory}</span>
-                  </td>
-                  <td className="px-4 py-3.5 hidden lg:table-cell">
-                    <QuotePriorityBadge priority={quote.priority} />
-                  </td>
-                  <td className="px-4 py-3.5">
-                    <QuoteStatusBadge status={quote.status} />
-                  </td>
-                  <td className="px-5 py-3.5 text-right">
-                    <span className="text-[10px] text-zinc-600">
-                      {new Date(quote.createdAt).toLocaleDateString()}
-                    </span>
-                  </td>
+        <>
+          {/* Wide screens: a real table. */}
+          <div className="hidden lg:block border border-zinc-800/50 bg-zinc-900/20 overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-zinc-800/50">
+                  <th className={thCls}>Quote</th>
+                  {QUOTE_COLUMNS.map((col) => (
+                    <th key={col} className={thCls}>{col}</th>
+                  ))}
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {filtered.map((quote) => {
+                  const cells = quoteCells(quote);
+                  return (
+                    <tr
+                      key={quote.id}
+                      className="border-b border-zinc-800/30 hover:bg-zinc-900/30 transition-colors"
+                    >
+                      <td className="px-4 py-3.5 align-top">
+                        <Link
+                          href={`/admin/quotes/${quote.id}`}
+                          className="text-xs font-black text-cyan-400 hover:text-cyan-300 transition-colors"
+                        >
+                          {quote.quoteNumber}
+                        </Link>
+                      </td>
+                      {QUOTE_COLUMNS.map((col) => (
+                        <td key={col} className="px-4 py-3.5 align-top">{cells[col]}</td>
+                      ))}
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Phones and tablets: one card per quote. */}
+          <ul aria-label="Quote requests" className="lg:hidden flex flex-col gap-3">
+            {filtered.map((quote) => {
+              const cells = quoteCells(quote);
+              return (
+                <li
+                  key={quote.id}
+                  className="border border-zinc-800/50 bg-zinc-900/20 p-4 flex flex-col gap-3"
+                >
+                  <Link
+                    href={`/admin/quotes/${quote.id}`}
+                    className="text-xs font-black text-cyan-400 hover:text-cyan-300 transition-colors wrap-anywhere"
+                  >
+                    {quote.quoteNumber}
+                  </Link>
+                  <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 items-baseline">
+                    {QUOTE_COLUMNS.map((col) => (
+                      <div key={col} className="contents">
+                        <dt className="text-[9px] text-zinc-600 tracking-[0.15em] uppercase font-bold">
+                          {col}
+                        </dt>
+                        <dd className="min-w-0">{cells[col]}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                </li>
+              );
+            })}
+          </ul>
+        </>
       )}
     </>
   );

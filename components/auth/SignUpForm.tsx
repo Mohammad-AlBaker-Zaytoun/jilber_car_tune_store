@@ -216,7 +216,7 @@ export default function SignUpForm() {
 
         {/* Terms */}
         <div className="flex flex-col gap-1.5">
-          <label className="flex items-start gap-3 cursor-pointer group">
+          <label className="flex items-start gap-3 py-1 cursor-pointer group">
             <input
               type="checkbox"
               id="terms"

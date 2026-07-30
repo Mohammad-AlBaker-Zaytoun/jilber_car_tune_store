@@ -257,7 +257,7 @@ export default function AdminReviewsClient() {
                           href={`/store/${r.productSlug}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-zinc-600 hover:text-cyan-400 transition-colors"
+                          className="inline-block py-1.5 text-zinc-600 hover:text-cyan-400 transition-colors"
                           title="View product"
                         >
                           <ExternalLink size={10} aria-hidden="true" />
@@ -314,7 +314,8 @@ export default function AdminReviewsClient() {
                             onClick={() => updateStatus(r.id, 'approved')}
                             disabled={acting}
                             title="Approve"
-                            className="p-1.5 text-zinc-600 hover:text-emerald-400 transition-colors border border-transparent hover:border-emerald-400/20 disabled:opacity-40"
+                            aria-label="Approve review"
+                            className="inline-flex items-center justify-center w-7 h-7 text-zinc-600 hover:text-emerald-400 transition-colors border border-transparent hover:border-emerald-400/20 disabled:opacity-40"
                           >
                             <CheckCircle size={13} aria-hidden="true" />
                           </button>
@@ -324,7 +325,8 @@ export default function AdminReviewsClient() {
                             onClick={() => updateStatus(r.id, 'hidden')}
                             disabled={acting}
                             title="Hide"
-                            className="p-1.5 text-zinc-600 hover:text-amber-400 transition-colors border border-transparent hover:border-amber-400/20 disabled:opacity-40"
+                            aria-label="Hide review"
+                            className="inline-flex items-center justify-center w-7 h-7 text-zinc-600 hover:text-amber-400 transition-colors border border-transparent hover:border-amber-400/20 disabled:opacity-40"
                           >
                             <EyeOff size={13} aria-hidden="true" />
                           </button>
@@ -333,7 +335,8 @@ export default function AdminReviewsClient() {
                           onClick={() => setDeleteId(r.id)}
                           disabled={acting}
                           title="Delete"
-                          className="p-1.5 text-zinc-600 hover:text-red-400 transition-colors border border-transparent hover:border-red-400/20 disabled:opacity-40"
+                          aria-label="Delete review"
+                          className="inline-flex items-center justify-center w-7 h-7 text-zinc-600 hover:text-red-400 transition-colors border border-transparent hover:border-red-400/20 disabled:opacity-40"
                         >
                           <Trash2 size={13} aria-hidden="true" />
                         </button>

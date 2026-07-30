@@ -31,6 +31,76 @@ const TILES: { label: string; status: OrderStatus | ''; icon: typeof Package2; c
   { label: 'Cancelled', status: 'cancelled', icon: XCircle, color: 'text-red-400' },
 ];
 
+/**
+ * The columns, in order. Drives the table header AND the card labels, so the two
+ * layouts cannot drift apart.
+ *
+ * The order reference is not a column here: it is the row's heading in the card
+ * layout and its first cell in the table, so it is rendered separately.
+ */
+const ORDER_COLUMNS = [
+  'Customer',
+  'Vehicle',
+  'Items',
+  'Total',
+  'Method',
+  'Payment',
+  'Status',
+  'Date',
+] as const;
+
+type OrderColumn = (typeof ORDER_COLUMNS)[number];
+
+/**
+ * A row's cells, defined once for both layouts.
+ *
+ * Typed as a complete Record, so adding a column to ORDER_COLUMNS without
+ * supplying its cell is a type error rather than a blank space on one breakpoint.
+ * This is the guard the old markup lacked: five columns were `hidden md:table-cell`
+ * with no mobile equivalent, which left an order's Total and Payment status
+ * unreachable on a phone.
+ */
+function orderCells(order: Order): Record<OrderColumn, React.ReactNode> {
+  return {
+    Customer: (
+      <>
+        <p className="text-xs text-zinc-300 font-semibold wrap-anywhere">
+          {order.customer.fullName}
+        </p>
+        <p className="text-[10px] text-zinc-600 wrap-anywhere">{order.customer.email}</p>
+      </>
+    ),
+    Vehicle: (
+      <span className="text-xs text-zinc-500">
+        {order.vehicle.make} {order.vehicle.model} {order.vehicle.year}
+      </span>
+    ),
+    Items: (
+      <span className="text-xs text-zinc-500">
+        {order.items.length} item{order.items.length !== 1 ? 's' : ''}
+      </span>
+    ),
+    Total: (
+      <span className="text-xs font-black text-zinc-200">{formatMoneyCompact(order.total)}</span>
+    ),
+    Method: (
+      <span className="text-[10px] text-zinc-500 uppercase tracking-wide">
+        {formatPaymentMethod(order.payment)}
+      </span>
+    ),
+    Payment: <PaymentStatusBadge status={order.paymentStatus} />,
+    Status: <OrderStatusBadge status={order.status} />,
+    Date: (
+      <span className="text-[10px] text-zinc-600">
+        {new Date(order.createdAt).toLocaleDateString('en-US')}
+      </span>
+    ),
+  };
+}
+
+const thCls =
+  'text-left px-4 py-3 text-[9px] text-zinc-600 tracking-[0.2em] uppercase font-bold whitespace-nowrap';
+
 export default function OrdersClient() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<OrderStatus | ''>('');
@@ -144,72 +214,82 @@ export default function OrdersClient() {
         </div>
       ) : (
         <>
-          <div className="border border-zinc-800/50 bg-zinc-900/20 overflow-x-auto">
+          {/* Wide screens: a real table, which is what tabular data should be —
+              screen readers get row and column navigation. */}
+          <div className="hidden lg:block border border-zinc-800/50 bg-zinc-900/20 overflow-x-auto">
             <table className="w-full">
               <thead>
                 <tr className="border-b border-zinc-800/50">
-                  <th className="text-left px-5 py-3 text-[9px] text-zinc-600 tracking-[0.2em] uppercase font-bold">Order</th>
-                  <th className="text-left px-4 py-3 text-[9px] text-zinc-600 tracking-[0.2em] uppercase font-bold">Customer</th>
-                  <th className="text-left px-4 py-3 text-[9px] text-zinc-600 tracking-[0.2em] uppercase font-bold hidden sm:table-cell">Vehicle</th>
-                  <th className="text-left px-4 py-3 text-[9px] text-zinc-600 tracking-[0.2em] uppercase font-bold hidden lg:table-cell">Items</th>
-                  <th className="text-left px-4 py-3 text-[9px] text-zinc-600 tracking-[0.2em] uppercase font-bold hidden md:table-cell">Total</th>
-                  <th className="text-left px-4 py-3 text-[9px] text-zinc-600 tracking-[0.2em] uppercase font-bold hidden lg:table-cell">Method</th>
-                  <th className="text-left px-4 py-3 text-[9px] text-zinc-600 tracking-[0.2em] uppercase font-bold hidden md:table-cell">Payment</th>
-                  <th className="text-left px-4 py-3 text-[9px] text-zinc-600 tracking-[0.2em] uppercase font-bold">Status</th>
-                  <th className="text-right px-5 py-3 text-[9px] text-zinc-600 tracking-[0.2em] uppercase font-bold">Date</th>
+                  <th className={thCls}>Order</th>
+                  {ORDER_COLUMNS.map((col) => (
+                    <th key={col} className={thCls}>
+                      {col}
+                    </th>
+                  ))}
                 </tr>
               </thead>
               <tbody>
-                {orders.map((order) => (
-                  <tr key={order.id} className="border-b border-zinc-800/30 hover:bg-zinc-900/30 transition-colors">
-                    <td className="px-5 py-3.5">
-                      <Link
-                        href={`/admin/orders/${order.id}`}
-                        className="text-xs font-black text-cyan-400 hover:text-cyan-300 transition-colors"
-                      >
-                        {order.ref}
-                      </Link>
-                    </td>
-                    <td className="px-4 py-3.5">
-                      <p className="text-xs text-zinc-300 font-semibold">{order.customer.fullName}</p>
-                      <p className="text-[10px] text-zinc-600">{order.customer.email}</p>
-                    </td>
-                    <td className="px-4 py-3.5 hidden sm:table-cell">
-                      <span className="text-xs text-zinc-500">
-                        {order.vehicle.make} {order.vehicle.model} {order.vehicle.year}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3.5 hidden lg:table-cell">
-                      <span className="text-xs text-zinc-500">
-                        {order.items.length} item{order.items.length !== 1 ? 's' : ''}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3.5 hidden md:table-cell">
-                      <span className="text-xs font-black text-zinc-200">
-                        {formatMoneyCompact(order.total)}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3.5 hidden lg:table-cell">
-                      <span className="text-[10px] text-zinc-500 uppercase tracking-wide">
-                        {formatPaymentMethod(order.payment)}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3.5 hidden md:table-cell">
-                      <PaymentStatusBadge status={order.paymentStatus} />
-                    </td>
-                    <td className="px-4 py-3.5">
-                      <OrderStatusBadge status={order.status} />
-                    </td>
-                    <td className="px-5 py-3.5 text-right">
-                      <span className="text-[10px] text-zinc-600">
-                        {new Date(order.createdAt).toLocaleDateString('en-US')}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
+                {orders.map((order) => {
+                  const cells = orderCells(order);
+                  return (
+                    <tr
+                      key={order.id}
+                      className="border-b border-zinc-800/30 hover:bg-zinc-900/30 transition-colors"
+                    >
+                      <td className="px-4 py-3.5 align-top">
+                        <Link
+                          href={`/admin/orders/${order.id}`}
+                          className="text-xs font-black text-cyan-400 hover:text-cyan-300 transition-colors"
+                        >
+                          {order.ref}
+                        </Link>
+                      </td>
+                      {ORDER_COLUMNS.map((col) => (
+                        <td key={col} className="px-4 py-3.5 align-top">
+                          {cells[col]}
+                        </td>
+                      ))}
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
+
+          {/* Phones and tablets: one card per order, every field labelled. A
+              sideways-scrolling nine-column table is not usable with a thumb, and
+              hiding the columns made Total and Payment unreachable. */}
+          <ul aria-label="Orders" className="lg:hidden flex flex-col gap-3">
+            {orders.map((order) => {
+              const cells = orderCells(order);
+              return (
+                <li
+                  key={order.id}
+                  className="border border-zinc-800/50 bg-zinc-900/20 p-4 flex flex-col gap-3"
+                >
+                  <Link
+                    href={`/admin/orders/${order.id}`}
+                    className="text-xs font-black text-cyan-400 hover:text-cyan-300 transition-colors wrap-anywhere"
+                  >
+                    {order.ref}
+                  </Link>
+                  {/* grid-cols-[auto_1fr] keeps the labels in a column so the
+                      values line up; min-w-0 on the value lets a long email wrap
+                      instead of forcing the track wider. */}
+                  <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 items-baseline">
+                    {ORDER_COLUMNS.map((col) => (
+                      <div key={col} className="contents">
+                        <dt className="text-[9px] text-zinc-600 tracking-[0.15em] uppercase font-bold">
+                          {col}
+                        </dt>
+                        <dd className="min-w-0">{cells[col]}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                </li>
+              );
+            })}
+          </ul>
 
           <Pagination page={page} totalPages={data?.totalPages ?? 1} onChange={goToPage} />
         </>

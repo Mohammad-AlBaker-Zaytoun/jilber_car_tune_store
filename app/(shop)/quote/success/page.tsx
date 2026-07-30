@@ -17,7 +17,7 @@ export default async function QuoteSuccessPage({
   const quoteRef = sp.ref ?? '';
 
   return (
-    <div className="bg-zinc-950 min-h-screen pt-28 lg:pt-32 pb-20 flex items-start justify-center">
+    <div className="bg-zinc-950 min-h-svh pt-28 lg:pt-32 pb-20 flex items-start justify-center">
       <div className="max-w-xl w-full mx-auto px-6">
         {/* Icon */}
         <div className="flex justify-center mb-8">

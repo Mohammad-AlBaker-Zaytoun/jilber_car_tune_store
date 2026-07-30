@@ -9,7 +9,7 @@ export default function FailureContent() {
   const ref = params.get('ref');
 
   return (
-    <div className="bg-zinc-950 min-h-screen pt-28 lg:pt-36 pb-24">
+    <div className="bg-zinc-950 min-h-svh pt-28 lg:pt-36 pb-24">
       <div className="max-w-2xl mx-auto px-6 lg:px-8">
         <div className="flex justify-center mb-8">
           <div className="w-20 h-20 flex items-center justify-center border border-red-500/30 bg-red-500/5">
@@ -21,7 +21,7 @@ export default function FailureContent() {
           <p className="text-[10px] text-red-400 tracking-[0.35em] uppercase font-bold mb-4">
             Payment Not Completed
           </p>
-          <h1 className="text-4xl sm:text-5xl font-black text-white tracking-tight leading-none mb-4">
+          <h1 className="text-3xl sm:text-5xl font-black text-white tracking-tight leading-none mb-4">
             PAYMENT
             <br />
             <span className="text-red-400">UNSUCCESSFUL</span>

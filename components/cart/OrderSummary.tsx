@@ -126,7 +126,7 @@ export default function OrderSummary({
           )}
           <Link
             href="/store"
-            className="block text-center text-xs text-zinc-500 hover:text-cyan-400 transition-colors tracking-widest uppercase font-semibold"
+            className="block py-1.5 text-center text-xs text-zinc-500 hover:text-cyan-400 transition-colors tracking-widest uppercase font-semibold"
           >
             ← Continue Shopping
           </Link>

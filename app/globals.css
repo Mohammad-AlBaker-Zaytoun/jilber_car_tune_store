@@ -28,7 +28,24 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-geist-sans), system-ui, sans-serif;
-  overflow-x: hidden;
+}
+
+/*
+  A net, not a mask.
+
+  This used to be `overflow-x: hidden` here AND a duplicate `overflow-x-hidden`
+  class on <body> in app/layout.tsx. Two problems with that: `hidden` makes the
+  body a scroll container, which changes `position: sticky` containment for the
+  mobile admin topbar and the scroll-frame hero pane; and it silently swallowed
+  every horizontal-overflow bug, which is why none of them were known.
+
+  `clip` clips without creating a scrollport, so sticky positioning is untouched.
+  It is safe to keep because e2e/responsive.spec.ts now measures every route at
+  320/360/412/768/1024 and fails the build on real overflow -- the net catches
+  nothing that the gate has not already rejected.
+*/
+html {
+  overflow-x: clip;
 }
 
 /* Custom scrollbar */
@@ -96,4 +113,23 @@ canvas {
 
 .animate-toast-in {
   animation: toastIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/*
+  Respect the OS reduced-motion setting. These animations are decorative; a user
+  who has asked for less motion (vestibular disorders, migraine triggers) should
+  still see the content, just without it moving.
+*/
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  .animate-fade-up,
+  .animate-fade-in,
+  .animate-toast-in {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
 }

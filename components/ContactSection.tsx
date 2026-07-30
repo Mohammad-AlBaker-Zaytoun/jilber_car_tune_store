@@ -148,7 +148,7 @@ export default function ContactSection() {
                     <a
                       href={telUrl}
                       data-contact-action="phone-click"
-                      className="text-sm font-semibold text-white hover:text-cyan-400 transition-colors"
+                      className="inline-block py-1 text-sm font-semibold text-white hover:text-cyan-400 transition-colors"
                     >
                       {info.contactPhone}
                     </a>
@@ -177,7 +177,7 @@ export default function ContactSection() {
                     target="_blank"
                     rel="noopener noreferrer"
                     data-contact-action="whatsapp-click"
-                    className="text-sm font-semibold text-white hover:text-cyan-400 transition-colors"
+                    className="inline-block py-1 text-sm font-semibold text-white hover:text-cyan-400 transition-colors"
                   >
                     Message Us Directly
                   </a>
@@ -200,7 +200,7 @@ export default function ContactSection() {
                     <a
                       href={mailUrl}
                       data-contact-action="email-click"
-                      className="text-sm font-semibold text-white hover:text-cyan-400 transition-colors break-all"
+                      className="inline-block py-1 text-sm font-semibold text-white hover:text-cyan-400 transition-colors break-all"
                     >
                       {info.contactEmail}
                     </a>

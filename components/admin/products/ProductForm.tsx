@@ -321,11 +321,11 @@ export default function ProductForm({ initial, mode, categories }: Props) {
       <div className={sectionCls}>
         <h3 className="text-[10px] font-black text-white tracking-[0.25em] uppercase mb-5">Status & Appearance</h3>
         <div className="flex flex-col gap-3">
-          <label className="flex items-center gap-3 cursor-pointer group">
+          <label className="flex items-center gap-3 py-1 cursor-pointer group">
             <input type="checkbox" checked={form.inStock} onChange={set('inStock')} className="w-4 h-4 accent-cyan-400 cursor-pointer" />
             <span className="text-xs text-zinc-400 group-hover:text-zinc-200 transition-colors font-semibold">In Stock</span>
           </label>
-          <label className="flex items-center gap-3 cursor-pointer group">
+          <label className="flex items-center gap-3 py-1 cursor-pointer group">
             <input type="checkbox" checked={form.featured} onChange={set('featured')} className="w-4 h-4 accent-cyan-400 cursor-pointer" />
             <span className="text-xs text-zinc-400 group-hover:text-zinc-200 transition-colors font-semibold">Featured</span>
           </label>
@@ -382,7 +382,7 @@ export default function ProductForm({ initial, mode, categories }: Props) {
           <h3 className="text-[10px] font-black text-white tracking-[0.25em] uppercase">
             Specifications
           </h3>
-          <button type="button" onClick={addSpec} className="inline-flex items-center gap-1.5 text-[10px] text-cyan-400 hover:text-cyan-300 font-bold tracking-widest uppercase transition-colors">
+          <button type="button" onClick={addSpec} className="inline-flex items-center gap-1.5 py-1.5 text-[10px] text-cyan-400 hover:text-cyan-300 font-bold tracking-widest uppercase transition-colors">
             <Plus size={11} aria-hidden="true" /> Add
           </button>
         </div>
@@ -406,7 +406,7 @@ export default function ProductForm({ initial, mode, categories }: Props) {
       <div className={sectionCls}>
         <div className="flex items-center justify-between mb-5">
           <h3 className="text-[10px] font-black text-white tracking-[0.25em] uppercase">Compatibility</h3>
-          <button type="button" onClick={() => addString('compatibility')} className="inline-flex items-center gap-1.5 text-[10px] text-cyan-400 hover:text-cyan-300 font-bold tracking-widest uppercase transition-colors">
+          <button type="button" onClick={() => addString('compatibility')} className="inline-flex items-center gap-1.5 py-1.5 text-[10px] text-cyan-400 hover:text-cyan-300 font-bold tracking-widest uppercase transition-colors">
             <Plus size={11} aria-hidden="true" /> Add
           </button>
         </div>
@@ -429,7 +429,7 @@ export default function ProductForm({ initial, mode, categories }: Props) {
       <div className={sectionCls}>
         <div className="flex items-center justify-between mb-5">
           <h3 className="text-[10px] font-black text-white tracking-[0.25em] uppercase">Included Items</h3>
-          <button type="button" onClick={() => addString('includedItems')} className="inline-flex items-center gap-1.5 text-[10px] text-cyan-400 hover:text-cyan-300 font-bold tracking-widest uppercase transition-colors">
+          <button type="button" onClick={() => addString('includedItems')} className="inline-flex items-center gap-1.5 py-1.5 text-[10px] text-cyan-400 hover:text-cyan-300 font-bold tracking-widest uppercase transition-colors">
             <Plus size={11} aria-hidden="true" /> Add
           </button>
         </div>
@@ -449,7 +449,8 @@ export default function ProductForm({ initial, mode, categories }: Props) {
       </div>
 
       {/* Actions */}
-      <div className="flex items-center gap-4">
+      {/* flex-wrap: the two buttons at full padding overflow a 320px screen. */}
+      <div className="flex flex-wrap items-center gap-3 sm:gap-4">
         <button
           type="submit"
           disabled={submitting}

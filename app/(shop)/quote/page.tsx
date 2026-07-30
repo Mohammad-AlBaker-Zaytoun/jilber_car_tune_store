@@ -28,7 +28,7 @@ export default async function QuotePage({
   }
 
   return (
-    <div className="bg-zinc-950 pt-28 lg:pt-32 pb-20 lg:pb-28 min-h-screen">
+    <div className="bg-zinc-950 pt-28 lg:pt-32 pb-20 lg:pb-28 min-h-svh">
       {/* Hero */}
       <div className="max-w-7xl mx-auto px-6 lg:px-8 mb-16">
         <div className="inline-flex items-center gap-2.5 mb-5">

@@ -6,7 +6,7 @@ import ScrollFrameSequence from '@/components/ScrollFrameSequence';
 
 const FRAME_COUNT = 96;
 // Adjust this value to change animation speed: lower = faster, higher = slower
-const SCROLL_HEIGHT = '300vh';
+const SCROLL_HEIGHT = '300svh';
 
 function framePath(index: number): string {
   return `/store-hero-frames/frame_${String(index + 1).padStart(4, '0')}.webp`;
@@ -45,7 +45,7 @@ export default function StoreScrollHero() {
         <div className="flex items-center gap-2">
           <Link
             href="/"
-            className="text-[10px] text-zinc-500 hover:text-cyan-400 tracking-[0.2em] uppercase font-semibold transition-colors"
+            className="inline-block py-1.5 text-[10px] text-zinc-500 hover:text-cyan-400 tracking-[0.2em] uppercase font-semibold transition-colors"
           >
             Home
           </Link>
@@ -65,7 +65,7 @@ export default function StoreScrollHero() {
             <div className="w-7 h-px bg-cyan-400 shrink-0" aria-hidden="true" />
           </div>
 
-          <h1 className="text-5xl sm:text-6xl lg:text-7xl font-black text-white tracking-tight leading-none mb-4">
+          <h1 className="text-[2.5rem] sm:text-6xl lg:text-7xl font-black text-white tracking-tight leading-none mb-4">
             THE
             <br />
             <span className="text-cyan-400">WORKSHOP</span>

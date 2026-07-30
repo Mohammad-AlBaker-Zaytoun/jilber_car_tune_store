@@ -18,14 +18,14 @@ export default function AdminPageHeader({ title, subtitle, breadcrumbs, action }
     <div className="mb-8">
       {breadcrumbs && breadcrumbs.length > 0 && (
         <nav className="flex items-center gap-1.5 text-[10px] tracking-[0.2em] uppercase font-semibold mb-4">
-          <Link href="/admin" className="text-zinc-600 hover:text-cyan-400 transition-colors">
+          <Link href="/admin" className="inline-block py-1.5 text-zinc-600 hover:text-cyan-400 transition-colors">
             Admin
           </Link>
           {breadcrumbs.map((crumb, i) => (
             <span key={i} className="flex items-center gap-1.5">
               <ChevronRight size={9} className="text-zinc-700" aria-hidden="true" />
               {crumb.href ? (
-                <Link href={crumb.href} className="text-zinc-600 hover:text-cyan-400 transition-colors">
+                <Link href={crumb.href} className="inline-block py-1.5 text-zinc-600 hover:text-cyan-400 transition-colors">
                   {crumb.label}
                 </Link>
               ) : (

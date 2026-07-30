@@ -7,7 +7,7 @@ export default function ShopLayout({ children }: { children: ReactNode }) {
   return (
     <>
       <Navbar />
-      <main className="min-h-screen">{children}</main>
+      <main className="min-h-svh">{children}</main>
       <Footer />
       <FloatingContactButtons />
     </>

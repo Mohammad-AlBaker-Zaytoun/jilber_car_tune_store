@@ -131,7 +131,7 @@ export default function CheckoutForm({ taxRate, cardPaymentAvailable }: Props) {
 
   if (items.length === 0) {
     return (
-      <div className="bg-zinc-950 pt-28 min-h-screen">
+      <div className="bg-zinc-950 pt-28 min-h-svh">
         <div className="max-w-7xl mx-auto px-6 lg:px-8">
           <EmptyState variant="empty-cart" />
         </div>
@@ -246,11 +246,11 @@ export default function CheckoutForm({ taxRate, cardPaymentAvailable }: Props) {
   };
 
   return (
-    <div className="bg-zinc-950 pt-28 lg:pt-32 pb-20 min-h-screen">
+    <div className="bg-zinc-950 pt-28 lg:pt-32 pb-20 min-h-svh">
       <div className="max-w-7xl mx-auto px-6 lg:px-8">
         {/* Breadcrumb */}
         <nav className="flex items-center gap-1.5 text-[10px] tracking-[0.2em] uppercase font-semibold mb-10">
-          <Link href="/cart" className="text-zinc-600 hover:text-cyan-400 transition-colors">Cart</Link>
+          <Link href="/cart" className="inline-block py-1.5 text-zinc-600 hover:text-cyan-400 transition-colors">Cart</Link>
           <ChevronRight size={10} className="text-zinc-700" />
           <span className="text-zinc-400">Checkout</span>
         </nav>

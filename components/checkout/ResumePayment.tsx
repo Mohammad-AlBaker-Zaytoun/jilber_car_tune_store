@@ -66,7 +66,7 @@ export default function ResumePayment({
 
   if (settled) {
     return (
-      <div className="bg-zinc-950 min-h-screen flex items-center justify-center px-6 py-24">
+      <div className="bg-zinc-950 min-h-svh flex items-center justify-center px-6 py-24">
         <div className="max-w-lg w-full text-center">
           <div className="flex justify-center mb-8">
             <div className="w-16 h-16 flex items-center justify-center border border-emerald-500/30 bg-emerald-500/5">
@@ -96,7 +96,7 @@ export default function ResumePayment({
   }
 
   return (
-    <div className="bg-zinc-950 min-h-screen flex items-center justify-center px-6 py-24">
+    <div className="bg-zinc-950 min-h-svh flex items-center justify-center px-6 py-24">
       <div className="max-w-lg w-full">
         <div className="border border-zinc-800/50 bg-zinc-900/20 p-8">
           <p className="text-[10px] text-cyan-400 tracking-[0.35em] uppercase font-bold mb-4">

@@ -17,7 +17,7 @@ export default function CartClient({ taxRate }: Props) {
   const clearCart = useCartStore((s) => s.clearCart);
 
   return (
-    <div className="bg-zinc-950 pt-28 lg:pt-32 pb-20 min-h-screen">
+    <div className="bg-zinc-950 pt-28 lg:pt-32 pb-20 min-h-svh">
       <div className="max-w-7xl mx-auto px-6 lg:px-8">
         {/* Header */}
         <div className="mb-10 lg:mb-14">

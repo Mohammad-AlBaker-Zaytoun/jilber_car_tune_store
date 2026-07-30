@@ -76,18 +76,18 @@ export default function Navbar() {
               <a
                 key={link.href}
                 href={link.href}
-                className="text-xs text-zinc-400 hover:text-cyan-400 transition-colors duration-200 tracking-[0.15em] uppercase font-semibold relative group"
+                className="py-2 text-xs text-zinc-400 hover:text-cyan-400 transition-colors duration-200 tracking-[0.15em] uppercase font-semibold relative group"
               >
                 {link.label}
-                <span className="absolute -bottom-0.5 left-0 w-0 h-px bg-cyan-400 group-hover:w-full transition-all duration-300" />
+                <span className="absolute bottom-1.5 left-0 w-0 h-px bg-cyan-400 group-hover:w-full transition-all duration-300" />
               </a>
             ))}
             <TransitionLink
               href="/store"
-              className="text-xs text-zinc-400 hover:text-cyan-400 transition-colors duration-200 tracking-[0.15em] uppercase font-semibold relative group"
+              className="py-2 text-xs text-zinc-400 hover:text-cyan-400 transition-colors duration-200 tracking-[0.15em] uppercase font-semibold relative group"
             >
               Store
-              <span className="absolute -bottom-0.5 left-0 w-0 h-px bg-cyan-400 group-hover:w-full transition-all duration-300" />
+              <span className="absolute bottom-1.5 left-0 w-0 h-px bg-cyan-400 group-hover:w-full transition-all duration-300" />
             </TransitionLink>
           </nav>
 

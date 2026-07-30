@@ -140,7 +140,7 @@ export default function ServicesSection() {
           </p>
           <a
             href="#contact"
-            className="shrink-0 text-xs font-black text-cyan-400 hover:text-cyan-300 tracking-[0.2em] uppercase transition-colors duration-200 underline-offset-4 hover:underline"
+            className="shrink-0 inline-block py-1.5 text-xs font-black text-cyan-400 hover:text-cyan-300 tracking-[0.2em] uppercase transition-colors duration-200 underline-offset-4 hover:underline"
           >
             Ask us — it&apos;s free
           </a>

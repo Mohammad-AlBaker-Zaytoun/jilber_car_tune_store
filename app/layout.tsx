@@ -80,7 +80,7 @@ export default function RootLayout({
       data-scroll-behavior="smooth"
       className={`${geistSans.variable} h-full antialiased`}
     >
-      <body className="min-h-full bg-zinc-950 text-zinc-100 overflow-x-hidden">
+      <body className="min-h-full bg-zinc-950 text-zinc-100">
         <AuthProvider>
           <ToastProvider>
             <PageTransitionProvider>

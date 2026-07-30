@@ -37,7 +37,14 @@ interface Props {
 
 const sectionCls = 'border border-zinc-800/50 bg-zinc-900/20 p-6';
 const labelCls = 'text-[9px] text-zinc-600 tracking-[0.2em] uppercase font-bold mb-1';
-const valueCls = 'text-xs text-zinc-300';
+// wrap-anywhere, not break-words: these cells hold customer-supplied emails and
+// street addresses, which have no spaces to wrap at. `break-words` permits a
+// break but does NOT reduce the element's min-content size, so a grid track
+// still refuses to shrink; `overflow-wrap: anywhere` does both. Measured: the
+// admin order page was 289px wider than a 320px phone, and 247px wider at
+// 1024px -- never a mobile-only defect. Not `truncate`: the owner needs to read
+// the whole address aloud on the phone.
+const valueCls = 'text-xs text-zinc-300 wrap-anywhere';
 
 type SaveField = 'status' | 'payment' | 'adminNotes' | 'customerNotes';
 
@@ -144,7 +151,7 @@ export default function OrderDetailClient({ order: initialOrder }: Props) {
         <div className="flex items-center gap-4 flex-wrap">
           <Link
             href="/admin/orders"
-            className="inline-flex items-center gap-1.5 text-[10px] text-zinc-600 hover:text-cyan-400 font-bold tracking-widest uppercase transition-colors"
+            className="inline-flex items-center gap-1.5 py-1.5 text-[10px] text-zinc-600 hover:text-cyan-400 font-bold tracking-widest uppercase transition-colors"
           >
             <ArrowLeft size={10} aria-hidden="true" /> Back to Orders
           </Link>
@@ -162,7 +169,7 @@ export default function OrderDetailClient({ order: initialOrder }: Props) {
               <User size={11} className="text-cyan-400" aria-hidden="true" />
               Customer
             </h3>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {(
                 [
                   ['Name', order.customer.fullName],

@@ -10,7 +10,7 @@ const LAST_UPDATED = 'May 10, 2025';
 
 export default function CookiePolicyPage() {
   return (
-    <div className="bg-zinc-950 pt-28 lg:pt-32 pb-24 min-h-screen">
+    <div className="bg-zinc-950 pt-28 lg:pt-32 pb-24 min-h-svh">
       <div className="max-w-4xl mx-auto px-6 lg:px-8">
 
         {/* Header */}
@@ -77,7 +77,7 @@ export default function CookiePolicyPage() {
                   cross-site scripting attacks. It cannot be used to track your browsing across
                   other websites.
                 </p>
-                <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                   {[
                     { label: 'Type', value: 'httpOnly cookie' },
                     { label: 'Duration', value: '7 days' },
@@ -112,7 +112,7 @@ export default function CookiePolicyPage() {
                   device unless you proceed to checkout. It does not contain any personal
                   information.
                 </p>
-                <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                   {[
                     { label: 'Type', value: 'localStorage' },
                     { label: 'Duration', value: 'Until cleared' },

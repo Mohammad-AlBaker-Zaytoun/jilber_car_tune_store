@@ -141,7 +141,7 @@ export default function AdminShell({ user, children }: Props) {
   const closeSidebar = () => setSidebarOpen(false);
 
   return (
-    <div className="min-h-screen bg-zinc-950 flex">
+    <div className="min-h-svh bg-zinc-950 flex">
       {/* Desktop sidebar — always visible, never re-mounts */}
       <aside className="hidden lg:flex w-56 shrink-0 flex-col border-r border-zinc-800/50 bg-zinc-950 fixed top-0 left-0 bottom-0 z-40">
         <AdminSidebar

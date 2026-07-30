@@ -135,7 +135,7 @@ export default function SignInForm() {
         <div className="-mt-2 text-right">
           <Link
             href="/forgot-password"
-            className="text-[11px] text-zinc-500 hover:text-cyan-400 transition-colors"
+            className="inline-block py-1.5 text-[11px] text-zinc-500 hover:text-cyan-400 transition-colors"
           >
             Forgot password?
           </Link>

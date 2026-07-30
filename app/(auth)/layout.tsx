@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 
 export default function AuthLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="min-h-screen bg-zinc-950 flex flex-col">
+    <div className="min-h-svh bg-zinc-950 flex flex-col">
       {/* Minimal header — logo only */}
       <header className="px-6 lg:px-8 py-5 border-b border-zinc-900">
         <Link href="/" className="flex items-center gap-2.5 group w-fit">

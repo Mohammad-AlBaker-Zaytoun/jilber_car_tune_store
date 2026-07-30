@@ -29,7 +29,7 @@ export default function SuccessContent() {
   // order. Never invent a reference number under an "Order Confirmed" heading.
   if (!ref) {
     return (
-      <div className="bg-zinc-950 min-h-screen pt-28 lg:pt-36 pb-24">
+      <div className="bg-zinc-950 min-h-svh pt-28 lg:pt-36 pb-24">
         <div className="max-w-2xl mx-auto px-6 lg:px-8 text-center">
           <h1 className="text-3xl sm:text-4xl font-black text-white tracking-tight mb-4">
             NO ORDER TO SHOW
@@ -61,7 +61,7 @@ export default function SuccessContent() {
   }
 
   return (
-    <div className="bg-zinc-950 min-h-screen pt-28 lg:pt-36 pb-24">
+    <div className="bg-zinc-950 min-h-svh pt-28 lg:pt-36 pb-24">
       <div className="max-w-2xl mx-auto px-6 lg:px-8">
         {/* Success icon */}
         <div className="flex justify-center mb-8">

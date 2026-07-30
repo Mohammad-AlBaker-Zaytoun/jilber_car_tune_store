@@ -205,7 +205,10 @@ export default function ScrollFrameSequence({
       className={`relative${className ? ` ${className}` : ''}`}
     >
       {/* Sticky viewport — fills screen while outer section scrolls */}
-      <div className="sticky top-0 h-screen w-full overflow-hidden">
+      {/* svh, not dvh: the frame maths at the scroll handler above reads
+          window.innerHeight every frame, so a pane whose height changes as the
+          mobile URL bar hides would make the frame mapping drift mid-scroll. */}
+      <div className="sticky top-0 h-[100svh] w-full overflow-hidden">
         <canvas
           ref={canvasRef}
           className="absolute inset-0 w-full h-full"

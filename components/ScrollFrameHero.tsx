@@ -4,7 +4,9 @@ import { ChevronDown, Zap, Settings2, TrendingUp } from 'lucide-react';
 import ScrollFrameSequence from '@/components/ScrollFrameSequence';
 
 const TOTAL_FRAMES = 241;
-const SCROLL_HEIGHT = '720vh';
+// svh so the ratio against the sticky h-[100svh] pane stays fixed on mobile,
+// where `vh` resolves to the large viewport but innerHeight does not.
+const SCROLL_HEIGHT = '720svh';
 
 function getFrameUrl(index: number): string {
   return `/scroll-frames/frame_${String(index + 1).padStart(4, '0')}.jpg`;

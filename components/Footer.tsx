@@ -137,12 +137,12 @@ export default function Footer() {
             <h4 className="text-[10px] font-black text-white tracking-[0.25em] uppercase mb-5">
               Services
             </h4>
-            <ul className="flex flex-col gap-2.5">
+            <ul className="flex flex-col gap-0.5">
               {SERVICES_LINKS.map(({ label, href }) => (
                 <li key={label}>
                   <a
                     href={href}
-                    className="text-sm text-zinc-500 hover:text-cyan-400 transition-colors duration-200"
+                    className="inline-block py-1 text-sm text-zinc-500 hover:text-cyan-400 transition-colors duration-200"
                   >
                     {label}
                   </a>
@@ -156,12 +156,12 @@ export default function Footer() {
             <h4 className="text-[10px] font-black text-white tracking-[0.25em] uppercase mb-5">
               Company
             </h4>
-            <ul className="flex flex-col gap-2.5">
+            <ul className="flex flex-col gap-0.5">
               {COMPANY_LINKS.map(({ label, href }) => (
                 <li key={label}>
                   <a
                     href={href}
-                    className="text-sm text-zinc-500 hover:text-cyan-400 transition-colors duration-200"
+                    className="inline-block py-1 text-sm text-zinc-500 hover:text-cyan-400 transition-colors duration-200"
                   >
                     {label}
                   </a>
@@ -209,7 +209,7 @@ export default function Footer() {
               <a
                 key={label}
                 href={href}
-                className="text-xs text-zinc-600 hover:text-zinc-400 transition-colors"
+                className="inline-block py-1.5 text-xs text-zinc-600 hover:text-zinc-400 transition-colors"
               >
                 {label}
               </a>

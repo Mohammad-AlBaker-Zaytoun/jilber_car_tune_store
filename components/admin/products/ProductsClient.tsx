@@ -14,6 +14,125 @@ async function fetchProducts(): Promise<Product[]> {
   return (await r.json()) as Product[];
 }
 
+const thCls =
+  'text-left px-4 py-3 text-[9px] text-zinc-600 tracking-[0.2em] uppercase font-bold whitespace-nowrap';
+
+/** Hit area for the icon toggles: 28px clears the 24px WCAG 2.2 AA floor. */
+const iconBtnCls =
+  'inline-flex items-center justify-center w-7 h-7 transition-colors border border-transparent hover:border-zinc-700';
+
+const PRODUCT_COLUMNS = ['Category', 'Price', 'Stock', 'Featured', 'Rating', 'Actions'] as const;
+type ProductColumn = (typeof PRODUCT_COLUMNS)[number];
+
+/** The product's image and name — the row heading in both layouts. */
+function ProductIdentity({ product: p }: { product: Product }) {
+  return (
+    <div className="flex items-center gap-3 min-w-0">
+      <div
+        className="relative w-9 h-9 shrink-0 border border-zinc-800 overflow-hidden"
+        style={
+          p.images?.[0]
+            ? undefined
+            : { background: `linear-gradient(135deg, ${p.visualColor}22, ${p.visualColor2}22)` }
+        }
+        aria-hidden="true"
+      >
+        {p.images?.[0] ? (
+          <Image src={p.images[0]} alt="" fill sizes="36px" className="object-cover" />
+        ) : null}
+      </div>
+      <div className="min-w-0">
+        <p className="text-xs font-black text-zinc-200 wrap-anywhere">{p.name}</p>
+        <p className="text-[10px] text-zinc-600 wrap-anywhere">{p.slug}</p>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * A row's cells, defined once for the table and the card list.
+ *
+ * Typed as a complete Record over PRODUCT_COLUMNS, so a new column without a cell
+ * is a type error rather than a gap at one breakpoint.
+ */
+function productCells(
+  p: Product,
+  toggleStock: (p: Product) => void,
+  toggleFeatured: (p: Product) => void,
+  setToDelete: (p: Product) => void
+): Record<ProductColumn, React.ReactNode> {
+  return {
+    Category: <span className="text-[10px] text-zinc-500 font-semibold">{p.category}</span>,
+    Price: (
+      <div>
+        <span className="text-xs font-black text-zinc-200">{formatMoneyCompact(p.price)}</span>
+        {p.oldPrice && (
+          <span className="text-[10px] text-zinc-600 line-through ml-1.5">
+            {formatMoneyCompact(p.oldPrice)}
+          </span>
+        )}
+      </div>
+    ),
+    Stock: (
+      <button
+        onClick={() => toggleStock(p)}
+        className={iconBtnCls}
+        aria-label={p.inStock ? `Mark ${p.name} out of stock` : `Mark ${p.name} in stock`}
+      >
+        {p.inStock ? (
+          <CheckCircle size={15} className="text-emerald-400 hover:text-emerald-300" aria-hidden="true" />
+        ) : (
+          <XCircle size={15} className="text-red-400 hover:text-red-300" aria-hidden="true" />
+        )}
+      </button>
+    ),
+    Featured: (
+      <button
+        onClick={() => toggleFeatured(p)}
+        className={iconBtnCls}
+        aria-label={p.featured ? `Unfeature ${p.name}` : `Feature ${p.name}`}
+      >
+        <Star
+          size={15}
+          className={
+            p.featured
+              ? 'text-yellow-400 hover:text-yellow-300 fill-yellow-400'
+              : 'text-zinc-700 hover:text-zinc-500'
+          }
+          aria-hidden="true"
+        />
+      </button>
+    ),
+    Rating:
+      p.rating > 0 && p.reviewCount > 0 ? (
+        <div className="flex flex-col gap-0.5">
+          <span className="text-xs font-black text-amber-400">★ {p.rating}</span>
+          <span className="text-[10px] text-zinc-600">{formatNumber(p.reviewCount)} reviews</span>
+        </div>
+      ) : (
+        <span className="text-[10px] text-zinc-700 italic">No reviews</span>
+      ),
+    Actions: (
+      <div className="flex items-center gap-2">
+        <Link
+          href={`/admin/products/${p.slug}/edit`}
+          className={`${iconBtnCls} text-zinc-600 hover:text-cyan-400`}
+          aria-label={`Edit ${p.name}`}
+        >
+          <Pencil size={13} aria-hidden="true" />
+        </Link>
+        <button
+          onClick={() => setToDelete(p)}
+          className={`${iconBtnCls} text-zinc-600 hover:text-red-400`}
+          aria-label={`Delete ${p.name}`}
+        >
+          <Trash2 size={13} aria-hidden="true" />
+        </button>
+      </div>
+    ),
+  };
+}
+
 export default function ProductsClient({ categories }: { categories: string[] }) {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -166,109 +285,71 @@ export default function ProductsClient({ categories }: { categories: string[] })
           </Link>
         </div>
       ) : (
-        <div className="border border-zinc-800/50 bg-zinc-900/20 overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-zinc-800/50">
-                <th className="text-left px-5 py-3 text-[9px] text-zinc-600 tracking-[0.2em] uppercase font-bold">Product</th>
-                <th className="text-left px-4 py-3 text-[9px] text-zinc-600 tracking-[0.2em] uppercase font-bold hidden sm:table-cell">Category</th>
-                <th className="text-left px-4 py-3 text-[9px] text-zinc-600 tracking-[0.2em] uppercase font-bold">Price</th>
-                <th className="text-center px-4 py-3 text-[9px] text-zinc-600 tracking-[0.2em] uppercase font-bold hidden md:table-cell">Stock</th>
-                <th className="text-center px-4 py-3 text-[9px] text-zinc-600 tracking-[0.2em] uppercase font-bold hidden md:table-cell">Featured</th>
-                <th className="text-left px-4 py-3 text-[9px] text-zinc-600 tracking-[0.2em] uppercase font-bold hidden lg:table-cell">Rating</th>
-                <th className="text-right px-5 py-3 text-[9px] text-zinc-600 tracking-[0.2em] uppercase font-bold">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((p) => (
-                <tr key={p.id} className="border-b border-zinc-800/30 hover:bg-zinc-900/30 transition-colors">
-                  <td className="px-5 py-3.5">
-                    <div className="flex items-center gap-3">
-                      <div
-                        className="relative w-9 h-9 shrink-0 border border-zinc-800 overflow-hidden"
-                        style={p.images?.[0] ? undefined : { background: `linear-gradient(135deg, ${p.visualColor}22, ${p.visualColor2}22)` }}
-                        aria-hidden="true"
-                      >
-                        {p.images?.[0] ? (
-                          <Image
-                            src={p.images[0]}
-                            alt=""
-                            fill
-                            sizes="36px"
-                            className="object-cover"
-                          />
-                        ) : null}
-                      </div>
-                      <div>
-                        <p className="text-xs font-black text-zinc-200">{p.name}</p>
-                        <p className="text-[10px] text-zinc-600">{p.slug}</p>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-4 py-3.5 hidden sm:table-cell">
-                    <span className="text-[10px] text-zinc-500 font-semibold">{p.category}</span>
-                  </td>
-                  <td className="px-4 py-3.5">
-                    <div>
-                      <span className="text-xs font-black text-zinc-200">{formatMoneyCompact(p.price)}</span>
-                      {p.oldPrice && (
-                        <span className="text-[10px] text-zinc-600 line-through ml-1.5">{formatMoneyCompact(p.oldPrice)}</span>
-                      )}
-                    </div>
-                  </td>
-                  <td className="px-4 py-3.5 text-center hidden md:table-cell">
-                    <button onClick={() => toggleStock(p)} className="transition-colors" aria-label={p.inStock ? 'Mark out of stock' : 'Mark in stock'}>
-                      {p.inStock
-                        ? <CheckCircle size={15} className="text-emerald-400 hover:text-emerald-300 mx-auto" aria-hidden="true" />
-                        : <XCircle size={15} className="text-red-400 hover:text-red-300 mx-auto" aria-hidden="true" />}
-                    </button>
-                  </td>
-                  <td className="px-4 py-3.5 text-center hidden md:table-cell">
-                    <button onClick={() => toggleFeatured(p)} className="transition-colors" aria-label={p.featured ? 'Unfeature' : 'Feature'}>
-                      <Star
-                        size={15}
-                        className={`mx-auto ${p.featured ? 'text-yellow-400 hover:text-yellow-300 fill-yellow-400' : 'text-zinc-700 hover:text-zinc-500'}`}
-                        aria-hidden="true"
-                      />
-                    </button>
-                  </td>
-                  <td className="px-4 py-3.5 hidden lg:table-cell">
-                    {p.rating > 0 && p.reviewCount > 0 ? (
-                      <div className="flex flex-col gap-0.5">
-                        <span className="text-xs font-black text-amber-400">
-                          ★ {p.rating}
-                        </span>
-                        <span className="text-[10px] text-zinc-600">
-                          {formatNumber(p.reviewCount)} reviews
-                        </span>
-                      </div>
-                    ) : (
-                      <span className="text-[10px] text-zinc-700 italic">No reviews</span>
-                    )}
-                  </td>
-                  <td className="px-5 py-3.5 text-right">
-                    <div className="flex items-center justify-end gap-2">
-                      <Link
-                        href={`/admin/products/${p.slug}/edit`}
-                        className="p-2 text-zinc-600 hover:text-cyan-400 transition-colors border border-transparent hover:border-zinc-700"
-                        aria-label={`Edit ${p.name}`}
-                      >
-                        <Pencil size={13} aria-hidden="true" />
-                      </Link>
-                      <button
-                        onClick={() => setToDelete(p)}
-                        className="p-2 text-zinc-600 hover:text-red-400 transition-colors border border-transparent hover:border-zinc-700"
-                        aria-label={`Delete ${p.name}`}
-                      >
-                        <Trash2 size={13} aria-hidden="true" />
-                      </button>
-                    </div>
-                  </td>
+        <>
+          {/* Wide screens: a real table. */}
+          <div className="hidden lg:block border border-zinc-800/50 bg-zinc-900/20 overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-zinc-800/50">
+                  <th className={thCls}>Product</th>
+                  {PRODUCT_COLUMNS.map((col) => (
+                    <th key={col} className={thCls}>
+                      {col}
+                    </th>
+                  ))}
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {filtered.map((p) => {
+                  const cells = productCells(p, toggleStock, toggleFeatured, setToDelete);
+                  return (
+                    <tr
+                      key={p.id}
+                      className="border-b border-zinc-800/30 hover:bg-zinc-900/30 transition-colors"
+                    >
+                      <td className="px-4 py-3.5 align-top">
+                        <ProductIdentity product={p} />
+                      </td>
+                      {PRODUCT_COLUMNS.map((col) => (
+                        <td key={col} className="px-4 py-3.5 align-top">
+                          {cells[col]}
+                        </td>
+                      ))}
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Phones and tablets: one card per product. Stock and Featured were
+              `hidden md:table-cell` — and those cells hold the only CONTROLS for
+              toggling them, so the owner could not mark a part out of stock from a
+              phone at all. */}
+          <ul aria-label="Products" className="lg:hidden flex flex-col gap-3">
+            {filtered.map((p) => {
+              const cells = productCells(p, toggleStock, toggleFeatured, setToDelete);
+              return (
+                <li
+                  key={p.id}
+                  className="border border-zinc-800/50 bg-zinc-900/20 p-4 flex flex-col gap-3"
+                >
+                  <ProductIdentity product={p} />
+                  <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 items-center">
+                    {PRODUCT_COLUMNS.map((col) => (
+                      <div key={col} className="contents">
+                        <dt className="text-[9px] text-zinc-600 tracking-[0.15em] uppercase font-bold">
+                          {col}
+                        </dt>
+                        <dd className="min-w-0">{cells[col]}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                </li>
+              );
+            })}
+          </ul>
+        </>
       )}
     </>
   );

@@ -53,7 +53,7 @@ function Toast({
 
   return (
     <div
-      className={`flex items-start gap-3 px-4 py-3.5 border backdrop-blur-xl shadow-2xl min-w-[260px] max-w-sm animate-toast-in ${COLORS[item.type]}`}
+      className={`flex items-start gap-3 px-4 py-3.5 border backdrop-blur-xl shadow-2xl w-full sm:w-auto sm:min-w-[260px] max-w-sm animate-toast-in ${COLORS[item.type]}`}
       role="alert"
     >
       <Icon size={16} className="shrink-0 mt-0.5" aria-hidden="true" />
@@ -62,7 +62,7 @@ function Toast({
       </p>
       <button
         onClick={() => onDismiss(item.id)}
-        className="shrink-0 text-zinc-500 hover:text-zinc-300 transition-colors"
+        className="shrink-0 -m-1 p-1 inline-flex items-center justify-center w-6 h-6 text-zinc-500 hover:text-zinc-300 transition-colors"
         aria-label="Dismiss"
       >
         <X size={13} />
@@ -95,13 +95,23 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   return (
     <ToastContext.Provider value={{ addToast }}>
       {children}
+      {/*
+        Top-anchored on phones, bottom-right from sm: up.
+        The bottom-right corner belongs to FloatingContactButtons -- WhatsApp and
+        Call are a primary conversion path and the thumb reaches that corner. This
+        container used to share the exact same `bottom-6 right-6`, so a toast sat
+        on top of those buttons for its full 3.5s lifetime.
+        Not simply a larger bottom offset: FloatingContactButtons renders zero, one
+        or two buttons depending on admin settings, so any fixed offset is wrong for
+        one of those cases. `top-20` clears the 64px navbar unconditionally.
+      */}
       <div
         aria-live="polite"
         aria-atomic="false"
-        className="fixed bottom-6 right-6 z-[200] flex flex-col gap-2.5 items-end pointer-events-none"
+        className="fixed top-20 right-4 left-4 sm:top-auto sm:bottom-6 sm:right-6 sm:left-auto z-[200] flex flex-col gap-2.5 items-end pointer-events-none"
       >
         {toasts.map((t) => (
-          <div key={t.id} className="pointer-events-auto">
+          <div key={t.id} className="pointer-events-auto w-full sm:w-auto">
             <Toast item={t} onDismiss={dismiss} />
           </div>
         ))}

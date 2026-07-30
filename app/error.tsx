@@ -37,7 +37,7 @@ export default function Error({
   }, [error]);
 
   return (
-    <div className="bg-zinc-950 min-h-screen flex items-center justify-center px-6 py-24">
+    <div className="bg-zinc-950 min-h-svh flex items-center justify-center px-6 py-24">
       <div className="max-w-lg w-full text-center">
         <div className="flex justify-center mb-8">
           <div className="w-16 h-16 flex items-center justify-center border border-red-500/30 bg-red-500/5">

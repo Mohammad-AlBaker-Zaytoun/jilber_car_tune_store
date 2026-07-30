@@ -33,7 +33,14 @@ interface Props {
 
 const sectionCls = 'border border-zinc-800/50 bg-zinc-900/20 p-6';
 const labelCls = 'text-[9px] text-zinc-600 tracking-[0.2em] uppercase font-bold mb-1';
-const valueCls = 'text-xs text-zinc-300';
+// wrap-anywhere, not break-words: these cells hold customer-supplied emails and
+// street addresses, which have no spaces to wrap at. `break-words` permits a
+// break but does NOT reduce the element's min-content size, so a grid track
+// still refuses to shrink; `overflow-wrap: anywhere` does both. Measured: the
+// admin order page was 289px wider than a 320px phone, and 247px wider at
+// 1024px -- never a mobile-only defect. Not `truncate`: the owner needs to read
+// the whole address aloud on the phone.
+const valueCls = 'text-xs text-zinc-300 wrap-anywhere';
 
 type SaveField = 'status' | 'priority' | 'adminNotes' | 'customerReply';
 

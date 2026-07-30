@@ -52,9 +52,9 @@ export default function ProductDetails({
       {/* Breadcrumb */}
       <div className="max-w-7xl mx-auto px-6 lg:px-8 mb-10">
         <nav className="flex items-center gap-1.5 text-[10px] tracking-[0.2em] uppercase font-semibold">
-          <Link href="/" className="text-zinc-600 hover:text-cyan-400 transition-colors">Home</Link>
+          <Link href="/" className="inline-block py-1.5 text-zinc-600 hover:text-cyan-400 transition-colors">Home</Link>
           <ChevronRight size={10} className="text-zinc-700" />
-          <Link href="/store" className="text-zinc-600 hover:text-cyan-400 transition-colors">Store</Link>
+          <Link href="/store" className="inline-block py-1.5 text-zinc-600 hover:text-cyan-400 transition-colors">Store</Link>
           <ChevronRight size={10} className="text-zinc-700" />
           <span className="text-zinc-500">{product.name}</span>
         </nav>

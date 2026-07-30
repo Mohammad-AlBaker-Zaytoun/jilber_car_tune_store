@@ -295,3 +295,77 @@ cookie is `Secure`, and WebKit refuses `Secure` cookies over plain http, so an
 authenticated WebKit run against the plaintext test servers is impossible.
 Authenticated mobile coverage runs on Chromium at a phone viewport instead.
 Closing this properly means serving the test servers over HTTPS.
+
+---
+
+## Mobile-first responsiveness round — 2026-07-30
+
+Every route is now measured at 320/360/412/768/1024 by `e2e/responsive.spec.ts`,
+which **fails the build** on document overflow, any element past the viewport,
+content wider than its own box, or a tap target under 24×24 (WCAG 2.2 AA,
+SC 2.5.8). Final state: **0, 0, 0, 0 across 165 route/width combinations.**
+
+### Two P0 defects found on /admin, the page a buyer clicks first
+
+- **The whole dashboard was failing to load.** `/api/admin/orders` was changed to
+  return a page envelope during the pagination work, but `DashboardClient` still
+  called `.slice()` on it as an array. The TypeError rejected the enclosing
+  `Promise.all`, so every tile and the recent-orders panel were replaced by
+  "Failed to load dashboard data." Audited the other paginated consumers
+  (reviews, users) — both already read their envelope correctly.
+- **The Est. Revenue tile rendered a 44-character code fragment** — a template
+  literal missing its `$`, from the currency refactor.
+
+Both survived because the only test that loaded that page asserted a heading was
+visible, and the heading renders in the error state too.
+
+### Why none of this was known
+
+`overflow-x: hidden` was declared **twice** — in `globals.css` on `body` and
+again as a class on `<body>` in `app/layout.tsx`. Overflow was clipped with no
+scrollbar, so content was cut off and manual testing looked fine. Replaced with a
+single `html { overflow-x: clip }`, which does not create a scroll container and
+so no longer interferes with `position: sticky`.
+
+### Fixed, all measured rather than guessed
+
+| Finding | Measurement |
+|---|---|
+| Customer email/address in admin + account detail pages | +289px @320, **+247px @1024** — never a mobile-only bug. `wrap-anywhere`, not `break-words`: only the former reduces min-content size so a grid track can shrink. |
+| Five admin tables hid 5 of 7 columns below `lg` with no fallback | Total and Payment were unreachable on a phone; Stock and Featured hid the only **controls**, so a part could not be marked out of stock. Now a table from `lg:` up and a labelled card list below, both driven from one typed `Record` per row so they cannot diverge. |
+| Toast covered the WhatsApp/Call buttons for 3.5s | Both used `fixed bottom-6 right-6`. Toast moved to the top on phones; verified by `elementFromPoint` hit-testing, not by eye. |
+| `/store` and `/checkout/failure` headings | +11px and +18px @320. |
+| Admin stat-card label | +41px @320 — padding and the icon left ~32px for "PRODUCTS". Sizing now steps up from the phone. |
+| Store loading skeleton | `w-72` = 288px in a 272px box. |
+| 154 → 0 tap targets under 24px | Footer, contact, breadcrumb, navbar, password reveal, admin row actions, checkbox rows. |
+| `min-h-screen` → `min-h-svh` (23 sites); scroll hero `h-[100svh]` | `svh` not `dvh`: the frame maths reads `window.innerHeight` every scroll frame, so a height that changes with the URL bar would make the mapping drift. |
+| Animations ignored `prefers-reduced-motion` | Guard added. |
+
+### Three predictions the measurements disproved
+
+The product page's 3-up trust badges, the WhyChooseUs stat labels, and
+`SectionHeader`'s `whitespace-nowrap` were all predicted to overflow at 320px by
+static analysis. All three measured clean. **They were left alone** — shrinking
+the hero type or breaking the badge grid on a guess would have been a visual
+regression for no reason.
+
+### Two lessons worth keeping
+
+- **Polite fixtures hide layout bugs.** The first audit reported zero overflow
+  across all 165 combinations. `1 Test Street` and a 30-character email both fit.
+  `LONG_CUSTOMER` in `e2e/support/flows.ts` carries realistic Lebanese-format
+  data, and with it the admin order page measured 240px wider than a phone.
+- **Module state does not survive between Playwright describe blocks.** The
+  summary silently reported 35 of 165 combinations while looking like a complete
+  run. Measurements are now persisted to `test-results/responsive/`.
+
+### Still open
+
+- **The 768–1023px band** inherits the mobile layout wholesale (`sm:` is used
+  148×, `md:` 19×). It measures clean at 768, so nothing is broken — but it is
+  laid out as a large phone rather than as a tablet. A design decision, not a bug.
+- **`720svh` of scroll on the home hero** (`ScrollFrameHero.tsx`) is ~4600px of
+  scrolling on a 640px-tall phone before the next section. Flagged, unchanged.
+- **A pre-existing wobble** in `ScrollFrameSequence.tsx`: `scrollable` is computed
+  from `window.innerHeight` on every scroll frame, which varies on mobile as the
+  URL bar hides. Independent of this work.

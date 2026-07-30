@@ -19,7 +19,7 @@ export default function AdminError({
   reset: () => void;
 }) {
   return (
-    <div className="min-h-screen flex items-center justify-center px-6 py-24">
+    <div className="min-h-svh flex items-center justify-center px-6 py-24">
       <div className="max-w-lg w-full">
         <div className="border border-red-500/30 bg-red-500/5 p-8">
           <div className="flex items-center gap-3 mb-5">

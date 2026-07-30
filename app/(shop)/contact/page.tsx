@@ -55,12 +55,12 @@ export default async function ContactPage() {
         dangerouslySetInnerHTML={{ __html: safeJsonLd(jsonLd) }}
       />
 
-      <div className="bg-zinc-950 pt-28 lg:pt-32 pb-20 lg:pb-28 min-h-screen">
+      <div className="bg-zinc-950 pt-28 lg:pt-32 pb-20 lg:pb-28 min-h-svh">
         {/* Hero */}
         <div className="max-w-7xl mx-auto px-6 lg:px-8 mb-16">
           {/* Breadcrumb */}
           <nav className="flex items-center gap-1.5 text-[10px] tracking-[0.2em] uppercase font-semibold mb-8">
-            <Link href="/" className="text-zinc-600 hover:text-cyan-400 transition-colors">Home</Link>
+            <Link href="/" className="inline-block py-1.5 text-zinc-600 hover:text-cyan-400 transition-colors">Home</Link>
             <ChevronRight size={10} className="text-zinc-700" />
             <span className="text-zinc-500">Contact</span>
           </nav>
