@@ -112,13 +112,20 @@ test.describe('Authentication', () => {
     // page.request call races the sliding-session cookie the proxy re-issues on
     // every authenticated page hit, and it skips the button a customer actually
     // uses.
-    await Promise.all([
-      page.waitForResponse(
-        (r) => r.url().includes('/api/auth/logout') && r.request().method() === 'POST'
-      ),
-      page.getByRole('button', { name: /sign out/i }).click(),
-    ]);
+    await page.getByRole('button', { name: /sign out/i }).click();
 
+    // Assert the invariant itself — the session cookie is gone — rather than
+    // inferring it from where the browser happened to navigate. Waiting on a URL
+    // raced signOut()'s own router.push('/') and made this intermittent, while
+    // proving less: a cookie that survived logout is the actual defect worth
+    // catching, and expect.poll still catches it because it retries to a timeout.
+    await expect
+      .poll(async () => (await context.cookies()).some((c) => c.name === 'jilber-session'), {
+        message: 'the session cookie should be cleared by signing out',
+      })
+      .toBe(false);
+
+    // ...and the consequence: a protected page is no longer reachable.
     await page.goto('/account/orders');
     await expect(page).toHaveURL(/\/signin/);
 

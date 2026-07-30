@@ -168,7 +168,11 @@ things per route/width:
    out-of-flow children (an absolutely-positioned badge) is excluded.
 4. **Tap targets** — fails below 24×24 (WCAG 2.2 AA, SC 2.5.8), warns below
    44×44 (AAA, SC 2.5.5). A hard 44px gate would be permanently red against the
-   36px navbar controls, and a permanently-red gate gets ignored.
+   36px navbar controls, and a permanently-red gate gets ignored. Two refinements
+   keep it honest: a control wrapped in a `<label>` is credited with the label's
+   box (tapping the row activates it), and SC 2.5.8's explicit **inline
+   exception** is applied — a link inside a sentence cannot be 24px tall without
+   wrecking the line spacing, and the spec says so.
 
 | Width | Why this one |
 |---|---|
@@ -183,7 +187,7 @@ summary test. **Not** an in-memory array: Playwright restarts the worker process
 between describe blocks, and an array silently reported only the last block's
 routes (35 of 165 combinations) while looking like a complete run.
 
-Two things that made the numbers honest, both learned the hard way:
+Four things that made the numbers honest, three of them learned the hard way:
 
 - The audit injects `html, body { overflow-x: visible }` per navigation. Without
   it the app's own `overflow-x: clip` hides the document-level signal entirely.
@@ -192,6 +196,16 @@ Two things that made the numbers honest, both learned the hard way:
   `LONG_CUSTOMER` in `support/flows.ts` carries realistic Lebanese-format data,
   and with it the admin order page measured 240px wider than a 360px phone.
   **Polite test data hides layout bugs.**
+- It waits for the **content**, not just the network. Eight admin pages fetch
+  client-side and show a `Loading…` placeholder; measuring that placeholder
+  reported a clean, empty page. Adding the wait immediately surfaced real
+  findings on `/admin/orders` and `/admin/reviews` that had been invisible.
+  Matched on the exact string, because the home hero's overlay says
+  `Loading 0%` and fades out via opacity **without unmounting**, so waiting for
+  it to detach never resolves.
+- It waits on `document.fonts.ready` rather than `networkidle`. Font metrics
+  decide whether text overflows, and the 241 aborted hero-frame requests never
+  produced 500ms of quiet — which timed the home page out at 60s.
 
 ---
 

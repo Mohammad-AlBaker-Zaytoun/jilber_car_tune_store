@@ -14,16 +14,16 @@ import {
 /**
  * Responsive audit — every route, five widths.
  *
- * WHY THIS EXISTS. `overflow-x: hidden` is declared on the body, so horizontal
- * overflow has always been clipped with no scrollbar: content gets cut off and
- * manual testing looks fine. Nothing in CI had ever loaded an admin page below
- * 1280px, which is exactly why five admin tables shipped with their Total and
- * Payment columns unreachable on a phone.
+ * WHY THIS EXISTS. `overflow-x` was suppressed on the body, so horizontal
+ * overflow was clipped with no scrollbar: content got cut off and manual testing
+ * looked fine. Nothing in CI had ever loaded an admin page below 1280px, which is
+ * exactly why five admin tables shipped with their Total and Payment columns
+ * unreachable on a phone.
  *
- * REPORT-ONLY FOR NOW. Everything except the viewport meta tag is attached to the
- * HTML report rather than asserted, so this first run is evidence rather than a
- * wall of red. `npm run test:e2e:report` to read it. Once the fixes land, the
- * assertions at the bottom of this file are switched on.
+ * This FAILS THE BUILD. The summary test at the bottom asserts zero document
+ * overflow, zero elements past the viewport, zero content overflowing its own
+ * box, and zero tap targets under 24px. Per-route detail is attached to the HTML
+ * report either way — `npm run test:e2e:report`.
  */
 
 /** Widths, each chosen for a reason — see docs/E2E-TESTING.md. */
@@ -248,7 +248,10 @@ test.describe('Responsive audit — summary', () => {
       ...withTiny.map(
         (m) =>
           `  ${m.route} @ ${m.width}px  ${m.tinyTargets
-            .map((t) => `${t.width}x${t.height} ${JSON.stringify(t.label)}`)
+            .map(
+              (t) =>
+                `${t.width}x${t.height} <${t.tag} class="${t.classes}"> ${JSON.stringify(t.label)}`
+            )
             .join(', ')}`
       ),
     ];

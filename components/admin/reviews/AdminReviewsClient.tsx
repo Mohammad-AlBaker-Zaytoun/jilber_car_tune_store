@@ -143,7 +143,9 @@ export default function AdminReviewsClient() {
           placeholder="Search product, customer, title…"
           className={`${inputCls} flex-1 min-w-48`}
         />
-        <div className="relative">
+        {/* shrink-0: these are flex items in a wrapping row, and without it the
+            wrap at some widths squeezed the selects down to ~10px wide. */}
+        <div className="relative shrink-0">
           <select
             value={statusFilter}
             onChange={(e) => applyFilters(() => setStatusFilter(e.target.value as ReviewStatus | 'all'))}
@@ -161,7 +163,9 @@ export default function AdminReviewsClient() {
             aria-hidden="true"
           />
         </div>
-        <div className="relative">
+        {/* shrink-0: these are flex items in a wrapping row, and without it the
+            wrap at some widths squeezed the selects down to ~10px wide. */}
+        <div className="relative shrink-0">
           <select
             value={ratingFilter}
             onChange={(e) => applyFilters(() => setRatingFilter(Number(e.target.value)))}
@@ -257,8 +261,9 @@ export default function AdminReviewsClient() {
                           href={`/store/${r.productSlug}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-block py-1.5 text-zinc-600 hover:text-cyan-400 transition-colors"
+                          className="inline-flex items-center justify-center w-7 h-7 text-zinc-600 hover:text-cyan-400 transition-colors"
                           title="View product"
+                          aria-label="View product"
                         >
                           <ExternalLink size={10} aria-hidden="true" />
                         </Link>

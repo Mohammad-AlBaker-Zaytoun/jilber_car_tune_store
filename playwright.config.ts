@@ -129,6 +129,9 @@ export default defineConfig({
       name: 'responsive',
       dependencies: ['setup'],
       testMatch: /responsive\.spec\.ts/,
+      // Each test navigates five times and waits for client-fetched content, so
+      // it needs more than the 60s default.
+      timeout: 150_000,
       use: { ...devices['Desktop Chrome'] },
     },
     {

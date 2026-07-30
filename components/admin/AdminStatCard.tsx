@@ -39,8 +39,11 @@ export default function AdminStatCard({ label, value, icon: Icon, accent = 'cyan
           <p className="text-xl sm:text-2xl font-black text-white leading-none">{value}</p>
           {sub && <p className="text-[10px] text-zinc-600 mt-1.5">{sub}</p>}
         </div>
+        {/* Decorative only, and hidden on the narrowest screens: in a 2-up grid at
+            320px it consumed 40px of the ~88px available, which pushed a realistic
+            revenue figure ("$33,000") out of the card. */}
         <div
-          className={`w-8 h-8 sm:w-10 sm:h-10 shrink-0 flex items-center justify-center border ${c.border} ${c.bg}`}
+          className={`hidden sm:flex w-8 h-8 sm:w-10 sm:h-10 shrink-0 items-center justify-center border ${c.border} ${c.bg}`}
         >
           <Icon size={16} className={c.icon} aria-hidden="true" />
         </div>

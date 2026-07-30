@@ -262,7 +262,7 @@ export default function DashboardClient() {
                         <td className="px-4 py-3.5 align-top">
                           <Link
                             href={`/admin/orders/${order.id}`}
-                            className="text-xs font-black text-cyan-400 hover:text-cyan-300 transition-colors"
+                            className="inline-block py-1.5 text-xs font-black text-cyan-400 hover:text-cyan-300 transition-colors"
                           >
                             {order.ref}
                           </Link>
@@ -288,11 +288,14 @@ export default function DashboardClient() {
                   >
                     <Link
                       href={`/admin/orders/${order.id}`}
-                      className="text-xs font-black text-cyan-400 hover:text-cyan-300 transition-colors wrap-anywhere"
+                      className="inline-block py-1.5 text-xs font-black text-cyan-400 hover:text-cyan-300 transition-colors wrap-anywhere"
                     >
                       {order.ref}
                     </Link>
-                    <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 items-baseline">
+                    {/* Two label/value pairs per row from sm: up. At 768px a single column left
+                      the right half of every card empty and made each order ~340px tall;
+                      cards only render below lg, so this only affects 640-1023px. */}
+                  <dl className="grid grid-cols-[auto_1fr] sm:grid-cols-[auto_1fr_auto_1fr] gap-x-4 gap-y-2 items-baseline">
                       {RECENT_COLUMNS.map((col) => (
                         <div key={col} className="contents">
                           <dt className="text-[9px] text-zinc-600 tracking-[0.15em] uppercase font-bold">

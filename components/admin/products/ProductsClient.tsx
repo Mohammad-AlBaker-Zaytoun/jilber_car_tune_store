@@ -335,7 +335,7 @@ export default function ProductsClient({ categories }: { categories: string[] })
                   className="border border-zinc-800/50 bg-zinc-900/20 p-4 flex flex-col gap-3"
                 >
                   <ProductIdentity product={p} />
-                  <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 items-center">
+                  <dl className="grid grid-cols-[auto_1fr] sm:grid-cols-[auto_1fr_auto_1fr] gap-x-4 gap-y-2 items-center">
                     {PRODUCT_COLUMNS.map((col) => (
                       <div key={col} className="contents">
                         <dt className="text-[9px] text-zinc-600 tracking-[0.15em] uppercase font-bold">

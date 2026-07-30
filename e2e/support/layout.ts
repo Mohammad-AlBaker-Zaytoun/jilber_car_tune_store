@@ -24,6 +24,8 @@ export interface Offender {
 export interface SmallTarget {
   tag: string;
   label: string;
+  /** First few classes, so an unlabelled control is still findable in the source. */
+  classes: string;
   width: number;
   height: number;
 }
@@ -96,6 +98,33 @@ export async function visitRoute(page: Page, route: string): Promise<void> {
   // slow for it: the audit aborts 241 hero-frame requests on `/`, and that much
   // churn never produced 500ms of quiet, so the home page hit the 60s timeout.
   await page.evaluate(() => document.fonts.ready.then(() => undefined));
+
+  /**
+   * Then wait for the CONTENT.
+   *
+   * Eight admin pages fetch client-side and render a "Loading…" placeholder
+   * first. Measuring that placeholder reports a clean, empty page and proves
+   * nothing about the table or cards that replace it — which is exactly the kind
+   * of false green this whole gate exists to prevent.
+   *
+   * Resolves immediately on pages that have no such placeholder, because
+   * waiting for `detached` on a zero-match locator is already satisfied.
+   */
+  // Matched exactly, not by /^loading/i: the home hero's overlay says
+  // "Loading 0%" and fades out via opacity WITHOUT unmounting, so waiting for it
+  // to detach never resolves and burned 20s per viewport.
+  await page
+    .getByText('Loading…', { exact: true })
+    .first()
+    .waitFor({ state: 'detached', timeout: 10_000 })
+    .catch(() => {
+      /* a page with no such placeholder, or one still loading, must not fail */
+    });
+
+  // A beat for the post-fetch layout to settle before measuring.
+  await page.evaluate(
+    () => new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r())))
+  );
 }
 
 /**
@@ -218,7 +247,13 @@ export async function measure(page: Page, route: string): Promise<RouteMeasureme
         )
         .sort((a, b) => b.overflowPx - a.overflowPx);
 
-      const tinyTargets: Array<{ tag: string; label: string; width: number; height: number }> = [];
+      const tinyTargets: Array<{
+        tag: string;
+        label: string;
+        classes: string;
+        width: number;
+        height: number;
+      }> = [];
       const smallTargets: typeof tinyTargets = [];
 
       for (const el of Array.from(document.querySelectorAll(interactiveSelector))) {
@@ -262,7 +297,14 @@ export async function measure(page: Page, route: string): Promise<RouteMeasureme
             (el.textContent || '').trim().replace(/\s+/g, ' ').slice(0, 30) ||
             el.getAttribute('name') ||
             el.getAttribute('placeholder') ||
+            el.getAttribute('title') ||
+            el.getAttribute('type') ||
             '(unlabelled)',
+          classes: (el.getAttribute('class') || '')
+            .split(/\s+/)
+            .filter(Boolean)
+            .slice(0, 4)
+            .join(' '),
           width: Math.round(r.width),
           height: Math.round(r.height),
         };
@@ -360,7 +402,9 @@ export function formatMeasurement(m: RouteMeasurement): string {
   if (m.tinyTargets.length) {
     lines.push(`  ${m.tinyTargets.length} tap target(s) under ${TAP_TARGET_MIN}px (WCAG 2.2 AA):`);
     for (const t of m.tinyTargets) {
-      lines.push(`    ${t.width}x${t.height}  <${t.tag}>  ${JSON.stringify(t.label)}`);
+      lines.push(
+        `    ${t.width}x${t.height}  <${t.tag} class="${t.classes}">  ${JSON.stringify(t.label)}`
+      );
     }
   }
 
