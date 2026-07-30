@@ -81,10 +81,10 @@ passing** (was 58), production build succeeds.
       MSSQL in CI (`npm run test:integration`): transactions, nested creates, the
       concurrent payment-settlement and status-transition guards, Decimal/BigInt
       round-tripping, and cascade delete.
-- [ ] **Still no route-handler or E2E tests.** The 86 unit tests cover pure logic
-      and the 10 integration tests cover the data layer, but `requireAdmin()`,
-      the Whish callback handler and the checkout flow are still only verified
-      manually via `docs/PRE-LAUNCH.md`.
+- [ ] **Still no route-handler or E2E tests.** The 101 unit tests cover pure
+      logic and the 19 integration tests cover the data layer, but
+      `requireAdmin()`, the Whish callback handler and the checkout flow are
+      still only verified manually via `docs/PRE-LAUNCH.md`.
 - [ ] **Reviews still auto-publish** (`AUTO_APPROVE_REVIEWS = true`) despite the
       moderation UI existing. Needs a product decision.
 

@@ -148,7 +148,7 @@ know about them.
 | **Email verification is not required to order.** | Order confirmations can go to unverified addresses. |
 | **Reviews auto-publish.** | The moderation UI exists but `AUTO_APPROVE_REVIEWS = true`. Spam goes live immediately. |
 | **No foreign-key constraints** on `Order.userId`, `Quote.userId`, `Review.userId`. | Direct database deletion can orphan rows. The application paths are guarded. See `docs/TASKS_3.md`. |
-| **No route-handler or E2E test coverage.** | 86 unit tests cover pure logic and 10 integration tests cover the data layer against real MSSQL (transactions, concurrency guards, Decimal/BigInt). The HTTP layer is still verified manually via this checklist. |
+| **No route-handler or E2E test coverage.** | 101 unit tests cover pure logic and 19 integration tests cover the data layer against real MSSQL (transactions, concurrency guards, Decimal/BigInt, gateway-outage capture). The HTTP layer is still verified manually via this checklist. |
 
 ---
 
