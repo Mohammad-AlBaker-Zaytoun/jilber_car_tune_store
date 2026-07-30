@@ -33,14 +33,18 @@ export default function DashboardClient() {
         if (!r.ok) throw new Error('Failed to load stats');
         return r.json() as Promise<AdminStats>;
       }),
-      fetch('/api/admin/orders').then((r) => {
+      // Returns a page envelope, not a bare array. Treating the response as an
+      // array made `orders.slice` throw, which rejected the whole Promise.all and
+      // replaced the ENTIRE dashboard with "Failed to load dashboard data".
+      // Ask for exactly the six rows this panel shows rather than a default page.
+      fetch('/api/admin/orders?page=1&pageSize=6').then((r) => {
         if (!r.ok) throw new Error('Failed to load orders');
-        return r.json() as Promise<Order[]>;
+        return r.json() as Promise<{ orders: Order[] }>;
       }),
     ])
-      .then(([s, orders]) => {
+      .then(([s, page]) => {
         setStats(s);
-        setRecentOrders(orders.slice(0, 6));
+        setRecentOrders(page.orders);
       })
       .catch((e: unknown) => {
         console.error(e);
@@ -118,7 +122,7 @@ export default function DashboardClient() {
           />
           <AdminStatCard
             label="Est. Revenue"
-            value={`{formatMoneyCompact(stats.estimatedRevenue)}`}
+            value={formatMoneyCompact(stats.estimatedRevenue)}
             icon={DollarSign}
             accent="green"
             sub="Excludes cancelled orders"

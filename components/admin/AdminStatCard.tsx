@@ -19,7 +19,9 @@ const ACCENT = {
 export default function AdminStatCard({ label, value, icon: Icon, accent = 'cyan', sub }: Props) {
   const c = ACCENT[accent];
   return (
-    <div className="border border-zinc-800/50 bg-zinc-900/20 p-5">
+    // Labelled group: the value on its own ("$1,320") is meaningless read aloud,
+    // and it gives the tile a stable accessible name to assert against.
+    <div role="group" aria-label={label} className="border border-zinc-800/50 bg-zinc-900/20 p-5">
       <div className="flex items-start justify-between gap-4">
         <div className="flex-1 min-w-0">
           <p className="text-[10px] text-zinc-500 tracking-[0.2em] uppercase font-bold mb-2">{label}</p>

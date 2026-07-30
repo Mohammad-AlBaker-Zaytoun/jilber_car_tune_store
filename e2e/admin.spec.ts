@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
 import path from 'path';
-import { PRODUCT, findOrderByRef, disconnect } from './support/data';
+import { findOrderByRef, disconnect } from './support/data';
+import { catalogPrice, createShopOrder } from './support/flows';
 
 // Every test in this file runs as the admin.
 test.use({ storageState: path.join(__dirname, '.auth', 'admin.json') });
@@ -9,33 +10,13 @@ test.afterAll(async () => {
   await disconnect();
 });
 
-/** Places an order via the API so the admin tests have something to manage. */
-async function createOrder(request: import('@playwright/test').APIRequestContext, baseURL: string) {
-  const res = await request.post('/api/orders', {
-    headers: { Origin: baseURL },
-    data: {
-      customer: {
-        fullName: 'E2E Admin Fixture',
-        email: 'e2e-admin-fixture@example.test',
-        phone: '+96170000000',
-        address: '1 Test Street',
-      },
-      vehicle: { make: 'BMW', model: 'M4', year: '2023' },
-      items: [{ slug: PRODUCT.slug, quantity: 2, expectedPrice: PRODUCT.price }],
-      payment: 'shop',
-    },
-  });
-  expect(res.ok(), `order creation failed: ${res.status()}`).toBe(true);
-  return (await res.json()) as { orderId: string; ref: string };
-}
-
 test.describe('Admin order management', () => {
   test('the orders table shows the payment method, not only the status', async ({
     page,
     request,
     baseURL,
   }) => {
-    const { ref } = await createOrder(request, baseURL!);
+    const { ref } = await createShopOrder(request, baseURL!);
 
     await page.goto('/admin/orders');
     await expect(page.getByRole('link', { name: ref })).toBeVisible();
@@ -47,7 +28,7 @@ test.describe('Admin order management', () => {
   });
 
   test('an admin can search for an order by reference', async ({ page, request, baseURL }) => {
-    const { ref } = await createOrder(request, baseURL!);
+    const { ref } = await createShopOrder(request, baseURL!);
 
     await page.goto('/admin/orders');
     await page.getByPlaceholder(/search ref/i).fill(ref);
@@ -62,7 +43,7 @@ test.describe('Admin order management', () => {
     request,
     baseURL,
   }) => {
-    const { orderId, ref } = await createOrder(request, baseURL!);
+    const { orderId, ref } = await createShopOrder(request, baseURL!);
 
     await page.goto(`/admin/orders/${orderId}`);
     await expect(page.getByText(ref).first()).toBeVisible();
@@ -90,7 +71,7 @@ test.describe('Admin order management', () => {
     expect(res.ok()).toBe(true);
     const before = (await res.json()) as { estimatedRevenue: number };
 
-    await createOrder(request, baseURL!);
+    await createShopOrder(request, baseURL!);
 
     const after = (await (await request.get('/api/admin/stats')).json()) as {
       estimatedRevenue: number;
@@ -100,6 +81,14 @@ test.describe('Admin order management', () => {
 
     await page.goto('/admin');
     await expect(page.getByRole('heading', { name: /dashboard/i }).first()).toBeVisible();
+
+    // Assert the RENDERED tile, not just the API number. This test previously
+    // checked the endpoint and then only that the page had a heading, so a
+    // refactor that broke the tile into a literal code fragment
+    // ("{formatMoneyCompact(stats.estimatedRevenue)}") shipped green.
+    await expect(page.getByRole('group', { name: /est\. revenue/i })).toContainText(
+      catalogPrice(after.estimatedRevenue)
+    );
   });
 
   test('admin lists are paginated rather than returning the whole table', async ({ request }) => {

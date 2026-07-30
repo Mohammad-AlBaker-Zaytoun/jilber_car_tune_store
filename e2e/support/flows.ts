@@ -1,4 +1,4 @@
-import { expect, type Page } from '@playwright/test';
+import { expect, type APIRequestContext, type Page } from '@playwright/test';
 import { PRODUCT, TAX_RATE } from './data';
 
 /**
@@ -91,6 +91,53 @@ export async function fillCheckoutForm(
   await page.getByLabel('Car Make').fill(values.carMake);
   await page.getByLabel('Car Model').fill(values.carModel);
   await page.getByLabel('Year').fill(values.carYear);
+}
+
+/**
+ * Realistically long customer details, for layout tests.
+ *
+ * The short-and-tidy fixture below ("1 Test Street") is what let a genuine
+ * overflow bug hide: an unbreakable 30-character email fits, a real one does not.
+ * With these values the admin order page is 240px wider than a 360px phone.
+ * Lebanese-format address and a hyphenated name, because that is the actual
+ * market.
+ */
+export const LONG_CUSTOMER = {
+  fullName: 'Abdul-Rahman Al-Khoury Bou Saab',
+  email: 'e2e-abdulrahman.alkhoury.bousaab@verylongcompanydomain.example.test',
+  phone: '+961 70 123 456',
+  address:
+    'Rue Charles Malek, Immeuble Saifi 4, Bloc B, 3rd Floor, Achrafieh, Beirut 1100, Lebanon',
+};
+
+/**
+ * Places a paid-at-workshop order over the API, for tests that need an order to
+ * exist without walking the checkout UI again.
+ *
+ * The customer email carries E2E_PREFIX, so cleanupE2EData() reclaims it.
+ * Pass `LONG_CUSTOMER` when the test is about layout rather than behaviour.
+ */
+export async function createShopOrder(
+  request: APIRequestContext,
+  baseURL: string,
+  customer: typeof LONG_CUSTOMER = {
+    fullName: 'E2E Admin Fixture',
+    email: 'e2e-admin-fixture@example.test',
+    phone: '+96170000000',
+    address: '1 Test Street',
+  }
+): Promise<{ orderId: string; ref: string }> {
+  const res = await request.post('/api/orders', {
+    headers: { Origin: baseURL },
+    data: {
+      customer,
+      vehicle: { make: 'Mercedes-Benz', model: 'C63 AMG Coupe', year: '2021' },
+      items: [{ slug: PRODUCT.slug, quantity: 2, expectedPrice: PRODUCT.price }],
+      payment: 'shop',
+    },
+  });
+  expect(res.ok(), `order creation failed: ${res.status()}`).toBe(true);
+  return (await res.json()) as { orderId: string; ref: string };
 }
 
 /** Reads the order reference off the success page. */

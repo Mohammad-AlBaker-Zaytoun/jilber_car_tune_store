@@ -92,7 +92,9 @@ export default defineConfig({
     {
       name: 'storefront',
       dependencies: ['setup'],
-      testIgnore: /gateway-outage\.spec\.ts/,
+      // gateway-outage needs the broken-gateway server; responsive drives its own
+      // viewports and has its own project.
+      testIgnore: /gateway-outage\.spec\.ts|responsive\.spec\.ts/,
       use: { ...devices['Desktop Chrome'] },
     },
     {
@@ -116,6 +118,15 @@ export default defineConfig({
       dependencies: ['setup'],
       testMatch: /storefront\.spec\.ts/,
       use: { ...devices['iPhone 14'] },
+    },
+    {
+      // The responsive audit sets its own viewport per measurement, so this is a
+      // plain Chromium rather than a device descriptor — a descriptor's isMobile
+      // and deviceScaleFactor would confound the widths being set explicitly.
+      name: 'responsive',
+      dependencies: ['setup'],
+      testMatch: /responsive\.spec\.ts/,
+      use: { ...devices['Desktop Chrome'] },
     },
     {
       // Points at the deliberately broken gateway.
