@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import type { Order } from '@/types/admin';
+import PayNowPanel from '@/components/account/orders/PayNowPanel';
 import OrderStatusBadge from '@/components/orders/OrderStatusBadge';
 import PaymentStatusBadge from '@/components/orders/PaymentStatusBadge';
 import OrderStatusTimeline from '@/components/orders/OrderStatusTimeline';
@@ -125,6 +126,18 @@ export default function AccountOrderDetailClient({ order }: Props) {
           </div>
         </div>
       </div>
+
+      {/* Outstanding card payment — the only way a customer can settle an order
+          whose payment never completed. Without this an unpaid card order could
+          never be paid online at all. */}
+      <PayNowPanel
+        orderId={order.id}
+        orderRef={order.ref}
+        total={order.total}
+        payment={order.payment}
+        paymentStatus={order.paymentStatus}
+        status={order.status}
+      />
 
       {/* Customer note from admin */}
       {order.customerNotes && (

@@ -326,6 +326,48 @@ export default function OrderDetailClient({ order: initialOrder }: Props) {
             <div>
               <label className={`${labelCls} block`}>Payment Method</label>
               <p className="text-xs text-zinc-400 capitalize mt-1">{order.payment}</p>
+              {/* Whish correlation ids. These were hydrated by rowToOrder but
+                  rendered nowhere, so three very different situations looked
+                  identical in the admin UI: a gateway that was never reached
+                  (no external id), a customer who abandoned the payment page
+                  (id, no transaction), and a completed charge whose callback was
+                  lost (id + transaction). That distinction is exactly what you
+                  need when chasing a payment. */}
+              {order.payment === 'card' && (
+                <div className="mt-3 flex flex-col gap-1.5">
+                  {order.whishExternalId == null && order.paymentStatus !== 'paid' ? (
+                    <p className="text-[10px] text-amber-400/90 leading-relaxed">
+                      No payment session — the gateway was never reached, so no money
+                      can arrive against this order. Collect payment manually or have
+                      the customer use their pay link.
+                    </p>
+                  ) : (
+                    <>
+                      {order.whishExternalId != null && (
+                        <p className="text-[10px] text-zinc-600">
+                          Whish external id:{' '}
+                          <span className="font-mono text-zinc-500">
+                            {order.whishExternalId}
+                          </span>
+                        </p>
+                      )}
+                      {order.whishTransactionId ? (
+                        <p className="text-[10px] text-zinc-600">
+                          Transaction:{' '}
+                          <span className="font-mono text-zinc-500">
+                            {order.whishTransactionId}
+                          </span>
+                        </p>
+                      ) : (
+                        <p className="text-[10px] text-zinc-600 leading-relaxed">
+                          Payment started but never confirmed — the customer may have
+                          abandoned the page. The reconciliation job re-checks these.
+                        </p>
+                      )}
+                    </>
+                  )}
+                </div>
+              )}
             </div>
             <div>
               <label className={`${labelCls} block`}>Payment Status</label>

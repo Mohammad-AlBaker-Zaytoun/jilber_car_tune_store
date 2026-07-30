@@ -437,6 +437,62 @@ export async function clearWhishExternalId(orderId: string): Promise<void> {
   });
 }
 
+/**
+ * Records that online payment could not be started for an order, and returns the
+ * refreshed order.
+ *
+ * The order row is written BEFORE the gateway is called, so a gateway failure
+ * used to leave a real order that nobody was told about and that nothing ever
+ * revisited: no customer email, no admin alert, and — because
+ * clearWhishExternalId() correctly removes it from the reconciliation queue — no
+ * cron either. An admin could not distinguish it from a customer who simply
+ * abandoned the Whish page, since both render as an identical "Unpaid" badge.
+ *
+ * This writes the distinguishing evidence: an admin note plus a status-history
+ * entry, which the order timeline already renders. `payment` stays 'card' and
+ * `paymentStatus` stays 'unpaid' on purpose — rewriting the method to 'shop'
+ * would make an unpaid order count toward estimatedRevenue(), which excludes
+ * only unpaid *card* orders.
+ */
+export async function markOnlinePaymentUnavailable(
+  orderId: string,
+  reason: string
+): Promise<Order | null> {
+  const existing = await prisma.order.findUnique({
+    where: { id: orderId },
+    select: { adminNotes: true },
+  });
+  if (!existing) return null;
+
+  const note = `[${new Date().toISOString()}] Online payment unavailable: ${reason}. Payment must be arranged manually or via the customer's pay link.`;
+
+  await prisma.$transaction([
+    prisma.order.update({
+      where: { id: orderId },
+      data: {
+        adminNotes: existing.adminNotes ? `${existing.adminNotes}\n${note}` : note,
+        updatedAt: new Date(),
+      },
+    }),
+    prisma.orderStatusHistory.create({
+      data: {
+        id: randomUUID(),
+        orderId,
+        // Not a status transition — the order stays 'pending'. This entry exists
+        // to make the payment failure visible in the timeline.
+        fromStatus: 'pending',
+        toStatus: 'pending',
+        changedByUserId: 'system',
+        changedByName: 'System',
+        note: `Online card payment could not be started (${reason}).`,
+      },
+    }),
+  ]);
+
+  const row = await prisma.order.findUnique({ where: { id: orderId }, include: includeChildren });
+  return row ? rowToOrder(row) : null;
+}
+
 /** Looks up the order a Whish callback refers to by its externalId. */
 export async function getOrderByWhishExternalId(externalId: number): Promise<Order | null> {
   const row = await prisma.order.findUnique({
@@ -458,6 +514,17 @@ export async function getOrderByWhishExternalId(externalId: number): Promise<Ord
  * customer a second "order received".
  */
 const SETTLEABLE_PAYMENT_STATUSES = ['unpaid', 'deposit_pending'];
+
+/**
+ * Whether a payment status may still be settled by an online payment.
+ *
+ * Exported so the resume-payment route enforces exactly the same rule as
+ * markOnlinePaymentUnavailable/markOrderPaidByWhish rather than duplicating the
+ * list — a divergence here would mean charging a refunded order.
+ */
+export function isSettleablePaymentStatus(status: string): boolean {
+  return SETTLEABLE_PAYMENT_STATUSES.includes(status);
+}
 
 /**
  * Marks an order paid via Whish and records the transaction id.

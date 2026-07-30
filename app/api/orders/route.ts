@@ -1,16 +1,27 @@
 import { NextResponse, after } from 'next/server';
 import { z } from 'zod';
 import { randomBytes } from 'crypto';
-import { createOrder, attachWhishExternalId, clearWhishExternalId } from '@/lib/orders';
+import {
+  createOrder,
+  attachWhishExternalId,
+  clearWhishExternalId,
+  markOnlinePaymentUnavailable,
+} from '@/lib/orders';
 import { getSession } from '@/lib/session';
 import { getProductsBySlugs } from '@/lib/products';
 import { getSettings } from '@/lib/settings';
 import { STORE_CURRENCY, computeTotals } from '@/lib/currency';
-import { notifyOrderCreated } from '@/lib/order-notifications';
+import { notifyOrderCreated, notifyOrderPaymentUnavailable } from '@/lib/order-notifications';
 import { getWhishClient, toWhishCurrency } from '@/lib/payments/whish';
+import {
+  isCardPaymentAvailable,
+  recordPaymentFailure,
+  recordPaymentSuccess,
+} from '@/lib/payments/whish-health';
+import { createPayToken } from '@/lib/payments/pay-token';
 import { siteConfig } from '@/lib/seo/site-config';
 import { rateLimit, getClientIp, tooManyRequests } from '@/lib/rate-limit';
-import type { PaymentStatus } from '@/types/admin';
+import type { Order, PaymentStatus } from '@/types/admin';
 import { logger } from '@/lib/logger';
 
 const itemSchema = z.object({
@@ -67,6 +78,53 @@ function initialPaymentStatus(payment: 'shop' | 'bank' | 'card'): PaymentStatus 
   return 'unpaid';
 }
 
+/**
+ * Keeps a card order that the gateway could not take payment for.
+ *
+ * The order row is written before the gateway is called, so the alternative —
+ * returning 502 and walking away — left a real order nobody was told about, and
+ * an error message ("try another method") that invited the customer to create a
+ * duplicate. This captures the sale instead:
+ *
+ *  - detach the externalId (Whish never accepted it, so no money can arrive
+ *    against it, and leaving it attached makes the reconciler chase it forever)
+ *  - record WHY, in the admin notes and the order timeline, so this is
+ *    distinguishable from a customer who merely abandoned the payment page
+ *  - email the customer a confirmation plus a signed pay link — this is the only
+ *    path that notifies them, since notifyOrderCreated is skipped for card orders
+ *  - alert the admin that payment needs collecting
+ *  - trip the circuit breaker so the next customer is not sent down the same path
+ *
+ * Returns 201: from the customer's point of view the order succeeded, which is
+ * true. `paymentUnavailable` tells the client to explain that payment is pending.
+ */
+async function captureWithoutPayment(order: Order, reason: string) {
+  await clearWhishExternalId(order.id);
+  const updated = (await markOnlinePaymentUnavailable(order.id, reason)) ?? order;
+  recordPaymentFailure();
+
+  const payUrl = `${siteConfig.siteUrl}/checkout/pay?token=${encodeURIComponent(
+    await createPayToken(order.id)
+  )}`;
+
+  after(async () => {
+    await notifyOrderCreated(updated);
+    await notifyOrderPaymentUnavailable(updated, payUrl);
+  });
+
+  logger.warn('payment.captured_without_payment', {
+    orderRef: order.ref,
+    orderId: order.id,
+    total: order.total,
+    reason,
+  });
+
+  return NextResponse.json(
+    { orderId: order.id, ref: order.ref, paymentUnavailable: true },
+    { status: 201 }
+  );
+}
+
 export async function POST(request: Request) {
   try {
     const rl = rateLimit('orders:' + getClientIp(request), 8, 60_000);
@@ -81,10 +139,17 @@ export async function POST(request: Request) {
 
     const { customer, vehicle, items, payment } = result.data;
 
-    // Card payments go through Whish — fail fast if it isn't configured rather
+    // Card payments go through Whish. Fail fast BEFORE writing the order rather
     // than silently creating an unpaid order the customer thinks they paid for.
+    //
+    // Checks availability, not just configuration: when the circuit breaker is
+    // open we already know the gateway is failing, so there is no point calling
+    // it and then capturing an order that needs manual payment chasing. The
+    // checkout page no longer offers Card in this state, so reaching here means a
+    // stale client — and telling them to pick another method costs nothing,
+    // because their cart and form are still intact.
     const whish = payment === 'card' ? getWhishClient() : null;
-    if (payment === 'card' && !whish) {
+    if (payment === 'card' && (!whish || !isCardPaymentAvailable())) {
       return NextResponse.json(
         { error: 'Card payments are currently unavailable. Please choose another method.' },
         { status: 503 }
@@ -227,39 +292,31 @@ export async function POST(request: Request) {
           successRedirectUrl: `${siteConfig.siteUrl}/checkout/success?ref=${encodeURIComponent(order.ref)}`,
           failureRedirectUrl: `${siteConfig.siteUrl}/checkout/failure?ref=${encodeURIComponent(order.ref)}`,
         });
+
         if (!result.success || !result.collectUrl) {
-          // Whish never accepted this externalId, so no money can ever arrive
-          // against it. Detach it: otherwise the order looks "sent to payment
-          // but unconfirmed" forever, the reconciliation cron retries it every
-          // 15 minutes, getPaymentStatus errors, and the job exits non-zero on
-          // every tick — training the operator to ignore the alert that exists
-          // to catch genuinely lost money.
-          await clearWhishExternalId(order.id);
-          return NextResponse.json(
-            { error: result.dialog?.message ?? 'Could not start the card payment. Please try another method.' },
-            { status: 502 }
-          );
+          // The gateway's own message is logged, never shown — it is third-party
+          // copy that could say anything to our customer.
+          logger.error('payment.create_rejected', undefined, {
+            orderRef: order.ref,
+            orderId: order.id,
+            total: order.total,
+            gatewayMessage: result.dialog?.message,
+          });
+          return captureWithoutPayment(order, 'gateway rejected the request');
         }
+
+        recordPaymentSuccess();
         return NextResponse.json(
           { orderId: order.id, ref: order.ref, collectUrl: result.collectUrl },
           { status: 201 }
         );
       } catch (err) {
-        // The order row already exists at this point but has no payment session.
-        // Log the ref so it can be matched against Whish's side if a customer
-        // reports being charged.
         logger.error('payment.create_failed', err, {
           orderRef: order.ref,
           orderId: order.id,
           total: order.total,
         });
-        // Same reasoning as the !success branch above — do not leave a dangling
-        // externalId for the reconciler to chase forever.
-        await clearWhishExternalId(order.id);
-        return NextResponse.json(
-          { error: 'Could not start the card payment. Please try another method.' },
-          { status: 502 }
-        );
+        return captureWithoutPayment(order, 'could not reach the payment gateway');
       }
     }
 

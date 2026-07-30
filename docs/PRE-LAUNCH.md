@@ -73,6 +73,22 @@ VPS behind the real domain — not on a laptop.
 - [ ] **Non-card path.** Place a "Pay at Workshop" order → confirmation email
       sends immediately and the order is `pending` / `unpaid`.
 
+- [ ] **Gateway outage — orders must keep working.** Temporarily set
+      `WHISH_SECRET` to a wrong value and restart.
+  - [ ] A card order returns **201**, not an error: the order is saved, the
+        success page says *"Payment still needed"*, and the cart is cleared.
+  - [ ] The customer receives **two** emails (confirmation + pay link) and the
+        admin receives an `ACTION NEEDED` alert.
+  - [ ] `/admin/orders` shows method **Card**, and the detail page says *"No
+        payment session — the gateway was never reached"* with the reason in the
+        timeline.
+  - [ ] After 3 failures the **Card option disappears** from `/checkout` and a
+        further card POST returns 503 without creating an order.
+  - [ ] Workshop and Bank orders keep succeeding throughout.
+  - [ ] Restore the correct secret, then follow the emailed pay link **as a
+        guest** (private window) → Whish → order becomes `paid`, exactly one
+        confirmation email, and the link then reports "already paid".
+
 Then switch to production keys, unset `WHISH_ALLOW_SANDBOX`, restart, and place
 **one real low-value order with a real card**. Confirm the money actually
 arrives in the Whish account. Refund it afterwards.

@@ -93,9 +93,18 @@ const PAYMENT_OPTIONS: { id: PaymentMethod; label: string; sub: string; Icon: Re
 interface Props {
   /** From admin settings, resolved on the server. See lib/currency.ts. */
   taxRate: number;
+  /**
+   * Whether online card payment can actually be started right now — false when
+   * Whish is unconfigured OR the circuit breaker is open. Resolved on the server
+   * so a broken method is never offered in the first place.
+   */
+  cardPaymentAvailable: boolean;
 }
 
-export default function CheckoutForm({ taxRate }: Props) {
+export default function CheckoutForm({ taxRate, cardPaymentAvailable }: Props) {
+  const paymentOptions = cardPaymentAvailable
+    ? PAYMENT_OPTIONS
+    : PAYMENT_OPTIONS.filter((o) => o.id !== 'card');
   const router = useRouter();
   const items = useCartStore((s) => s.items);
   const clearCart = useCartStore((s) => s.clearCart);
@@ -205,15 +214,25 @@ export default function CheckoutForm({ taxRate }: Props) {
         return;
       }
 
-      const data = (await res.json()) as { orderId: string; ref: string; collectUrl?: string };
+      const data = (await res.json()) as {
+        orderId: string;
+        ref: string;
+        collectUrl?: string;
+        paymentUnavailable?: boolean;
+      };
       // Card payments return a Whish hosted-page URL — redirect there to pay.
       // Keep the cart intact until payment is confirmed via the callback.
       if (data.collectUrl) {
         window.location.href = data.collectUrl;
         return;
       }
+      // The gateway was unavailable, so the order was captured WITHOUT payment
+      // rather than lost. The order really exists, so clear the cart as usual and
+      // tell the success page to explain that payment is still outstanding.
       clearCart();
-      router.push(`/checkout/success?ref=${encodeURIComponent(data.ref)}`);
+      const query = new URLSearchParams({ ref: data.ref });
+      if (data.paymentUnavailable) query.set('paymentPending', '1');
+      router.push(`/checkout/success?${query}`);
     } catch {
       setSubmitError('Something went wrong. Please try again.');
     } finally {
@@ -393,7 +412,7 @@ export default function CheckoutForm({ taxRate }: Props) {
                   03 — Payment Method
                 </h2>
                 <div className="flex flex-col gap-3">
-                  {PAYMENT_OPTIONS.map(({ id, label, sub, Icon }) => (
+                  {paymentOptions.map(({ id, label, sub, Icon }) => (
                     <button
                       key={id}
                       type="button"

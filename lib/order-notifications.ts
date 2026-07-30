@@ -40,6 +40,56 @@ export async function notifyOrderCreated(order: Order): Promise<void> {
   }
 }
 
+/**
+ * The order was captured but online payment could not be started.
+ *
+ * This path previously sent NOTHING — not to the customer, not to the admin —
+ * even though a real order row existed, because notifyOrderCreated is skipped for
+ * card orders (the callback normally sends it). The customer's only artifact was
+ * a red box in the browser that vanished on reload.
+ *
+ * Carries a signed pay link so a GUEST can complete payment later; guests have no
+ * /account/orders to return to.
+ */
+export async function notifyOrderPaymentUnavailable(
+  order: Order,
+  payUrl: string
+): Promise<void> {
+  await sendEmail({
+    to: order.customer.email,
+    subject: `Payment pending — ${order.ref}`,
+    html: emailLayout(
+      'Your order is confirmed — payment still needed',
+      `<p>Hi ${escapeHtml(order.customer.fullName)}, we've saved your order, but our card
+        payment provider was unavailable just now, so nothing has been charged.</p>
+       <p><strong>Your order is not lost.</strong> You can pay securely using the
+        button below, or simply pay at the workshop when you arrive.</p>
+       <p><a href="${escapeHtml(payUrl)}"
+             style="display:inline-block;padding:12px 22px;background:#0891b2;color:#fff;text-decoration:none;font-weight:700">
+          Pay for this order</a></p>
+       <p style="font-size:13px;color:#71717a">This payment link is valid for 7 days.
+          If it has expired, reply to this email and we'll send a new one.</p>
+       ${orderSummary(order)}`
+    ),
+  });
+
+  const admin = adminEmail();
+  if (admin) {
+    await sendEmail({
+      to: admin,
+      subject: `ACTION NEEDED: payment not taken — ${order.ref}`,
+      html: emailLayout(
+        'Order captured, but card payment failed',
+        `<p>The payment gateway was unavailable, so this order was saved without
+           taking payment. <strong>Follow up to collect it.</strong></p>
+         <p>${escapeHtml(order.customer.fullName)} (${escapeHtml(order.customer.email)},
+            ${escapeHtml(order.customer.phone)})</p>
+         ${orderSummary(order)}`
+      ),
+    });
+  }
+}
+
 async function notifyCustomerStatus(order: Order, heading: string, message: string): Promise<void> {
   await sendEmail({
     to: order.customer.email,

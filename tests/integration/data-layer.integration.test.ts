@@ -10,6 +10,7 @@ import {
   clearWhishExternalId,
   getUnconfirmedWhishOrders,
 } from '@/lib/orders';
+import { markOnlinePaymentUnavailable, isSettleablePaymentStatus, estimatedRevenue } from '@/lib/orders';
 import { getProductsBySlugs, deleteProduct, createProduct } from '@/lib/products';
 import { claimQuoteForConversion } from '@/lib/quotes';
 import { updateSettings, getSettings } from '@/lib/settings';
@@ -352,5 +353,92 @@ describe('settings upsert', () => {
     } finally {
       await updateSettings({ taxRate: before.taxRate });
     }
+  });
+});
+
+/**
+ * Gateway-unavailable capture.
+ *
+ * The order row is written BEFORE the gateway is called, so a gateway failure
+ * used to leave a real order that nobody was told about and that nothing ever
+ * revisited. These pin the properties that make the captured order safe:
+ * distinguishable, recoverable, and NOT counted as revenue.
+ */
+describe('order captured without payment', () => {
+  it('records the reason in the admin notes and the timeline', async () => {
+    const order = await createOrder(orderInput());
+    createdOrderIds.push(order.id);
+
+    const updated = await markOnlinePaymentUnavailable(order.id, 'gateway rejected the request');
+    expect(updated).not.toBeNull();
+    expect(updated!.adminNotes).toContain('Online payment unavailable');
+    expect(updated!.adminNotes).toContain('gateway rejected the request');
+
+    // The timeline entry is what distinguishes this from a customer who simply
+    // abandoned the Whish page — both otherwise render as an "Unpaid" badge.
+    const noteEntry = updated!.statusHistory.find((h) =>
+      h.note?.includes('Online card payment could not be started')
+    );
+    expect(noteEntry).toBeTruthy();
+    // Not a status transition: the order must stay pending.
+    expect(updated!.status).toBe('pending');
+  });
+
+  it('stays payable and does NOT count toward revenue', async () => {
+    const before = await estimatedRevenue();
+
+    const order = await createOrder(orderInput());
+    createdOrderIds.push(order.id);
+    await markOnlinePaymentUnavailable(order.id, 'could not reach the payment gateway');
+
+    const after = await getOrderById(order.id);
+    // payment stays 'card' on purpose — rewriting it to 'shop' would make an
+    // UNPAID order count as revenue, since estimatedRevenue() excludes only
+    // unpaid *card* orders.
+    expect(after!.payment).toBe('card');
+    expect(after!.paymentStatus).toBe('unpaid');
+    expect(isSettleablePaymentStatus(after!.paymentStatus)).toBe(true);
+
+    expect(await estimatedRevenue()).toBe(before);
+  });
+
+  it('appends rather than overwriting an existing admin note', async () => {
+    const order = await createOrder(orderInput({ adminNotes: 'Existing operator note.' }));
+    createdOrderIds.push(order.id);
+
+    const updated = await markOnlinePaymentUnavailable(order.id, 'first failure');
+    expect(updated!.adminNotes).toContain('Existing operator note.');
+    expect(updated!.adminNotes).toContain('first failure');
+  });
+
+  it('returns null for an order that does not exist', async () => {
+    expect(await markOnlinePaymentUnavailable(randomUUID(), 'x')).toBeNull();
+  });
+});
+
+/**
+ * Resume-payment eligibility.
+ *
+ * The route re-checks these server-side on every call; a divergence between this
+ * list and SETTLEABLE_PAYMENT_STATUSES would mean charging an order twice.
+ */
+describe('resume-payment eligibility', () => {
+  it('permits only genuinely unsettled statuses', () => {
+    expect(isSettleablePaymentStatus('unpaid')).toBe(true);
+    expect(isSettleablePaymentStatus('deposit_pending')).toBe(true);
+    // Charging any of these again would take money for a settled order.
+    expect(isSettleablePaymentStatus('paid')).toBe(false);
+    expect(isSettleablePaymentStatus('refunded')).toBe(false);
+    expect(isSettleablePaymentStatus('deposit_paid')).toBe(false);
+    expect(isSettleablePaymentStatus('not_required')).toBe(false);
+  });
+
+  it('a paid order is not eligible, so resume cannot double-charge it', async () => {
+    const order = await createOrder(orderInput());
+    createdOrderIds.push(order.id);
+    await markOrderPaidByWhish(order.id, 'txn-resume');
+
+    const read = await getOrderById(order.id);
+    expect(isSettleablePaymentStatus(read!.paymentStatus)).toBe(false);
   });
 });

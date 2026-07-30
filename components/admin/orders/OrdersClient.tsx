@@ -6,7 +6,7 @@ import {
   Search, ShoppingBag, Clock, Wrench, CheckCircle2, XCircle, Package2, AlertCircle,
 } from 'lucide-react';
 import type { Order, OrderStatus, PaymentStatus } from '@/types/admin';
-import { STATUSES, formatStatus, PAYMENT_STATUSES, formatPaymentStatus } from '@/components/admin/orderStatus';
+import { STATUSES, formatStatus, PAYMENT_STATUSES, formatPaymentStatus, formatPaymentMethod } from '@/components/admin/orderStatus';
 import OrderStatusBadge from '@/components/orders/OrderStatusBadge';
 import PaymentStatusBadge from '@/components/orders/PaymentStatusBadge';
 import { formatMoneyCompact } from '@/lib/currency';
@@ -153,6 +153,7 @@ export default function OrdersClient() {
                   <th className="text-left px-4 py-3 text-[9px] text-zinc-600 tracking-[0.2em] uppercase font-bold hidden sm:table-cell">Vehicle</th>
                   <th className="text-left px-4 py-3 text-[9px] text-zinc-600 tracking-[0.2em] uppercase font-bold hidden lg:table-cell">Items</th>
                   <th className="text-left px-4 py-3 text-[9px] text-zinc-600 tracking-[0.2em] uppercase font-bold hidden md:table-cell">Total</th>
+                  <th className="text-left px-4 py-3 text-[9px] text-zinc-600 tracking-[0.2em] uppercase font-bold hidden lg:table-cell">Method</th>
                   <th className="text-left px-4 py-3 text-[9px] text-zinc-600 tracking-[0.2em] uppercase font-bold hidden md:table-cell">Payment</th>
                   <th className="text-left px-4 py-3 text-[9px] text-zinc-600 tracking-[0.2em] uppercase font-bold">Status</th>
                   <th className="text-right px-5 py-3 text-[9px] text-zinc-600 tracking-[0.2em] uppercase font-bold">Date</th>
@@ -186,6 +187,11 @@ export default function OrdersClient() {
                     <td className="px-4 py-3.5 hidden md:table-cell">
                       <span className="text-xs font-black text-zinc-200">
                         {formatMoneyCompact(order.total)}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3.5 hidden lg:table-cell">
+                      <span className="text-[10px] text-zinc-500 uppercase tracking-wide">
+                        {formatPaymentMethod(order.payment)}
                       </span>
                     </td>
                     <td className="px-4 py-3.5 hidden md:table-cell">

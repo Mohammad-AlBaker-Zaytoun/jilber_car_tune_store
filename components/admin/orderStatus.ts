@@ -79,3 +79,23 @@ export function formatStatus(s: OrderStatus): string {
 export function formatPaymentStatus(s: PaymentStatus): string {
   return PAYMENT_STATUS_LABELS[s] ?? s;
 }
+
+/**
+ * Human label for the payment METHOD column (`Order.payment`).
+ *
+ * The admin list showed only paymentStatus, so a card order awaiting payment and
+ * a walk-in awaiting payment were indistinguishable without opening each one —
+ * which matters most exactly when the gateway has been failing.
+ */
+export function formatPaymentMethod(method: string): string {
+  switch (method) {
+    case 'card':
+      return 'Card';
+    case 'bank':
+      return 'Bank';
+    case 'shop':
+      return 'Workshop';
+    default:
+      return method || '—';
+  }
+}

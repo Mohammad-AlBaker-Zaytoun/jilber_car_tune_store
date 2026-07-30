@@ -3,13 +3,16 @@
 import { useSearchParams } from 'next/navigation';
 import { useEffect } from 'react';
 import Link from 'next/link';
-import { CheckCircle, Home, ShoppingBag, Calendar, Mail, Package } from 'lucide-react';
+import { CheckCircle, Home, ShoppingBag, Calendar, Mail, Package, AlertTriangle } from 'lucide-react';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { useCartStore } from '@/lib/cart';
 
 export default function SuccessContent() {
   const params = useSearchParams();
   const ref = params.get('ref');
+  // Set when the gateway was unavailable and the order was captured without
+  // taking payment — the customer must be told, or they will assume they paid.
+  const paymentPending = params.get('paymentPending') === '1';
   const { user } = useAuth();
   const clearCart = useCartStore((s) => s.clearCart);
 
@@ -82,6 +85,33 @@ export default function SuccessContent() {
             24 hours to confirm your booking and discuss next steps.
           </p>
         </div>
+
+        {/* Payment could not be taken — say so plainly rather than letting the
+            customer believe they have paid. */}
+        {paymentPending && (
+          <div className="border border-amber-500/30 bg-amber-500/5 p-6 mb-8">
+            <div className="flex items-start gap-3">
+              <AlertTriangle
+                size={18}
+                className="text-amber-400 shrink-0 mt-0.5"
+                aria-hidden="true"
+              />
+              <div>
+                <p className="text-xs font-black text-amber-400 tracking-[0.2em] uppercase mb-2">
+                  Payment still needed
+                </p>
+                <p className="text-sm text-zinc-300 leading-relaxed">
+                  Your order is saved, but our card payment provider was
+                  unavailable just now, so <strong>nothing has been charged</strong>.
+                </p>
+                <p className="text-sm text-zinc-400 leading-relaxed mt-2">
+                  We&apos;ve emailed you a secure payment link — or you can simply
+                  pay at the workshop when you arrive. Nothing is lost either way.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Order reference card */}
         <div className="border border-zinc-800/50 bg-zinc-900/20 p-8 mb-8">
