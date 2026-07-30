@@ -5,7 +5,8 @@ this suite is mocked.
 
 It exists for two audiences: CI, and a live demonstration in front of a buyer.
 The second one shapes the design — the specs are named as claims a non-engineer
-can follow, and the whole suite finishes in about two minutes.
+can follow. The behavioural projects finish in about two minutes; the responsive
+audit adds roughly another two.
 
 ---
 
@@ -17,6 +18,9 @@ npm run test:e2e:demo     # headed + slowed down, for showing someone
 npm run test:e2e:ui       # Playwright's interactive UI mode
 npm run test:e2e:report    # open the HTML report from the last run
 npm run test:e2e:only     # skip the rebuild (specs changed, app did not)
+
+# a single project, e.g. while iterating on the responsive audit
+npm run test:e2e:only -- --project=responsive
 ```
 
 **Everything except `:only` rebuilds the app first, and that is deliberate.** Both
@@ -45,7 +49,9 @@ an order — then does it again against a payment gateway that is genuinely brok
 The slow-down keys off `--headed`, so any headed run is followable; set
 `E2E_DEMO=1` to force it elsewhere.
 
-Allow about two minutes for the 38 tests in these two projects.
+Allow about two minutes for the 38 tests in these two projects. The demo script
+names `--project=storefront --project=gateway-outage` explicitly, so the
+responsive audit does not run and does not slow the demonstration down.
 
 Talking points, in the order they appear on screen:
 
@@ -87,9 +93,10 @@ satisfies the boot assertion in `lib/payments/whish-boot.ts`.
 |---|---|---|
 | `setup` | — | Cleans, seeds, and signs in each role once per run. |
 | `storefront` | Desktop Chrome | Everything except the outage specs. |
-| `mobile` | Pixel 7 (Chromium) | Storefront and checkout on a phone viewport. |
+| `mobile` | Pixel 7 (Chromium) | Storefront, checkout **and admin** on a phone viewport. |
 | `mobile-safari` | iPhone 14 (WebKit) | Public pages in the real Safari engine. |
 | `gateway-outage` | Desktop Chrome | The 4311 server, serially. |
+| `responsive` | Chromium, 5 viewports | Every route measured at 320/360/412/768/1024 — see below. |
 
 `gateway-outage` runs serially and the whole suite runs with one worker, because
 the circuit breaker and the rate limiter are per-process state — the same reason
@@ -141,6 +148,50 @@ more orders per minute from one address than a real storefront ever would, and a
 `429` there masks the guard each spec is actually asserting. `playwright.config.ts`
 raises it for the test servers only. Throttling itself is still proven — over
 real HTTP in `security.spec.ts`, and per-branch in `tests/rate-limit.test.ts`.
+
+---
+
+## The responsive audit
+
+`e2e/responsive.spec.ts` visits every route at five widths and reports three
+things per route/width:
+
+1. **Document overflow** — `documentElement.scrollWidth` against the viewport.
+2. **Elements past the right edge**, filtered to the outermost offender per
+   subtree. Anything inside an ancestor that is not `overflow-x: visible` is
+   skipped: an element can only widen the document if every ancestor up to the
+   root is overflow-visible, so this removes deliberate scroll and clip
+   containers without a hand-maintained ignore list.
+3. **Content wider than its own box**, which is a *separate* signal — an
+   unbreakable string paints outside its box without changing that box's
+   bounding rect, so a rect-only scan cannot see it. Overflow caused purely by
+   out-of-flow children (an absolutely-positioned badge) is excluded.
+4. **Tap targets** — fails below 24×24 (WCAG 2.2 AA, SC 2.5.8), warns below
+   44×44 (AAA, SC 2.5.5). A hard 44px gate would be permanently red against the
+   36px navbar controls, and a permanently-red gate gets ignored.
+
+| Width | Why this one |
+|---|---|
+| 320 | Smallest width still in the field. |
+| 360 | The modal Android width worldwide. |
+| 412 | Matches `devices['Pixel 7']`, so a finding reproduces in `mobile`. |
+| 768 | The band that inherits mobile wholesale (`sm:` is used 148×, `md:` 19×). |
+| 1024 | The `lg:` boundary, where the admin switches from cards to a table. |
+
+Measurements are written to `test-results/responsive/` and read back by the
+summary test. **Not** an in-memory array: Playwright restarts the worker process
+between describe blocks, and an array silently reported only the last block's
+routes (35 of 165 combinations) while looking like a complete run.
+
+Two things that made the numbers honest, both learned the hard way:
+
+- The audit injects `html, body { overflow-x: visible }` per navigation. Without
+  it the app's own `overflow-x: clip` hides the document-level signal entirely.
+- The first run reported **zero** overflow across all 165 combinations. That was
+  the fixtures, not the app: `1 Test Street` and a 30-character email both fit.
+  `LONG_CUSTOMER` in `support/flows.ts` carries realistic Lebanese-format data,
+  and with it the admin order page measured 240px wider than a 360px phone.
+  **Polite test data hides layout bugs.**
 
 ---
 

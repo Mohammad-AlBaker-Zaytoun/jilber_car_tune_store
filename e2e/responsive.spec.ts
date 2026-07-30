@@ -6,8 +6,9 @@ import {
   measure,
   visitRoute,
   formatMeasurement,
+  persist,
+  readAllPersisted,
   TAP_TARGET_MIN,
-  type RouteMeasurement,
 } from './support/layout';
 
 /**
@@ -33,9 +34,6 @@ const VIEWPORTS = [
   { width: 768, height: 1024, why: 'the band that inherits mobile wholesale' },
   { width: 1024, height: 768, why: 'the lg: boundary where the admin sidebar appears' },
 ] as const;
-
-/** Collected across every test so the last one can print a summary. */
-const allMeasurements: RouteMeasurement[] = [];
 
 test.afterAll(async () => {
   await disconnect();
@@ -63,7 +61,10 @@ async function auditRoute(page: Page, route: string, testInfo: import('@playwrig
     await page.setViewportSize({ width: vp.width, height: vp.height });
     await visitRoute(page, route);
     const m = await measure(page, route);
-    allMeasurements.push(m);
+    // Persisted to disk, not an array: Playwright restarts the worker between
+    // describe blocks, so in-memory state gave the summary only the last block's
+    // routes while looking like a complete run.
+    persist(m);
     blocks.push(formatMeasurement(m));
   }
 
@@ -102,6 +103,49 @@ test.describe('Responsive audit — public pages', () => {
     '/no-such-page',
     '/store/this-product-does-not-exist',
   ]);
+
+  test('a toast does not cover the WhatsApp and Call buttons on a phone', async ({ page }) => {
+    // Toast.tsx and FloatingContactButtonsClient.tsx both used `fixed bottom-6
+    // right-6`, so adding to the cart dropped a toast squarely on top of the two
+    // contact buttons for its full 3.5s life. Those are a primary conversion path
+    // for this business.
+    //
+    // Hit-tested with elementFromPoint rather than eyeballed: an overlay can be
+    // invisible in a screenshot and still swallow the tap.
+    await page.setViewportSize({ width: 360, height: 640 });
+    await blockHeroFrames(page);
+    await addFixtureProductToCart(page);
+
+    // The toast is up now (addFixtureProductToCart waits for "Added"). Filtered by
+    // text because Next injects its own empty role="alert" route announcer.
+    await expect(
+      page.getByRole('alert').filter({ hasText: /added to cart/i })
+    ).toBeVisible();
+
+    let checked = 0;
+    for (const label of ['Chat on WhatsApp', 'Call us']) {
+      const button = page.getByLabel(label);
+      if ((await button.count()) === 0) continue; // admin-configurable: 0, 1 or 2
+      checked += 1;
+
+      const box = await button.boundingBox();
+      expect(box, `${label} should have a box`).not.toBeNull();
+
+      const hit = await page.evaluate(
+        ({ x, y }) => {
+          const el = document.elementFromPoint(x, y);
+          return el ? (el.closest('a,button')?.getAttribute('aria-label') ?? el.tagName) : null;
+        },
+        { x: box!.x + box!.width / 2, y: box!.y + box!.height / 2 }
+      );
+
+      expect(hit, `a toast is covering "${label}"`).toBe(label);
+    }
+
+    // Without this the test passes vacuously when the fixture settings happen to
+    // disable both buttons — proving nothing about the collision it exists to catch.
+    expect(checked, 'no contact button was present to hit-test').toBeGreaterThan(0);
+  });
 
   test('the viewport meta tag opts into device width', async ({ page }) => {
     // The one hard assertion from day one: every measurement in this file is
@@ -169,9 +213,12 @@ test.describe('Responsive audit — admin pages', () => {
 });
 
 test.describe('Responsive audit — summary', () => {
-  // Runs last within the file, so `allMeasurements` is populated. Ordering holds
-  // because the suite is workers:1 / fullyParallel:false.
+  // Declared last, and the suite is workers:1 / fullyParallel:false, so every
+  // route above has already written its results by the time this reads them.
   test('summary of every route and width', async ({}, testInfo) => {
+    const allMeasurements = readAllPersisted();
+    expect(allMeasurements.length, 'no measurements were persisted').toBeGreaterThan(0);
+
     const overflowing = allMeasurements.filter((m) => m.documentOverflows);
     const withOffenders = allMeasurements.filter((m) => m.offenders.length > 0);
     const withContent = allMeasurements.filter((m) => m.contentOverflows.length > 0);
@@ -214,10 +261,24 @@ test.describe('Responsive audit — summary', () => {
     // Printed as well as attached: this is the artefact the fix list comes from.
     console.log(`\n${report}\n`);
 
-    // ---- Assertions, switched on once the fixes land (Phase 6) --------------
-    // expect(overflowing, 'no route may overflow horizontally').toEqual([]);
-    // expect(withOffenders, 'no element may extend past the viewport').toEqual([]);
-    // expect(withContent, 'no content may overflow its own box').toEqual([]);
-    // expect(withTiny, `no tap target below ${TAP_TARGET_MIN}px`).toEqual([]);
+    // ---- The gate ----------------------------------------------------------
+    // Live now that the fixes have landed. The messages carry the route and the
+    // element, so a failure here is directly actionable.
+    const brief = (rows: typeof allMeasurements) =>
+      rows.map((m) => `${m.route} @ ${m.width}px`).join(', ');
+
+    expect(overflowing, `routes overflow horizontally: ${brief(overflowing)}`).toEqual([]);
+    expect(
+      withOffenders,
+      `elements extend past the viewport: ${brief(withOffenders)}`
+    ).toEqual([]);
+    expect(
+      withContent,
+      `content is wider than its own box: ${brief(withContent)}`
+    ).toEqual([]);
+    expect(
+      withTiny,
+      `tap targets below ${TAP_TARGET_MIN}px (WCAG 2.2 AA): ${brief(withTiny)}`
+    ).toEqual([]);
   });
 });

@@ -6,6 +6,8 @@
  * and enforced afterwards.
  */
 
+import fs from 'fs';
+import path from 'path';
 import type { Page } from '@playwright/test';
 
 /** One element that sticks out past the right edge of the viewport. */
@@ -87,11 +89,13 @@ export async function visitRoute(page: Page, route: string): Promise<void> {
   await page.addStyleTag({
     content: 'html, body { overflow-x: visible !important; }',
   });
-  // The scroll-frame heroes paint into a canvas after their images settle; give
-  // layout a beat rather than racing the first paint.
-  await page.waitForLoadState('networkidle').catch(() => {
-    /* a long-polling request must not fail the audit */
-  });
+  // Wait for FONTS, not for the network.
+  //
+  // Font metrics are what decide whether a string overflows its box, so this is
+  // the condition that actually matters here. `networkidle` is both wrong and
+  // slow for it: the audit aborts 241 hero-frame requests on `/`, and that much
+  // churn never produced 500ms of quiet, so the home page hit the 60s timeout.
+  await page.evaluate(() => document.fonts.ready.then(() => undefined));
 }
 
 /**
@@ -179,12 +183,33 @@ export async function measure(page: Page, route: string): Promise<RouteMeasureme
       // Content wider than its own box. Unlike the rect scan above, keep the
       // INNERMOST offender: the chain of ancestors all report the same overflow,
       // but only the leaf actually holds the string that will not break.
+      /**
+       * True when the element's overflow is entirely down to out-of-flow
+       * children — an absolutely-positioned badge deliberately hung off a
+       * corner, for example. Those inflate scrollWidth but cannot widen the
+       * document, so reporting them is noise: the navbar cart badge showed up at
+       * every width, +2px, forever.
+       */
+      const overflowIsOutOfFlowOnly = (el: Element): boolean => {
+        const kids = Array.from(el.children).filter(isRendered);
+        if (!kids.length) return false;
+        const edge = rectOf(el).right;
+        const past = kids.filter((k) => rectOf(k).right > edge + 1);
+        if (!past.length) return false;
+        return past.every((k) => {
+          const pos = getComputedStyle(k).position;
+          return pos === 'absolute' || pos === 'fixed';
+        });
+      };
+
       const rawContent: Element[] = [];
       for (const el of Array.from(document.body.querySelectorAll('*'))) {
         if (!isRendered(el)) continue;
         if (el.clientWidth <= 0) continue;
         if (getComputedStyle(el).overflowX !== 'visible') continue;
-        if (el.scrollWidth > el.clientWidth + 1) rawContent.push(el);
+        if (el.scrollWidth <= el.clientWidth + 1) continue;
+        if (overflowIsOutOfFlowOnly(el)) continue;
+        rawContent.push(el);
       }
       const contentOverflows = rawContent
         .filter((el) => !rawContent.some((other) => other !== el && el.contains(other)))
@@ -198,7 +223,35 @@ export async function measure(page: Page, route: string): Promise<RouteMeasureme
 
       for (const el of Array.from(document.querySelectorAll(interactiveSelector))) {
         if (!isRendered(el)) continue;
-        const r = rectOf(el);
+
+        /**
+         * WCAG 2.2 SC 2.5.8 exempts inline targets explicitly: "the target is in a
+         * sentence or its size is otherwise constrained by the line-height of
+         * non-target text". A link inside a paragraph of prose cannot be made
+         * 24px tall without wrecking the line spacing around it, and the spec
+         * says so. Without this the report is dominated by "Privacy Policy" and
+         * "contact form" links inside policy copy.
+         *
+         * Detected structurally, not by guesswork: the element renders inline AND
+         * its parent holds text that is not part of this element.
+         */
+        const cs = getComputedStyle(el);
+        if (cs.display === 'inline') {
+          const parent = el.parentElement;
+          const parentText = (parent?.textContent ?? '').trim();
+          const ownText = (el.textContent ?? '').trim();
+          if (parent && parentText.length > ownText.length) continue;
+        }
+
+        /**
+         * A control wrapped in a <label> is activated by tapping anywhere in that
+         * label, so the label's box is the real target. Measuring the bare 16x16
+         * checkbox reported a failure where the actual tap area is the full row.
+         */
+        const label = el.closest('label');
+        const target = label && isRendered(label) ? label : el;
+
+        const r = rectOf(target);
         const smallest = Math.min(r.width, r.height);
         if (smallest >= tapComfortable) continue;
 
@@ -244,6 +297,36 @@ export async function measure(page: Page, route: string): Promise<RouteMeasureme
     tinyTargets: result.tinyTargets,
     smallTargets: result.smallTargets,
   };
+}
+
+/**
+ * Where measurements are persisted so the summary can see all of them.
+ *
+ * Not module-level state: Playwright restarts the worker process between describe
+ * blocks, so an in-memory array silently reported only the last block's routes
+ * (35 of 165 combinations) while looking complete. Disk survives that.
+ */
+const RESULT_DIR = path.join(__dirname, '..', '..', 'test-results', 'responsive');
+
+/** One file per route/width — appending to a shared file would interleave. */
+export function persist(m: RouteMeasurement): void {
+  fs.mkdirSync(RESULT_DIR, { recursive: true });
+  const slug = `${m.route.replace(/[^a-z0-9]+/gi, '_')}__${m.width}.json`;
+  fs.writeFileSync(path.join(RESULT_DIR, slug), JSON.stringify(m), 'utf8');
+}
+
+/** Reads back everything persisted this run. */
+export function readAllPersisted(): RouteMeasurement[] {
+  if (!fs.existsSync(RESULT_DIR)) return [];
+  return fs
+    .readdirSync(RESULT_DIR)
+    .filter((f) => f.endsWith('.json'))
+    .map((f) => JSON.parse(fs.readFileSync(path.join(RESULT_DIR, f), 'utf8')) as RouteMeasurement);
+}
+
+/** Clears results from a previous run so a summary can never mix them. */
+export function clearPersisted(): void {
+  fs.rmSync(RESULT_DIR, { recursive: true, force: true });
 }
 
 /** Human-readable block for the HTML report attachment. */

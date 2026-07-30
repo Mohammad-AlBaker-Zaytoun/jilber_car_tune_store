@@ -108,7 +108,10 @@ export default defineConfig({
       // trade entirely.
       name: 'mobile',
       dependencies: ['setup'],
-      testMatch: /storefront\.spec\.ts|checkout\.spec\.ts/,
+      // admin.spec.ts included deliberately: nothing had ever loaded an admin
+      // page narrow, which is exactly why five tables shipped with their Total and
+      // Payment columns unreachable on a phone.
+      testMatch: /storefront\.spec\.ts|checkout\.spec\.ts|admin\.spec\.ts/,
       use: { ...devices['Pixel 7'] },
     },
     {

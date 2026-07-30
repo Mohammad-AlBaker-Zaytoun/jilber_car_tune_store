@@ -2,6 +2,7 @@ import { test as setup, expect } from '@playwright/test';
 import fs from 'fs';
 import path from 'path';
 import { seedE2EData, cleanupE2EData, disconnect, CUSTOMER, ADMIN } from './support/data';
+import { clearPersisted } from './support/layout';
 
 const AUTH_DIR = path.join(__dirname, '.auth');
 
@@ -17,6 +18,10 @@ setup('seed fixtures and save authenticated sessions', async ({ request, baseURL
   // presence would break "this customer has no orders yet" style assertions.
   await cleanupE2EData();
   await seedE2EData();
+
+  // Drop any responsive measurements from a previous run, so the audit's summary
+  // can never mix two runs' numbers together.
+  clearPersisted();
 
   fs.mkdirSync(AUTH_DIR, { recursive: true });
 
