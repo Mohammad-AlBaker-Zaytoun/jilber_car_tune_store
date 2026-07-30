@@ -21,14 +21,27 @@ export default function AdminStatCard({ label, value, icon: Icon, accent = 'cyan
   return (
     // Labelled group: the value on its own ("$1,320") is meaningless read aloud,
     // and it gives the tile a stable accessible name to assert against.
-    <div role="group" aria-label={label} className="border border-zinc-800/50 bg-zinc-900/20 p-5">
-      <div className="flex items-start justify-between gap-4">
+    // Sizing steps UP from the phone, not down from the desktop. These tiles sit
+    // in a 2-up grid, so at 320px the padding plus the icon box left ~32px for the
+    // label -- and "PRODUCTS" alone needs ~64px, measured overflowing by 41px.
+    // Tighter padding, a smaller icon and less letter-spacing below sm: keeps the
+    // 2-up density (which is the right layout for a stat tile) and still fits.
+    <div
+      role="group"
+      aria-label={label}
+      className="border border-zinc-800/50 bg-zinc-900/20 p-3 sm:p-5"
+    >
+      <div className="flex items-start justify-between gap-2 sm:gap-4">
         <div className="flex-1 min-w-0">
-          <p className="text-[10px] text-zinc-500 tracking-[0.2em] uppercase font-bold mb-2">{label}</p>
-          <p className="text-2xl font-black text-white leading-none">{value}</p>
+          <p className="text-[10px] text-zinc-500 tracking-[0.1em] sm:tracking-[0.2em] uppercase font-bold mb-2">
+            {label}
+          </p>
+          <p className="text-xl sm:text-2xl font-black text-white leading-none">{value}</p>
           {sub && <p className="text-[10px] text-zinc-600 mt-1.5">{sub}</p>}
         </div>
-        <div className={`w-10 h-10 shrink-0 flex items-center justify-center border ${c.border} ${c.bg}`}>
+        <div
+          className={`w-8 h-8 sm:w-10 sm:h-10 shrink-0 flex items-center justify-center border ${c.border} ${c.bg}`}
+        >
           <Icon size={16} className={c.icon} aria-hidden="true" />
         </div>
       </div>

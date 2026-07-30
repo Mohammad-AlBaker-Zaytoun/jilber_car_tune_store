@@ -20,6 +20,45 @@ import { STATUS_COLORS, formatStatus } from '@/components/admin/orderStatus';
 import type { AdminStats, Order } from '@/types/admin';
 import { formatMoneyCompact } from '@/lib/currency';
 
+const thCls =
+  'text-left px-4 py-3 text-[9px] text-zinc-600 tracking-[0.2em] uppercase font-bold whitespace-nowrap';
+
+const RECENT_COLUMNS = ['Customer', 'Total', 'Status', 'Date'] as const;
+type RecentColumn = (typeof RECENT_COLUMNS)[number];
+
+/**
+ * A recent-order row's cells, defined once for the table and the card list.
+ * Total and Date used to disappear below md/sm with no mobile equivalent, so the
+ * dashboard showed no amounts at all on a phone.
+ */
+function recentCells(order: Order): Record<RecentColumn, React.ReactNode> {
+  return {
+    Customer: (
+      <>
+        <p className="text-xs text-zinc-300 font-semibold wrap-anywhere">
+          {order.customer.fullName}
+        </p>
+        <p className="text-[10px] text-zinc-600 wrap-anywhere">{order.customer.email}</p>
+      </>
+    ),
+    Total: (
+      <span className="text-xs text-zinc-300 font-semibold">{formatMoneyCompact(order.total)}</span>
+    ),
+    Status: (
+      <span
+        className={`text-[9px] font-black tracking-widest uppercase border px-2 py-0.5 ${STATUS_COLORS[order.status]}`}
+      >
+        {formatStatus(order.status)}
+      </span>
+    ),
+    Date: (
+      <span className="text-[10px] text-zinc-600">
+        {new Date(order.createdAt).toLocaleDateString('en-US')}
+      </span>
+    ),
+  };
+}
+
 export default function DashboardClient() {
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [recentOrders, setRecentOrders] = useState<Order[]>([]);
@@ -189,7 +228,7 @@ export default function DashboardClient() {
           </h2>
           <Link
             href="/admin/orders"
-            className="inline-flex items-center gap-1.5 text-[10px] text-cyan-400 hover:text-cyan-300 font-bold tracking-widest uppercase transition-colors"
+            className="inline-flex items-center gap-1.5 py-1.5 text-[10px] text-cyan-400 hover:text-cyan-300 font-bold tracking-widest uppercase transition-colors"
           >
             View All <ArrowRight size={9} aria-hidden="true" />
           </Link>
@@ -200,69 +239,74 @@ export default function DashboardClient() {
             No orders yet. Orders will appear here after customers check out.
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-zinc-800/50">
-                  <th className="text-left px-6 py-3 text-[9px] text-zinc-600 tracking-[0.2em] uppercase font-bold">
-                    Ref
-                  </th>
-                  <th className="text-left px-4 py-3 text-[9px] text-zinc-600 tracking-[0.2em] uppercase font-bold">
-                    Customer
-                  </th>
-                  <th className="text-left px-4 py-3 text-[9px] text-zinc-600 tracking-[0.2em] uppercase font-bold hidden sm:table-cell">
-                    Total
-                  </th>
-                  <th className="text-left px-4 py-3 text-[9px] text-zinc-600 tracking-[0.2em] uppercase font-bold">
-                    Status
-                  </th>
-                  <th className="text-right px-6 py-3 text-[9px] text-zinc-600 tracking-[0.2em] uppercase font-bold hidden md:table-cell">
-                    Date
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {recentOrders.map((order) => (
-                  <tr
-                    key={order.id}
-                    className="border-b border-zinc-800/30 hover:bg-zinc-900/30 transition-colors"
-                  >
-                    <td className="px-6 py-3.5">
-                      <Link
-                        href={`/admin/orders/${order.id}`}
-                        className="text-xs font-black text-cyan-400 hover:text-cyan-300 transition-colors"
-                      >
-                        {order.ref}
-                      </Link>
-                    </td>
-                    <td className="px-4 py-3.5">
-                      <p className="text-xs text-zinc-300 font-semibold">
-                        {order.customer.fullName}
-                      </p>
-                      <p className="text-[10px] text-zinc-600">{order.customer.email}</p>
-                    </td>
-                    <td className="px-4 py-3.5 hidden sm:table-cell">
-                      <span className="text-xs text-zinc-300 font-semibold">
-                        {formatMoneyCompact(order.total)}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3.5">
-                      <span
-                        className={`text-[9px] font-black tracking-widest uppercase border px-2 py-0.5 ${STATUS_COLORS[order.status]}`}
-                      >
-                        {formatStatus(order.status)}
-                      </span>
-                    </td>
-                    <td className="px-6 py-3.5 text-right hidden md:table-cell">
-                      <span className="text-[10px] text-zinc-600">
-                        {new Date(order.createdAt).toLocaleDateString()}
-                      </span>
-                    </td>
+          <>
+            {/* Wide screens: a real table. */}
+            <div className="hidden lg:block overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-zinc-800/50">
+                    <th className={thCls}>Ref</th>
+                    {RECENT_COLUMNS.map((col) => (
+                      <th key={col} className={thCls}>{col}</th>
+                    ))}
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {recentOrders.map((order) => {
+                    const cells = recentCells(order);
+                    return (
+                      <tr
+                        key={order.id}
+                        className="border-b border-zinc-800/30 hover:bg-zinc-900/30 transition-colors"
+                      >
+                        <td className="px-4 py-3.5 align-top">
+                          <Link
+                            href={`/admin/orders/${order.id}`}
+                            className="text-xs font-black text-cyan-400 hover:text-cyan-300 transition-colors"
+                          >
+                            {order.ref}
+                          </Link>
+                        </td>
+                        {RECENT_COLUMNS.map((col) => (
+                          <td key={col} className="px-4 py-3.5 align-top">{cells[col]}</td>
+                        ))}
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Phones and tablets: one card per order. */}
+            <ul aria-label="Recent orders" className="lg:hidden flex flex-col gap-3 p-4 pt-0">
+              {recentOrders.map((order) => {
+                const cells = recentCells(order);
+                return (
+                  <li
+                    key={order.id}
+                    className="border border-zinc-800/50 bg-zinc-900/20 p-4 flex flex-col gap-3"
+                  >
+                    <Link
+                      href={`/admin/orders/${order.id}`}
+                      className="text-xs font-black text-cyan-400 hover:text-cyan-300 transition-colors wrap-anywhere"
+                    >
+                      {order.ref}
+                    </Link>
+                    <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 items-baseline">
+                      {RECENT_COLUMNS.map((col) => (
+                        <div key={col} className="contents">
+                          <dt className="text-[9px] text-zinc-600 tracking-[0.15em] uppercase font-bold">
+                            {col}
+                          </dt>
+                          <dd className="min-w-0">{cells[col]}</dd>
+                        </div>
+                      ))}
+                    </dl>
+                  </li>
+                );
+              })}
+            </ul>
+          </>
         )}
       </div>
     </div>
