@@ -153,6 +153,48 @@ frame 0; auth logs hash email addresses.
 
 ---
 
+## Phase 2.6 — Orders survive a payment-gateway outage ✅ DONE (2026-07-30)
+
+Requirement: customers must still be able to order when the gateway is
+unconfigured, down, or erroring.
+
+The code did the opposite in the worst case. The order row is written **before**
+the gateway is called, so a gateway failure left a real order that **nobody was
+ever told about** — no customer email, no admin email, and the `{success:false}`
+branch did not even log. The error copy said *"try another method"*, so the
+customer placed a second order and the first was orphaned: `clearWhishExternalId`
+correctly removed it from the reconciliation queue, so nothing in the app ever
+looked at it again. An unpaid card order also **could never be paid online** —
+the only producer of a payment session was order creation.
+
+| Area | Fix |
+|---|---|
+| **Capture instead of losing the sale** | Any gateway failure now returns **201**, not 502. `markOnlinePaymentUnavailable()` writes an admin note and a status-history entry, so the order is finally distinguishable in the timeline from an abandoned payment. `payment` stays `'card'` and `paymentStatus` stays `'unpaid'` deliberately — rewriting the method to `'shop'` would make an unpaid order count toward `estimatedRevenue()`, which excludes only unpaid *card* orders. |
+| **Somebody is told** | `notifyOrderCreated` + new `notifyOrderPaymentUnavailable` (confirmation + pay link to the customer, `ACTION NEEDED` alert to the admin). This is the only path that notifies a card customer, since the normal confirmation is deferred to the callback. The gateway's raw `dialog.message` is no longer shown to customers — logged only. |
+| **Stop offering a broken method** | `lib/payments/whish-health.ts` — 3 consecutive failures close card payment for 5 minutes, auto-recovering on the next success. **Gates payment creation only**: settle and the callback keep working while open, or in-flight payments would stop confirming during an outage. `/checkout` resolves availability server-side (same pattern as `taxRate`); a stale client gets 503 *before* any order is written. |
+| **Resume payment** | `POST /api/orders/[id]/pay`, authorised by an owner session **or** a signed pay token (`lib/payments/pay-token.ts` — stateless, `jose` + `AUTH_SECRET`, 7d, purpose-scoped so a session cookie cannot be replayed as one). Guests need this: guest orders have no `userId`. UI: `/checkout/pay` from the email, `PayNowPanel` on the account order detail. Both require a click — email scanners prefetch URLs. |
+| **The safety step that makes resume non-trivial** | If the order already holds a `whishExternalId`, it is **settled first**. That column is unique and the callback resolves orders by it, so minting a new id without checking could orphan a payment in flight on the old one — money taken, order unpaid, invisible to the reconciler. Only a confirmed `not_paid` may be replaced; `unavailable` refuses rather than risking it. Refunded/paid/cancelled orders are rejected via the exported `isSettleablePaymentStatus`. |
+| **Admin visibility** | Payment **method** column added to `/admin/orders` (absent before, so a card order and a walk-in looked identical), and the Whish ids surfaced on the detail page, which now distinguishes "gateway never reached" from "started but unconfirmed". |
+
+**Verified against a running server with a deliberately broken secret:** 3 card
+orders captured as 201 → the 4th refused 503 once the breaker opened → Workshop
+orders succeeded throughout → the captured order carried the note and timeline
+entry with a null `externalId` → a cross-order pay token was rejected 404 → an
+unauthorised POST returned 404 (not 403) → the unconfigured case created no order
+at all. Smoke data removed and `.env` restored byte-identical afterwards.
+
+**Tests: 101 unit + 19 integration.**
+
+### Note for anyone running the operational scripts locally
+
+`prisma.config.ts` and the `tsx` scripts load **`.env` only**, while Next also
+loads **`.env.local` with higher precedence**. If the two files disagree on
+`AUTH_SECRET` or `DATABASE_URL`, `npm run reconcile:payments` and the app will
+not agree either. The VPS uses a single `.env`, so this is a local-only trap —
+but it will waste an hour if you hit it unaware.
+
+---
+
 ## Phase 3 — Pre-launch validation (requires the VPS)
 
 These are the only remaining items, and they need someone with access to the
