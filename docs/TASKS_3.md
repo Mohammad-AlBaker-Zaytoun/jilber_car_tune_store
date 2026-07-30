@@ -236,3 +236,62 @@ script cannot verify:
   requirement.
 - **Dev-only advisory** `brace-expansion` via eslint's `minimatch@3`; not fixable
   without breaking eslint, never executed at runtime.
+
+---
+
+## End-to-end testing round — 2026-07-30
+
+Added a 55-test Playwright suite over real HTTP in Chromium and WebKit against
+real MSSQL and a real gateway failure (`docs/E2E-TESTING.md`), plus a CI job. It
+runs headed via `npm run test:e2e:demo` for demonstrating to a buyer.
+
+Two defects it found that 101 unit and 19 integration tests structurally could
+not, both fixed:
+
+- **The circuit breaker was not shared with the page that reads it.** The build
+  emits a page render and a route handler as separate server chunks, so each held
+  its own instance of `lib/payments/whish-health.ts`. `POST /api/orders` tripped
+  the breaker and answered 503 correctly, while `/checkout` kept offering Card
+  from state that had never seen a failure — walking customers into the failing
+  path the breaker exists to prevent. State is now pinned to `globalThis`,
+  following `lib/db/prisma.ts`.
+- **Dead product URLs shipped contradictory robots directives.** A streamed
+  `notFound()` answers HTTP 200 by design, so the `noindex` in the HTML is the
+  only thing keeping the URL out of search results — and the root layout was
+  inheriting `index, follow` onto it.
+
+Also fixed along the way:
+
+- **22 money sites used a bare `toLocaleString()`**, which renders in the
+  *visitor's* locale on a USD-only store (`$1.200` for a European) and differs
+  between the VPS's ICU default and the browser — a latent hydration mismatch on
+  every price. All now go through `lib/currency.ts`, which was written to be the
+  single source of truth and was being bypassed.
+- **`upgrade-insecure-requests` blanks the site in Safari over plain HTTP.**
+  Safari honours it on an `http://` origin where Chrome exempts localhost, so
+  every asset is requested over https and nothing loads — while Chrome looks
+  fine. Production is unaffected (TLS at nginx); `ALLOW_PLAINTEXT_HTTP=1` drops
+  the directive for a plaintext build and prints a loud warning. **This matters
+  for any staging box without a certificate.**
+- **Admin order controls had unassociated `<label>` elements**, so screen readers
+  announced an unlabelled combobox. Now wired with `htmlFor`/`id`.
+- The product page's hero and related-products blocks are now named `<section>`
+  landmarks.
+
+### Product facts worth confirming with the buyer
+
+- **There is no guest checkout.** `/checkout` is in `proxy.ts` `PROTECTED`, so an
+  anonymous visitor is redirected to sign in. The order API and the signed
+  pay-link do support guests, so this is a UI-level choice, not a data-model
+  limit — but it is worth being deliberate about, since requiring an account
+  before payment costs conversions.
+- `ORDER_RATE_LIMIT_PER_MINUTE` now exists (default 8, unchanged behaviour).
+  Raise it only if a legitimate shared address is being throttled.
+
+### Known coverage limit
+
+`mobile-safari` covers only pages a visitor sees before signing in. The session
+cookie is `Secure`, and WebKit refuses `Secure` cookies over plain http, so an
+authenticated WebKit run against the plaintext test servers is impossible.
+Authenticated mobile coverage runs on Chromium at a phone viewport instead.
+Closing this properly means serving the test servers over HTTPS.

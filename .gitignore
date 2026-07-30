@@ -48,3 +48,10 @@ next-env.d.ts
 
 # Generated analysis output (graphify); regenerate with the graphify skill.
 graphify-out/
+
+# Playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+e2e/.auth/
