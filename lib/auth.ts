@@ -4,7 +4,7 @@ import type { UserRole } from '@/types/admin';
 
 export { type UserRole };
 
-export const COOKIE_NAME = 'jilber-session';
+export const COOKIE_NAME = 'protuning-session';
 // 24-hour idle window; the proxy renews the cookie on every authenticated page
 // load so active sessions slide forward while inactive ones expire predictably.
 const COOKIE_MAX_AGE = 60 * 60 * 24;

@@ -57,7 +57,7 @@ export default function AccountQuoteDetailClient({ quote }: Props) {
           <div className="flex items-center gap-2 mb-3">
             <MessageSquare size={13} className="text-cyan-400" aria-hidden="true" />
             <h2 className="text-xs font-black text-white tracking-[0.2em] uppercase">
-              Message from JILBER
+              Message from Pro Tuning
             </h2>
           </div>
           <p className="text-sm text-zinc-300 leading-relaxed whitespace-pre-wrap">

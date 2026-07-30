@@ -180,7 +180,7 @@ async function seedSettings() {
     return;
   }
   const data = {
-    shopName: (s.shopName as string) ?? 'JILBER Performance',
+    shopName: (s.shopName as string) ?? 'Pro Tuning',
     contactEmail: (s.contactEmail as string) ?? '',
     contactPhone: (s.contactPhone as string) ?? '',
     address: (s.address as string) ?? '',

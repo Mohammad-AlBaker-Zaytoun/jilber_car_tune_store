@@ -1,16 +1,16 @@
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000';
 
 export const siteConfig = {
-  siteName: 'JILBER Performance Engineering',
+  siteName: 'Pro Tuning',
   siteDescription:
     'Premium car tuning, performance hardware, diagnostics, custom builds, exhaust systems, suspension upgrades, and automotive performance services.',
   siteUrl,
   // Default social-share image — public/og/default-og.jpg (1200×630 px, JPEG)
   defaultOgImage: '/og/default-og.jpg',
-  businessName: 'JILBER Performance Engineering',
+  businessName: 'Pro Tuning',
   // Placeholders — update with real values before production
   phone: '+1 555 000 0000',
-  email: 'info@jilber.com',
+  email: 'info@example.com',
   address: '123 Performance Way, Automotive District',
   social: {
     twitter: '',
@@ -34,6 +34,6 @@ export const siteConfig = {
     'automotive performance',
     'custom build',
     'track setup',
-    'JILBER',
+    'Pro Tuning',
   ],
 } as const;

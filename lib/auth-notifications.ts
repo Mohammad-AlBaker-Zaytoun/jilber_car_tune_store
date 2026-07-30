@@ -22,11 +22,11 @@ export async function notifyRegistrationAttemptOnExistingAccount(
 ): Promise<void> {
   await sendEmail({
     to: email,
-    subject: 'You already have a JILBER account',
+    subject: 'You already have a Pro Tuning account',
     html: emailLayout(
       'You already have an account',
       `<p>Hi ${escapeHtml(name)},</p>
-       <p>Someone just used this email address to sign up at JILBER Performance.
+       <p>Someone just used this email address to sign up at Pro Tuning.
           You already have an account, so we did not create a second one and
           nothing has changed.</p>
        <p><strong>If this was you</strong>, just sign in instead:</p>

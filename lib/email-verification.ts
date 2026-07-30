@@ -71,7 +71,7 @@ export async function sendVerificationEmail(userId: string, name: string, email:
   const verifyUrl = `${siteConfig.siteUrl}/verify-email?token=${rawToken}`;
   await sendEmail({
     to: email,
-    subject: 'Confirm your JILBER email',
+    subject: 'Confirm your Pro Tuning email',
     html: emailLayout(
       'Confirm your email',
       `<p>Hi ${escapeHtml(name)},</p>

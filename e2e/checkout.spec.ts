@@ -81,11 +81,11 @@ test.describe('Checkout', () => {
     // customer editing localStorage would.
     await page.goto('/cart');
     await page.evaluate(() => {
-      const raw = window.localStorage.getItem('jilber-cart');
+      const raw = window.localStorage.getItem('protuning-cart');
       if (!raw) throw new Error('cart not persisted');
       const parsed = JSON.parse(raw);
       parsed.state.items = parsed.state.items.map((i: { price: number }) => ({ ...i, price: 1 }));
-      window.localStorage.setItem('jilber-cart', JSON.stringify(parsed));
+      window.localStorage.setItem('protuning-cart', JSON.stringify(parsed));
     });
     await page.reload();
 
@@ -107,7 +107,7 @@ test.describe('Checkout', () => {
     await page.evaluate(
       ({ slug, name, price }) => {
         window.localStorage.setItem(
-          'jilber-cart',
+          'protuning-cart',
           JSON.stringify({
             state: {
               items: [

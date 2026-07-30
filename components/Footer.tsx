@@ -13,7 +13,7 @@ const SERVICES_LINKS = [
 const COMPANY_LINKS = [
   { label: 'Our Process', href: '/#process' },
   { label: 'Build Packages', href: '/#packages' },
-  { label: 'Why JILBER', href: '/#why-us' },
+  { label: 'Why Pro Tuning', href: '/#why-us' },
   { label: 'Gallery', href: '/#gallery' },
   { label: 'Contact Us', href: '/contact' },
   { label: 'Book Consultation', href: '/#contact' },
@@ -104,10 +104,10 @@ export default function Footer() {
               </div>
               <div className="flex flex-col leading-none">
                 <span className="text-base font-black tracking-[0.25em] text-white uppercase">
-                  JILBER
+                  PRO
                 </span>
                 <span className="text-[9px] text-cyan-400/60 tracking-[0.2em] font-medium uppercase">
-                  Performance
+                  Tuning
                 </span>
               </div>
             </Link>
@@ -198,7 +198,7 @@ export default function Footer() {
         {/* Divider */}
         <div className="mt-14 lg:mt-16 pt-7 border-t border-zinc-800/50 flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="text-xs text-zinc-600">
-            &copy; {year} JILBER Performance Engineering. All rights reserved.
+            &copy; {year} Pro Tuning. All rights reserved.
           </p>
           <div className="flex items-center gap-6">
             {[

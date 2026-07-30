@@ -2,8 +2,8 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 
 export const metadata: Metadata = {
-  title: 'Cookie Policy | JILBER Performance',
-  description: 'How JILBER Performance Engineering uses cookies and browser storage on its website.',
+  title: 'Cookie Policy | Pro Tuning',
+  description: 'How Pro Tuning uses cookies and browser storage on its website.',
 };
 
 const LAST_UPDATED = 'May 10, 2025';
@@ -34,7 +34,7 @@ export default function CookiePolicyPage() {
           {/* Intro */}
           <div className="border border-zinc-800/50 bg-zinc-900/20 p-7">
             <p>
-              This Cookie Policy explains how JILBER Performance Engineering (&ldquo;JILBER&rdquo;,
+              This Cookie Policy explains how Pro Tuning (&ldquo;we&rdquo;,
               &ldquo;we&rdquo;, &ldquo;us&rdquo;, or &ldquo;our&rdquo;) uses cookies and
               similar browser storage technologies on our website. By continuing to use our
               website, you consent to our use of these technologies as described below.
@@ -60,7 +60,7 @@ export default function CookiePolicyPage() {
               <div className="border border-zinc-800/30 bg-zinc-900/30 p-5">
                 <div className="flex flex-wrap items-center gap-3 mb-3">
                   <span className="text-[10px] font-black text-white tracking-widest uppercase">
-                    jilber-session
+                    protuning-session
                   </span>
                   <span className="text-[9px] border border-cyan-400/30 text-cyan-400 px-2 py-0.5 font-bold tracking-wide uppercase">
                     Strictly Necessary
@@ -71,7 +71,7 @@ export default function CookiePolicyPage() {
                 </div>
                 <p>
                   An <strong className="text-zinc-300">httpOnly, secure session cookie</strong>{' '}
-                  used to keep you signed in to your JILBER account. It contains a cryptographically
+                  used to keep you signed in to your Pro Tuning account. It contains a cryptographically
                   signed JSON Web Token (JWT) that identifies your session. Because it is httpOnly,
                   JavaScript running in the browser cannot read it — this protects you against
                   cross-site scripting attacks. It cannot be used to track your browsing across
@@ -96,7 +96,7 @@ export default function CookiePolicyPage() {
               <div className="border border-zinc-800/30 bg-zinc-900/30 p-5">
                 <div className="flex flex-wrap items-center gap-3 mb-3">
                   <span className="text-[10px] font-black text-white tracking-widest uppercase">
-                    jilber-cart
+                    protuning-cart
                   </span>
                   <span className="text-[9px] border border-cyan-400/30 text-cyan-400 px-2 py-0.5 font-bold tracking-wide uppercase">
                     Strictly Necessary

@@ -2,7 +2,7 @@ import AdminPageHeader from '@/components/admin/AdminPageHeader';
 import AdminReviewsClient from '@/components/admin/reviews/AdminReviewsClient';
 
 export const metadata = {
-  title: 'Reviews | JILBER Admin',
+  title: 'Reviews | Pro Tuning Admin',
 };
 
 export default function AdminReviewsPage() {

@@ -230,7 +230,7 @@ export default function ScrollFrameSequence({
               aria-hidden="true"
             />
             <span className="text-lg font-black tracking-[0.35em] text-white uppercase">
-              JILBER
+              Pro Tuning
             </span>
           </div>
 

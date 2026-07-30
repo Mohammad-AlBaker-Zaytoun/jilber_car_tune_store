@@ -2,8 +2,8 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 
 export const metadata: Metadata = {
-  title: 'Terms of Service | JILBER Performance',
-  description: 'Terms and conditions governing the use of JILBER Performance Engineering services and website.',
+  title: 'Terms of Service | Pro Tuning',
+  description: 'Terms and conditions governing the use of Pro Tuning services and website.',
 };
 
 const LAST_UPDATED = 'May 10, 2025';
@@ -34,7 +34,7 @@ export default function TermsOfServicePage() {
           {/* Intro */}
           <div className="border border-zinc-800/50 bg-zinc-900/20 p-7">
             <p>
-              Please read these Terms of Service carefully before using the JILBER Performance
+              Please read these Terms of Service carefully before using the Pro Tuning
               Engineering website or booking any of our services. By accessing our website, placing
               an order, or booking a service appointment, you agree to be bound by these terms. If
               you do not agree, please do not use our services.
@@ -42,9 +42,9 @@ export default function TermsOfServicePage() {
           </div>
 
           {/* 1 */}
-          <Section title="1. About JILBER Performance Engineering">
+          <Section title="1. About Pro Tuning">
             <p>
-              JILBER Performance Engineering (&ldquo;JILBER&rdquo;, &ldquo;we&rdquo;,
+              Pro Tuning (&ldquo;we&rdquo;,
               &ldquo;us&rdquo;, or &ldquo;our&rdquo;) is a specialist automotive performance
               workshop providing ECU tuning, exhaust systems, suspension upgrades, brake
               modifications, aerodynamic components, and related performance parts and services. Our
@@ -107,9 +107,9 @@ export default function TermsOfServicePage() {
               </p>
               <ul className="list-none flex flex-col gap-2">
                 {[
-                  'Performance tuning may affect your vehicle\'s manufacturer warranty. JILBER is not liable for any warranty claims rejected by a manufacturer as a result of our work.',
+                  'Performance tuning may affect your vehicle\'s manufacturer warranty. Pro Tuning is not liable for any warranty claims rejected by a manufacturer as a result of our work.',
                   'Increases in power output and changes to suspension, brakes, or aerodynamics may affect vehicle behaviour. You accept full responsibility for safe operation of your modified vehicle.',
-                  'JILBER will not be held liable for any mechanical failure, accident, injury, or loss arising from the use of a modified vehicle, except where directly caused by our proven negligence.',
+                  'Pro Tuning will not be held liable for any mechanical failure, accident, injury, or loss arising from the use of a modified vehicle, except where directly caused by our proven negligence.',
                   'We reserve the right to decline work we consider unsafe, illegal, or likely to cause damage to the vehicle or third parties.',
                   'ECU tuning may affect fuel consumption and emissions. Compliance with local emissions standards is your responsibility.',
                 ].map((item) => (
@@ -135,7 +135,7 @@ export default function TermsOfServicePage() {
                 stated otherwise. Tax will be calculated and displayed at checkout.
               </p>
               <p>
-                Ownership of parts supplied by JILBER remains with us until full payment is
+                Ownership of parts supplied by Pro Tuning remains with us until full payment is
                 received.
               </p>
             </div>
@@ -145,7 +145,7 @@ export default function TermsOfServicePage() {
           <Section title="6. Warranty and Guarantee">
             <div className="flex flex-col gap-3">
               <p>
-                JILBER provides a <strong className="text-zinc-300">12-month workmanship
+                Pro Tuning provides a <strong className="text-zinc-300">12-month workmanship
                 guarantee</strong> on all labour and parts supplied by us, covering defects in
                 materials and workmanship under normal operating conditions.
               </p>
@@ -170,7 +170,7 @@ export default function TermsOfServicePage() {
           <Section title="7. Intellectual Property">
             <p>
               All content on this website — including text, graphics, logos, images, and software —
-              is the property of JILBER Performance Engineering and is protected by applicable
+              is the property of Pro Tuning and is protected by applicable
               intellectual property laws. You may not reproduce, distribute, or create derivative
               works without our prior written consent.
             </p>
@@ -204,7 +204,7 @@ export default function TermsOfServicePage() {
           {/* 9 */}
           <Section title="9. Limitation of Liability">
             <p>
-              To the fullest extent permitted by law, JILBER Performance Engineering shall not be
+              To the fullest extent permitted by law, Pro Tuning shall not be
               liable for any indirect, incidental, special, or consequential damages arising from
               your use of our website or services, including but not limited to loss of profits,
               data, or business opportunity. Our total liability in any case shall not exceed the

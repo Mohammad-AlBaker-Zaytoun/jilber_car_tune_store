@@ -92,7 +92,7 @@ export const useCartStore = create<CartStore>()(
       total: (taxRatePercent) => computeTotals(get().subtotal(), taxRatePercent).total,
     }),
     {
-      name: 'jilber-cart',
+      name: 'protuning-cart',
       storage: createJSONStorage(() => localStorage),
       skipHydration: true,
     }

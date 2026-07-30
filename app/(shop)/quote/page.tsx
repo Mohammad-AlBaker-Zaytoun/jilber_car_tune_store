@@ -106,7 +106,7 @@ export default async function QuotePage({
             {/* Trust highlights */}
             <div className="border border-zinc-800/50 bg-zinc-900/20 p-6">
               <h2 className="text-xs font-black text-white tracking-[0.25em] uppercase mb-5">
-                Why JILBER
+                Why Pro Tuning
               </h2>
               <div className="flex flex-col gap-4">
                 {[

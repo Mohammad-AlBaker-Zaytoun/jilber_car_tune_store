@@ -83,7 +83,7 @@ export default function WhyChooseUsSection() {
             <div className="inline-flex items-center gap-2.5 mb-5">
               <div className="w-7 h-px bg-cyan-400 shrink-0" aria-hidden="true" />
               <span className="text-[10px] sm:text-xs text-cyan-400 tracking-[0.3em] uppercase font-bold">
-                Why JILBER
+                Why Pro Tuning
               </span>
             </div>
             <h2 className="text-4xl sm:text-5xl lg:text-6xl font-black text-white tracking-tight leading-none">

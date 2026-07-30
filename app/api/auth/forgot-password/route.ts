@@ -31,7 +31,7 @@ export async function POST(request: Request) {
         const resetUrl = `${siteConfig.siteUrl}/reset-password?token=${rawToken}`;
         await sendEmail({
           to: user.email,
-          subject: 'Reset your JILBER password',
+          subject: 'Reset your Pro Tuning password',
           html: emailLayout(
             'Password reset',
             `<p>Hi ${escapeHtml(user.name)},</p>

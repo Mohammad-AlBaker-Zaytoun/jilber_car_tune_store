@@ -2,8 +2,8 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 
 export const metadata: Metadata = {
-  title: 'Privacy Policy | JILBER Performance',
-  description: 'How JILBER Performance Engineering collects, uses, and protects your personal data.',
+  title: 'Privacy Policy | Pro Tuning',
+  description: 'How Pro Tuning collects, uses, and protects your personal data.',
 };
 
 const LAST_UPDATED = 'May 10, 2025';
@@ -34,7 +34,7 @@ export default function PrivacyPolicyPage() {
           {/* Intro */}
           <div className="border border-zinc-800/50 bg-zinc-900/20 p-7">
             <p>
-              JILBER Performance Engineering (&ldquo;JILBER&rdquo;, &ldquo;we&rdquo;,
+              Pro Tuning (&ldquo;we&rdquo;,
               &ldquo;us&rdquo;, or &ldquo;our&rdquo;) is committed to protecting your privacy.
               This policy explains what personal data we collect, why we collect it, how we use
               it, and your rights in relation to it. It applies to data collected through our

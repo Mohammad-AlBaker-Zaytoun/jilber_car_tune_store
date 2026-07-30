@@ -120,7 +120,7 @@ test.describe('Authentication', () => {
     // proving less: a cookie that survived logout is the actual defect worth
     // catching, and expect.poll still catches it because it retries to a timeout.
     await expect
-      .poll(async () => (await context.cookies()).some((c) => c.name === 'jilber-session'), {
+      .poll(async () => (await context.cookies()).some((c) => c.name === 'protuning-session'), {
         message: 'the session cookie should be cleared by signing out',
       })
       .toBe(false);

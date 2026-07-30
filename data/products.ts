@@ -324,7 +324,7 @@ export const products: Product[] = [
     ],
     includedItems: [
       '4× forged wheels',
-      'Centre caps (JILBER logo)',
+      'Centre caps (Pro Tuning logo)',
       'Extended lug bolts (if required)',
       'Wheel specification certificate',
       'Carry bag',
@@ -499,7 +499,7 @@ export const products: Product[] = [
     compatibility: [
       'BMW M3/M4 G80/G82',
       'BMW M2 G87',
-      'Compatible with JILBER Valvetronic exhaust',
+      'Compatible with Pro Tuning Valvetronic exhaust',
     ],
     includedItems: [
       'Carbon rear diffuser assembly',

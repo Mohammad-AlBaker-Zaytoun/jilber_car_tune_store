@@ -62,10 +62,10 @@ export default function Navbar() {
             </div>
             <div className="flex flex-col leading-none">
               <span className="text-base font-black tracking-[0.25em] text-white uppercase">
-                JILBER
+                PRO
               </span>
-              <span className="text-[9px] text-cyan-400/60 tracking-[0.2em] font-medium uppercase hidden sm:block">
-                Performance
+              <span className="text-[9px] text-cyan-400/60 tracking-[0.2em] font-medium uppercase">
+                Tuning
               </span>
             </div>
           </TransitionLink>

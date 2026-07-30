@@ -13,14 +13,14 @@ import type { AdminSettings } from '@/types/admin';
 const SETTINGS_ID = 1;
 
 const DEFAULTS: AdminSettings = {
-  shopName: 'JILBER Performance',
+  shopName: 'Pro Tuning',
   contactEmail: '',
   contactPhone: '',
   address: '',
   currency: 'USD',
   taxRate: 10,
   bookingMessage:
-    'Thank you for booking with JILBER. Our team will contact you within 24 hours to confirm your appointment.',
+    'Thank you for booking with Pro Tuning. Our team will contact you within 24 hours to confirm your appointment.',
   whatsappNumber: '',
   googleMapsUrl: '',
   workingHours: 'Mon–Fri 8 am–7 pm · Sat 9 am–5 pm · Sun Closed',

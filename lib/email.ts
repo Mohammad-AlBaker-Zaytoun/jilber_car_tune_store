@@ -4,7 +4,7 @@
  * Env-gated: if RESEND_API_KEY is unset the call is a logged no-op, so the app
  * works in development without an email provider. Set these to enable real mail:
  *   RESEND_API_KEY   — Resend API key
- *   EMAIL_FROM       — verified sender, e.g. "JILBER <orders@yourdomain.com>"
+ *   EMAIL_FROM       — verified sender, e.g. "Pro Tuning <orders@yourdomain.com>"
  *   ADMIN_EMAIL      — where admin alerts (new orders/quotes) are sent
  *
  * All sends are best-effort and never throw — callers fire-and-forget so email
@@ -35,7 +35,7 @@ export function escapeHtml(value: unknown): string {
 
 export async function sendEmail({ to, subject, html }: EmailParams): Promise<void> {
   const apiKey = process.env.RESEND_API_KEY;
-  const from = process.env.EMAIL_FROM ?? 'JILBER Performance <onboarding@resend.dev>';
+  const from = process.env.EMAIL_FROM ?? 'Pro Tuning <onboarding@resend.dev>';
 
   if (!apiKey) {
     logger.info('email.disabled', { subject, to });
@@ -79,6 +79,6 @@ export function emailLayout(heading: string, bodyHtml: string): string {
     <h2 style="color:#0891b2">${heading}</h2>
     ${bodyHtml}
     <hr style="border:none;border-top:1px solid #e4e4e7;margin:24px 0" />
-    <p style="font-size:12px;color:#71717a">JILBER Performance Engineering</p>
+    <p style="font-size:12px;color:#71717a">Pro Tuning</p>
   </div>`;
 }

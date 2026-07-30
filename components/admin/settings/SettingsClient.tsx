@@ -138,11 +138,11 @@ export default function SettingsClient() {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className={labelCls}>Shop Name</label>
-            <input type="text" value={form.shopName} onChange={set('shopName')} className={inputCls} placeholder="JILBER Performance" />
+            <input type="text" value={form.shopName} onChange={set('shopName')} className={inputCls} placeholder="Pro Tuning" />
           </div>
           <div>
             <label className={labelCls}>Contact Email</label>
-            <input type="email" value={form.contactEmail} onChange={set('contactEmail')} className={inputCls} placeholder="info@jilber.com" />
+            <input type="email" value={form.contactEmail} onChange={set('contactEmail')} className={inputCls} placeholder="info@example.com" />
           </div>
           <div>
             <label className={labelCls}>Contact Phone</label>

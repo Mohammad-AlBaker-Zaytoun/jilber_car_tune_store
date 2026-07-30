@@ -17,9 +17,9 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
             <Gauge className="w-4 h-4 text-cyan-400 group-hover:rotate-45 transition-transform duration-500" aria-hidden="true" />
           </div>
           <div className="flex flex-col leading-none">
-            <span className="text-sm font-black tracking-[0.25em] text-white uppercase">JILBER</span>
-            <span className="text-[8px] text-cyan-400/60 tracking-[0.2em] font-medium uppercase hidden sm:block">
-              Performance
+            <span className="text-sm font-black tracking-[0.25em] text-white uppercase">PRO</span>
+            <span className="text-[8px] text-cyan-400/60 tracking-[0.2em] font-medium uppercase">
+              Tuning
             </span>
           </div>
         </Link>
@@ -49,7 +49,7 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
 
       <footer className="px-6 py-4 border-t border-zinc-900 text-center">
         <p className="text-[10px] text-zinc-700">
-          &copy; 2025 JILBER Performance Engineering
+          &copy; {new Date().getFullYear()} Pro Tuning
         </p>
       </footer>
     </div>

@@ -61,7 +61,7 @@ function AdminSidebar({ user, pathname, onNavClick, onSignOut, closeButton }: Si
             <Gauge className="w-4 h-4 text-cyan-400" aria-hidden="true" />
           </div>
           <div className="flex flex-col leading-none">
-            <span className="text-sm font-black tracking-[0.2em] text-white uppercase">JILBER</span>
+            <span className="text-sm font-black tracking-[0.2em] text-white uppercase">Pro Tuning</span>
             <span className="text-[9px] text-cyan-400/60 tracking-widest font-medium uppercase flex items-center gap-1">
               <Shield size={8} aria-hidden="true" />
               Admin
