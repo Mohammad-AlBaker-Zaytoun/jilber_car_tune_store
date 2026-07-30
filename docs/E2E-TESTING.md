@@ -42,6 +42,10 @@ npm run test:e2e:demo
 Runs headed with a 350 ms delay between actions, so a browser window visibly
 drives the store: browsing, adding to the cart, filling in checkout, and placing
 an order — then does it again against a payment gateway that is genuinely broken.
+The slow-down keys off `--headed`, so any headed run is followable; set
+`E2E_DEMO=1` to force it elsewhere.
+
+Allow about two minutes for the 38 tests in these two projects.
 
 Talking points, in the order they appear on screen:
 

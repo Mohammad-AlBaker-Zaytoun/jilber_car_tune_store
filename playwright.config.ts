@@ -45,6 +45,9 @@ const baseEnv = {
   ORDER_RATE_LIMIT_PER_MINUTE: '200',
 };
 
+/** True when a human is watching a real browser drive the store. */
+const isDemo = process.argv.includes('--headed') || !!process.env.E2E_DEMO;
+
 export default defineConfig({
   testDir: './e2e',
   testMatch: '**/*.spec.ts',
@@ -72,7 +75,12 @@ export default defineConfig({
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
     // Slightly slower actions make a live demo followable without being painful.
-    ...(process.env.E2E_DEMO ? { launchOptions: { slowMo: 350 } } : {}),
+    //
+    // Keyed off --headed rather than an env var: the only reason to watch a
+    // browser is to watch it, and setting an env var inline in an npm script is
+    // not portable to cmd.exe or PowerShell. E2E_DEMO stays as an explicit
+    // override for `--ui`, which is headed but does not pass --headed.
+    ...(isDemo ? { launchOptions: { slowMo: 350 } } : {}),
   },
 
   projects: [
