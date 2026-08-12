@@ -49,9 +49,28 @@ mkdir -p "$BACKUP_DIR"
 # ---------------------------------------------------------------------------
 # Database
 # ---------------------------------------------------------------------------
+# Backup compression is an Enterprise/Standard feature. On Express, BACKUP
+# DATABASE ... WITH COMPRESSION does not degrade gracefully — it aborts the
+# whole backup with "Msg 1844: BACKUP DATABASE WITH COMPRESSION is not
+# supported on Express Edition", which would leave the store with no backups
+# at all. Detect the edition rather than hardcoding, so this keeps producing
+# compressed dumps if the database ever moves to Standard or Enterprise.
+#
+# EngineEdition: 1=Personal 2=Standard 3=Enterprise/Developer 4=Express
+ENGINE_EDITION="$(sqlcmd -S "$DB_HOST" -U "$DB_USER" -P "$DB_PASS" -C -b -h -1 -W \
+  -Q "SET NOCOUNT ON; SELECT CONVERT(varchar(2), SERVERPROPERTY('EngineEdition'));" 2>/dev/null \
+  | tr -dc '0-9' | head -c 2)"
+
+if [ "$ENGINE_EDITION" = "4" ]; then
+  COMPRESSION_OPT=""
+  log "Express Edition detected — writing an uncompressed backup"
+else
+  COMPRESSION_OPT=", COMPRESSION"
+fi
+
 log "Backing up database '$DB_NAME'"
 sqlcmd -S "$DB_HOST" -U "$DB_USER" -P "$DB_PASS" -C -b -Q \
-  "BACKUP DATABASE [$DB_NAME] TO DISK = N'${MSSQL_BACKUP_DIR}/${DB_FILE}' WITH INIT, COMPRESSION, CHECKSUM, STATS = 10;" \
+  "BACKUP DATABASE [$DB_NAME] TO DISK = N'${MSSQL_BACKUP_DIR}/${DB_FILE}' WITH INIT${COMPRESSION_OPT}, CHECKSUM, STATS = 10;" \
   || fail "BACKUP DATABASE failed"
 
 # Verify the dump is readable BEFORE we count it as a backup.
