@@ -4,7 +4,9 @@ import { useEffect, useRef, useState } from 'react';
 import {
   PAGE_TRANSITION_DURATION_MS,
   PAGE_TRANSITION_FRAME_COUNT,
+  TRANSITION_DURATION_MS,
   type TransitionPhase,
+  type TransitionVariant,
 } from './PageTransitionProvider';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -28,10 +30,13 @@ function drawFrameCover(
 
 interface Props {
   phase: TransitionPhase;
+  /** 'cinematic' plays the frame sequence; 'light' is a plain CSS fade. */
+  variant: TransitionVariant;
   framesRef: React.MutableRefObject<HTMLImageElement[]>;
 }
 
-export default function PageTransitionOverlay({ phase, framesRef }: Props) {
+export default function PageTransitionOverlay({ phase, variant, framesRef }: Props) {
+  const isLight = variant === 'light';
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const progressRef = useRef<HTMLDivElement>(null);
   const rafRef = useRef<number>(0);
@@ -65,8 +70,18 @@ export default function PageTransitionOverlay({ phase, framesRef }: Props) {
     bar.style.width = '100%';
   }, [phase]);
 
-  // ── Canvas animation — runs during the active phase only ─────────────
+  // ── Light variant: drive the progress bar with CSS, no canvas ────────
   useEffect(() => {
+    if (!isLight || phase !== 'active') return;
+    const bar = progressRef.current;
+    if (!bar) return;
+    bar.style.transition = `width ${TRANSITION_DURATION_MS.light}ms ease-out`;
+    bar.style.width = '90%';
+  }, [isLight, phase]);
+
+  // ── Canvas animation — cinematic variant, active phase only ──────────
+  useEffect(() => {
+    if (isLight) return;
     if (phase !== 'active') return;
 
     const canvas = canvasRef.current;
@@ -159,9 +174,59 @@ export default function PageTransitionOverlay({ phase, framesRef }: Props) {
       cancelAnimationFrame(rafRef.current);
       window.removeEventListener('resize', handleResize);
     };
-  }, [phase, framesRef]);
+  }, [isLight, phase, framesRef]);
 
-  // ── Render ────────────────────────────────────────────────────────────
+  // ── Render: light variant ─────────────────────────────────────────────
+  //
+  // A translucent veil over the outgoing page rather than the opaque #080808
+  // used by the cinematic version: in a working tool it should read as a brief
+  // dim, not as the screen being replaced. No canvas, no frames, no vignette.
+  if (isLight) {
+    return (
+      <div
+        aria-hidden="true"
+        style={{
+          position: 'fixed',
+          inset: 0,
+          zIndex: 9999,
+          opacity: isExiting || !hasEntered ? 0 : 1,
+          transition: isExiting ? 'opacity 200ms ease' : 'opacity 120ms ease-out',
+          // Same reasoning as the cinematic variant: the overlay outlives the
+          // navigation by the length of its fade, and must not swallow clicks
+          // on the page that has already arrived underneath it.
+          pointerEvents: isExiting ? 'none' : 'all',
+          willChange: 'opacity',
+          background: 'rgba(6, 10, 16, 0.55)',
+          backdropFilter: 'blur(2px)',
+          WebkitBackdropFilter: 'blur(2px)',
+        }}
+      >
+        <div
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            height: '2px',
+            background: 'rgba(255,255,255,0.06)',
+          }}
+        >
+          <div
+            ref={progressRef}
+            style={{
+              height: '100%',
+              width: '0%',
+              background: 'linear-gradient(90deg, #00d4ff 0%, #0066ff 100%)',
+              boxShadow: '0 0 10px rgba(0,212,255,0.85)',
+              transition: 'width 120ms linear',
+            }}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  // ── Render: cinematic variant ─────────────────────────────────────────
 
   return (
     <div

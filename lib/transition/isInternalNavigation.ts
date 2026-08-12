@@ -1,4 +1,26 @@
 /**
+ * Route prefixes that get the LIGHT transition instead of the cinematic one.
+ *
+ * The admin panel is a working tool, not a showcase. A 900 ms frame-sequence
+ * overlay between every list and detail view is friction for someone processing
+ * a queue of orders, and it costs 5.4 MB of frames they never asked for. These
+ * routes still animate — just a fast, cheap fade. The storefront keeps the full
+ * treatment, which is where it earns its place.
+ *
+ * Applied to BOTH ends of a navigation: entering and leaving the admin panel are
+ * equally not moments for a flourish, and matching only the destination would
+ * still play the cinematic version on the way out.
+ */
+const LIGHT_TRANSITION_PREFIXES = ['/admin'] as const;
+
+/** True when a pathname is one of those routes, or nested beneath it. */
+export function isLightTransitionArea(pathname: string): boolean {
+  return LIGHT_TRANSITION_PREFIXES.some(
+    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)
+  );
+}
+
+/**
  * Returns true if a click on the given anchor warrants a page-transition animation.
  *
  * Excluded cases:
@@ -12,6 +34,10 @@
  *  - Next.js system paths (/_next/, /api/)
  *  - paths that look like file downloads (have a file extension)
  *  - anchors with data-no-transition attribute
+ *
+ * Note this says nothing about WHICH animation plays. Admin routes still
+ * intercept; PageTransitionProvider picks the light variant for them via
+ * isLightTransitionArea().
  */
 export function shouldInterceptNavigation(
   anchor: HTMLAnchorElement,

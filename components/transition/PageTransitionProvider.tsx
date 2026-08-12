@@ -10,7 +10,10 @@ import {
   type ReactNode,
 } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { shouldInterceptNavigation } from '@/lib/transition/isInternalNavigation';
+import {
+  shouldInterceptNavigation,
+  isLightTransitionArea,
+} from '@/lib/transition/isInternalNavigation';
 import PageTransitionOverlay from './PageTransitionOverlay';
 
 // ─── Config ────────────────────────────────────────────────────────────────
@@ -19,11 +22,31 @@ export const PAGE_TRANSITION_FRAME_COUNT = 72;
 export const PAGE_TRANSITION_DURATION_MS = 900;
 
 /**
- * How long the overlay fades out after the route settles (ms).
- * Must be >= the CSS `opacity` transition duration in PageTransitionOverlay
- * (currently 500 ms) so the element is never unmounted mid-animation.
+ * Two flavours of navigation.
+ *
+ * 'cinematic' — the 72-frame canvas sequence. Storefront only: it is a brand
+ *   moment, and it costs 5.4 MB of frames plus a 900 ms hold.
+ * 'light' — a fast CSS fade with the same progress bar. Used for the admin
+ *   panel, where the animation should feel smooth but never make someone
+ *   working through orders wait.
  */
-const FADE_OUT_MS = 600;
+export type TransitionVariant = 'cinematic' | 'light';
+
+/** Minimum time the overlay is held, per variant. */
+export const TRANSITION_DURATION_MS: Record<TransitionVariant, number> = {
+  cinematic: PAGE_TRANSITION_DURATION_MS,
+  light: 220,
+};
+
+/**
+ * How long the overlay fades out after the route settles (ms).
+ * Must be >= the CSS `opacity` transition duration for that variant in
+ * PageTransitionOverlay, so the element is never unmounted mid-animation.
+ */
+const FADE_OUT_MS: Record<TransitionVariant, number> = {
+  cinematic: 600,
+  light: 240,
+};
 
 /** Force-exit transition if the route never settles (network error, etc.). */
 const MAX_TRANSITION_MS = 8000;
@@ -38,12 +61,14 @@ export type TransitionPhase = 'idle' | 'active' | 'exiting';
 interface TransitionContextValue {
   triggerTransition: (href: string) => void;
   phase: TransitionPhase;
+  variant: TransitionVariant;
   framesRef: React.MutableRefObject<HTMLImageElement[]>;
 }
 
 const TransitionContext = createContext<TransitionContextValue>({
   triggerTransition: () => {},
   phase: 'idle',
+  variant: 'cinematic',
   framesRef: { current: [] },
 });
 
@@ -57,10 +82,15 @@ export function PageTransitionProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const [phase, setPhase] = useState<TransitionPhase>('idle');
+  const [variant, setVariant] = useState<TransitionVariant>('cinematic');
+
+  /** True while the user is inside the admin panel. */
+  const inLightArea = isLightTransitionArea(pathname);
 
   // Refs that survive re-renders without triggering them
   const framesRef = useRef<HTMLImageElement[]>([]);
   const phaseRef = useRef<TransitionPhase>('idle');
+  const variantRef = useRef<TransitionVariant>('cinematic');
   const currentPathnameRef = useRef(pathname);
   /**
    * Pathname at the moment triggerTransition was called.
@@ -90,9 +120,14 @@ export function PageTransitionProvider({ children }: { children: ReactNode }) {
    * callbacks keeps it genuinely background work.
    *
    * Also skipped entirely when the visitor has asked for reduced motion — the
-   * overlay respects that preference, so downloading the frames is pure waste.
+   * overlay respects that preference, so downloading the frames is pure waste —
+   * and inside the admin panel, which uses the light variant and never draws a
+   * single frame. An admin working through orders should not pay 5.4 MB for an
+   * animation they will never see.
    */
   useEffect(() => {
+    if (inLightArea) return;
+
     if (
       typeof window !== 'undefined' &&
       window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
@@ -138,7 +173,9 @@ export function PageTransitionProvider({ children }: { children: ReactNode }) {
       }
       if (timeoutId !== null) clearTimeout(timeoutId);
     };
-  }, []);
+    // Depends on the boolean, not the pathname: re-running on every navigation
+    // would restart the batch loop from frame 1 on each route change.
+  }, [inLightArea]);
 
   // ── State machine ─────────────────────────────────────────────────────
 
@@ -161,7 +198,7 @@ export function PageTransitionProvider({ children }: { children: ReactNode }) {
       sourcePathnameRef.current = null;
       routeDoneRef.current = false;
       timeDoneRef.current = false;
-    }, FADE_OUT_MS);
+    }, FADE_OUT_MS[variantRef.current]);
   }, []);
 
   const triggerTransition = useCallback(
@@ -171,6 +208,23 @@ export function PageTransitionProvider({ children }: { children: ReactNode }) {
       routeDoneRef.current = false;
       timeDoneRef.current = false;
 
+      // Pick the variant from BOTH ends of the navigation. Either side being in
+      // the admin panel means the light fade — entering it should not play the
+      // cinematic sequence any more than leaving it should.
+      let targetPathname = href;
+      try {
+        targetPathname = new URL(href, window.location.href).pathname;
+      } catch {
+        /* relative or malformed href — fall back to the raw string */
+      }
+      const nextVariant: TransitionVariant =
+        isLightTransitionArea(currentPathnameRef.current) ||
+        isLightTransitionArea(targetPathname)
+          ? 'light'
+          : 'cinematic';
+      variantRef.current = nextVariant;
+      setVariant(nextVariant);
+
       // Store the source pathname so we can detect ANY navigation change,
       // including server-side redirects to unexpected destinations.
       sourcePathnameRef.current = currentPathnameRef.current;
@@ -179,11 +233,12 @@ export function PageTransitionProvider({ children }: { children: ReactNode }) {
       setPhase('active');
       router.push(href);
 
-      // Minimum animation duration: don't hide until all 60 frames played
+      // Minimum hold: the cinematic variant waits for all frames to play; the
+      // light one is just long enough to read as a deliberate fade.
       setTimeout(() => {
         timeDoneRef.current = true;
         if (routeDoneRef.current) beginExit();
-      }, PAGE_TRANSITION_DURATION_MS);
+      }, TRANSITION_DURATION_MS[nextVariant]);
 
       // Safety exit: never hang if the route never settles (redirect loops, errors, etc.)
       safetyTimerRef.current = setTimeout(() => {
@@ -246,10 +301,10 @@ export function PageTransitionProvider({ children }: { children: ReactNode }) {
   // ── Render ────────────────────────────────────────────────────────────
 
   return (
-    <TransitionContext.Provider value={{ triggerTransition, phase, framesRef }}>
+    <TransitionContext.Provider value={{ triggerTransition, phase, variant, framesRef }}>
       {children}
       {phase !== 'idle' && (
-        <PageTransitionOverlay phase={phase} framesRef={framesRef} />
+        <PageTransitionOverlay phase={phase} variant={variant} framesRef={framesRef} />
       )}
     </TransitionContext.Provider>
   );
