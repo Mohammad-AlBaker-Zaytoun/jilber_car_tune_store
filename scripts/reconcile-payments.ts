@@ -21,6 +21,13 @@
  * Exits non-zero if anything could not be reached, so cron mail / monitoring fires.
  */
 
+// MUST be first: this runs under `tsx` from cron, not Next.js, so nothing else
+// loads .env. Without it the job reads an empty environment — it exits 0 with
+// "WHISH_CHANNEL / WHISH_SECRET are not set" and looks healthy, while every
+// charged-but-unconfirmed order silently goes unreconciled. Once credentials
+// ARE set it gets further and dies on "DATABASE_URL is not set" instead.
+import 'dotenv/config';
+
 import { getUnconfirmedWhishOrders } from '../lib/orders';
 import { settleWhishOrder } from '../lib/payments/whish-settle';
 import { isWhishConfigured } from '../lib/payments/whish';

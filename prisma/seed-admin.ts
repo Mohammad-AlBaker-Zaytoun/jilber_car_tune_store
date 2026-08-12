@@ -13,6 +13,11 @@
  * password reset to the provided value); otherwise a new admin user is created.
  */
 
+// MUST be first: this runs under `tsx`, not Next.js, and nothing else loads
+// .env for a standalone script. Without it createPrismaAdapter() throws
+// "DATABASE_URL is not set" even though .env sits right there in APP_DIR.
+import 'dotenv/config';
+
 import { randomUUID } from 'crypto';
 import bcrypt from 'bcryptjs';
 import { PrismaClient } from '@prisma/client';

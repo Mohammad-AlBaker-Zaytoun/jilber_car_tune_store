@@ -22,7 +22,28 @@ const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
 export function isSameOriginRequest(request: NextRequest): boolean {
   if (SAFE_METHODS.has(request.method)) return true;
 
-  const expectedHost = request.nextUrl.host;
+  // Compare against the forwarded/Host header, NOT request.nextUrl.host.
+  //
+  // Behind a reverse proxy, nextUrl.host is the address the Node server is
+  // BOUND to — "localhost:3000" — not the host the browser asked for. It
+  // therefore never equals a real Origin, so in production every mutating
+  // request (register, order, quote, contact, login) returned 403 while the
+  // Playwright suite passed, because Playwright talks to localhost:3000 and
+  // the two coincidentally matched.
+  //
+  // This mirrors what Next.js itself does for Server Actions: compare Origin
+  // against Host / X-Forwarded-Host (see node_modules/next/dist/docs/01-app/
+  // 02-guides/data-security.md).
+  //
+  // Trusting these headers is safe in this deployment: the app binds to
+  // 127.0.0.1 only, nginx OVERWRITES both headers with $host, and its
+  // server_name match means a request with a foreign Host never reaches this
+  // server block at all. If the app is ever exposed directly, this assumption
+  // must be revisited.
+  const expectedHost =
+    request.headers.get('x-forwarded-host') ??
+    request.headers.get('host') ??
+    request.nextUrl.host;
 
   const origin = request.headers.get('origin');
   if (origin) {
