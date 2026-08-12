@@ -8,22 +8,26 @@ import {
   type TransitionPhase,
   type TransitionVariant,
 } from './PageTransitionProvider';
+import { computeFrameFit } from '@/lib/transition/fitFrame';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
-function drawFrameCover(
+/**
+ * Draws a frame centred, scaled by the mobile-first rule in lib/transition/fitFrame.
+ *
+ * Was a plain cover fit, which on a portrait phone showed roughly a quarter of
+ * the 16:9 frame. computeFrameFit caps how much may be cropped, so narrow
+ * screens letterbox against the dark base instead of being centre-gutted.
+ */
+function drawFrame(
   ctx: CanvasRenderingContext2D,
   img: HTMLImageElement,
   cssW: number,
   cssH: number
 ) {
-  const iw = img.naturalWidth;
-  const ih = img.naturalHeight;
-  if (!iw || !ih) return;
-  const scale = Math.max(cssW / iw, cssH / ih);
-  const dw = iw * scale;
-  const dh = ih * scale;
-  ctx.drawImage(img, (cssW - dw) / 2, (cssH - dh) / 2, dw, dh);
+  const fit = computeFrameFit(img.naturalWidth, img.naturalHeight, cssW, cssH);
+  if (!fit) return;
+  ctx.drawImage(img, fit.dx, fit.dy, fit.dw, fit.dh);
 }
 
 // ─── Component ──────────────────────────────────────────────────────────────
@@ -131,7 +135,7 @@ export default function PageTransitionOverlay({ phase, variant, framesRef }: Pro
     ctx.fillStyle = '#080808';
     ctx.fillRect(0, 0, cssW, cssH);
     if (firstFrame?.complete && firstFrame.naturalWidth > 0) {
-      drawFrameCover(ctx, firstFrame, cssW, cssH);
+      drawFrame(ctx,firstFrame, cssW, cssH);
     }
 
     const startTime = performance.now();
@@ -151,7 +155,7 @@ export default function PageTransitionOverlay({ phase, variant, framesRef }: Pro
       ctx.fillStyle = '#080808';
       ctx.fillRect(0, 0, cssW, cssH);
       if (frame?.complete && frame.naturalWidth > 0) {
-        drawFrameCover(ctx, frame, cssW, cssH);
+        drawFrame(ctx,frame, cssW, cssH);
       }
 
       // Drive the progress bar via direct DOM mutation (no re-render per frame)

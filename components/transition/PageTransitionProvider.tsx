@@ -56,6 +56,35 @@ export const PAGE_TRANSITION_FRAME_PATH = (index: number) =>
 
 // ─── Context ────────────────────────────────────────────────────────────────
 
+/**
+ * True when this visitor should not be served the 5.1 MB frame sequence,
+ * regardless of which route they are on.
+ *
+ * Mobile-first: the cinematic transition is a flourish. It must not come out of
+ * someone's data allowance when they have explicitly asked it not to (Data
+ * Saver), when the connection cannot carry it, or when they have asked for
+ * reduced motion. Each of those gets the light fade instead — still a
+ * transition, just an honest one.
+ *
+ * Client-only; returns false during SSR so the server never guesses.
+ */
+function prefersLightweightTransition(): boolean {
+  if (typeof window === 'undefined' || typeof navigator === 'undefined') return false;
+
+  if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return true;
+
+  // navigator.connection is not in the DOM lib and is absent on Safari.
+  const connection = (
+    navigator as Navigator & {
+      connection?: { saveData?: boolean; effectiveType?: string };
+    }
+  ).connection;
+  if (!connection) return false;
+
+  if (connection.saveData) return true;
+  return ['slow-2g', '2g', '3g'].includes(connection.effectiveType ?? '');
+}
+
 export type TransitionPhase = 'idle' | 'active' | 'exiting';
 
 interface TransitionContextValue {
@@ -127,13 +156,7 @@ export function PageTransitionProvider({ children }: { children: ReactNode }) {
    */
   useEffect(() => {
     if (inLightArea) return;
-
-    if (
-      typeof window !== 'undefined' &&
-      window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
-    ) {
-      return;
-    }
+    if (prefersLightweightTransition()) return;
 
     const images: HTMLImageElement[] = [];
     let next = 1;
@@ -219,7 +242,11 @@ export function PageTransitionProvider({ children }: { children: ReactNode }) {
       }
       const nextVariant: TransitionVariant =
         isLightTransitionArea(currentPathnameRef.current) ||
-        isLightTransitionArea(targetPathname)
+        isLightTransitionArea(targetPathname) ||
+        // Data Saver / slow connection / reduced motion. Checked here rather
+        // than once on mount so a visitor who switches network mid-session gets
+        // the right treatment on their next navigation.
+        prefersLightweightTransition()
           ? 'light'
           : 'cinematic';
       variantRef.current = nextVariant;
