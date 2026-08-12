@@ -14,7 +14,13 @@ module.exports = {
     {
       name: 'jilber',
       script: 'node_modules/next/dist/bin/next',
-      args: 'start -p 3000',
+      // -H 127.0.0.1 binds to loopback only. Without it `next start` listens on
+      // 0.0.0.0, and anything that reaches :3000 directly bypasses nginx — which
+      // means bypassing the limit_req zones in deploy/nginx.conf AND being able
+      // to forge X-Forwarded-For, since TRUSTED_PROXY_COUNT=1 tells
+      // lib/rate-limit.ts to trust one proxy hop that would no longer exist.
+      // ufw already blocks the port; this makes it unreachable even if it does not.
+      args: 'start -p 3000 -H 127.0.0.1',
       cwd: '/srv/jilber',
 
       exec_mode: 'fork',
