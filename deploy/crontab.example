@@ -1,13 +1,24 @@
-# Scheduled jobs for the JILBER store.
+# Scheduled jobs for the Pro Tuning store.
 #
+#   sudo install -m 755 deploy/cron-run.sh /usr/local/bin/jilber-cron-run
 #   sudo crontab -u jilber -e     # then paste the lines below
 #
 # Adjust APP_DIR if the app does not live in /srv/jilber.
+#
+# EVERY JOB RUNS THROUGH jilber-cron-run. That is not decoration: cron mails on
+# OUTPUT, not on exit status, so a job that redirects its own output into a log
+# file can fail forever without ever triggering MAILTO. The wrapper logs
+# everything and prints only on failure. See deploy/cron-run.sh.
+#
+# MAILTO needs a working MTA. This host relays through msmtp -> Resend SMTP;
+# see docs/deployment.md. Without one, cron composes the mail and drops it.
+#
+# TIMES ARE UTC. The server clock is UTC and the shop is in Beirut (UTC+3), so
+# subtract 3 hours when reading these as local time.
 
 SHELL=/bin/bash
 PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 APP_DIR=/srv/jilber
-# cron mails output here — point it at a real inbox or the failures are invisible.
 MAILTO=ops@yourdomain.com
 
 # ---------------------------------------------------------------------------
@@ -16,19 +27,19 @@ MAILTO=ops@yourdomain.com
 # The Whish success callback is the only path that marks a card order paid. If it
 # is dropped or times out, the customer has been charged and the order sits
 # `unpaid` forever with no confirmation email. This re-queries Whish for orders
-# older than 10 minutes and settles them. Exits non-zero (-> cron mail) when it
-# cannot reach Whish, so "we don't know" is never silent.
+# older than 10 minutes and settles them. Exits non-zero when it cannot reach
+# Whish, so "we don't know" becomes an alert rather than silence.
 # ---------------------------------------------------------------------------
-*/15 * * * * cd $APP_DIR && npm run --silent reconcile:payments >> /var/log/jilber/reconcile.log 2>&1
+*/15 * * * * /usr/local/bin/jilber-cron-run /var/log/jilber/reconcile.log npm run --silent reconcile:payments
 
 # ---------------------------------------------------------------------------
-# Nightly backup (database + uploaded product images), 03:10.
+# Nightly backup (database + uploaded product images) — 22:10 UTC = 01:10 Beirut.
 # ---------------------------------------------------------------------------
-10 3 * * * cd $APP_DIR && ./deploy/backup.sh >> /var/log/jilber/backup.log 2>&1
+10 22 * * * /usr/local/bin/jilber-cron-run /var/log/jilber/backup.log ./deploy/backup.sh
 
 # ---------------------------------------------------------------------------
-# Monthly restore drill, 04:00 on the 1st.
+# Monthly restore drill — 23:00 UTC on the 1st = 02:00 Beirut.
 # Restores the most recent dump into a scratch DB and drops it again. An untested
 # backup is not a backup — this is what makes it one.
 # ---------------------------------------------------------------------------
-0 4 1 * * cd $APP_DIR && ./deploy/restore-drill.sh "$(ls -t /var/backups/jilber/*.bak | head -1)" >> /var/log/jilber/restore-drill.log 2>&1
+0 23 1 * * /usr/local/bin/jilber-cron-run /var/log/jilber/restore-drill.log bash -c './deploy/restore-drill.sh "$(ls -t /var/backups/jilber/*.bak | head -1)"'
