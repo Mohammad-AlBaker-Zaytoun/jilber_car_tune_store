@@ -1,8 +1,22 @@
 import Image from 'next/image';
-import { Cpu, Wind, Settings2, Circle, Disc3, Zap, Activity, Wrench } from 'lucide-react';
+import { Cpu, Wind, Settings2, Circle, Disc3, Zap, Activity, Wrench, Package } from 'lucide-react';
 import type { Category } from '@/data/products';
 
-const CATEGORY_ICONS: Record<Category, React.ElementType> = {
+/**
+ * Decorative icon per category. This is a CONVENIENCE MAP, not an allow-list:
+ * categories are admin-managed rows in the database (see /admin/categories and
+ * getCategoryNames()), so any string can legitimately arrive here.
+ *
+ * A missing entry MUST fall back rather than yield undefined. `Category` is
+ * `string`, so `Record<Category, …>` is `Record<string, …>` and TypeScript
+ * reports this lookup as always-defined — it cannot catch the gap. Rendering
+ * `<Icon />` with undefined throws "Element type is invalid: expected a string
+ * … but got: undefined", which killed the whole /store render. Because /store
+ * is ISR, Next then served the last good page, so the storefront kept returning
+ * 200 while silently showing "No products" — an outage that looked like an
+ * empty catalogue.
+ */
+const CATEGORY_ICONS: Record<string, React.ElementType> = {
   'ECU Tuning': Cpu,
   Exhaust: Wind,
   Suspension: Settings2,
@@ -12,6 +26,9 @@ const CATEGORY_ICONS: Record<Category, React.ElementType> = {
   Diagnostics: Activity,
   Maintenance: Wrench,
 };
+
+/** Used for any admin-created category with no bespoke icon. */
+const FALLBACK_ICON = Package;
 
 interface Props {
   category: Category;
@@ -30,7 +47,7 @@ export default function ProductVisual({
   imageUrl,
   productName,
 }: Props) {
-  const Icon = CATEGORY_ICONS[category];
+  const Icon = CATEGORY_ICONS[category] ?? FALLBACK_ICON;
 
   const heights: Record<string, string> = {
     sm: 'h-40',
