@@ -15,6 +15,7 @@
 #   BACKUP_DIR          where dumps land                   (default: /var/backups/jilber)
 #   MSSQL_BACKUP_DIR    path SQL Server itself can write   (default: /var/opt/mssql/backups)
 #   RETENTION_DAYS      prune older than this              (default: 14)
+#   RETENTION_COUNT     keep only the N newest instead     (overrides RETENTION_DAYS)
 #   OFFSITE_DEST        optional rsync/scp destination
 #
 # NOTE: SQL Server writes BACKUP DATABASE from ITS OWN process, so MSSQL_BACKUP_DIR
@@ -109,10 +110,36 @@ fi
 
 # ---------------------------------------------------------------------------
 # Prune
+#
+# Two modes. RETENTION_COUNT keeps the N newest files of each kind regardless of
+# age, which is what you want when the provider holds the long-tail history and
+# these dumps only exist for a fast surgical restore. RETENTION_DAYS is the
+# age-based fallback.
+#
+# Count-based pruning is deliberately applied per file KIND (.bak and uploads
+# tarball separately) so a run that skipped the uploads half cannot cause the
+# database dumps to be over-pruned.
 # ---------------------------------------------------------------------------
-log "Pruning backups older than ${RETENTION_DAYS} days"
-find "$BACKUP_DIR" -name "${DB_NAME}-*.bak" -mtime "+${RETENTION_DAYS}" -delete
-find "$BACKUP_DIR" -name 'uploads-*.tar.gz' -mtime "+${RETENTION_DAYS}" -delete
+prune_keep_newest() {
+  # $1 = glob of files to consider, $2 = how many to keep
+  local keep="$2" old
+  # Filenames are timestamped by this script and contain no spaces.
+  # shellcheck disable=SC2012
+  ls -1t $1 2>/dev/null | tail -n "+$((keep + 1))" | while IFS= read -r old; do
+    [ -f "$old" ] || continue
+    rm -f -- "$old" && echo "  pruned $(basename "$old")"
+  done
+}
+
+if [ -n "${RETENTION_COUNT:-}" ]; then
+  log "Pruning: keeping the ${RETENTION_COUNT} newest of each kind"
+  prune_keep_newest "${BACKUP_DIR}/${DB_NAME}-*.bak"   "$RETENTION_COUNT"
+  prune_keep_newest "${BACKUP_DIR}/uploads-*.tar.gz"   "$RETENTION_COUNT"
+else
+  log "Pruning backups older than ${RETENTION_DAYS} days"
+  find "$BACKUP_DIR" -name "${DB_NAME}-*.bak" -mtime "+${RETENTION_DAYS}" -delete
+  find "$BACKUP_DIR" -name 'uploads-*.tar.gz' -mtime "+${RETENTION_DAYS}" -delete
+fi
 
 log "Done: ${BACKUP_DIR}/${DB_FILE}"
 ls -lh "${BACKUP_DIR}/${DB_FILE}"
