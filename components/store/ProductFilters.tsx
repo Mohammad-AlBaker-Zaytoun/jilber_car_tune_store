@@ -26,13 +26,18 @@ const SORT_OPTIONS: { value: SortOption; label: string }[] = [
 ];
 
 /**
- * Collapsed height of the category strip.
+ * Collapsed height of the category strip: exactly ONE row, at every width.
  *
- * A chip is ~29px and the gap is 8px, so the row pitch is ~37px: roughly two
- * rows on a phone, three from `sm` up. Expanded is capped in viewport units so
- * a long list scrolls inside itself instead of pushing the catalogue off screen.
+ * A chip is ~29px tall and the gap is 8px, so the second row starts at ~37px.
+ * The cap has to sit between those two numbers — high enough to show the first
+ * row whole, low enough that no sliver of the second one peeks out. 2.1rem
+ * (~34px) is comfortably inside that window and survives a small change to the
+ * chip's padding without needing to be retuned.
+ *
+ * Expanded is capped in viewport units so a long list scrolls inside itself
+ * rather than pushing the catalogue off screen.
  */
-const COLLAPSED = 'max-h-[4.6rem] sm:max-h-[7.1rem] overflow-hidden';
+const COLLAPSED = 'max-h-[2.1rem] overflow-hidden';
 const EXPANDED = 'max-h-[45vh] overflow-y-auto';
 
 export default function ProductFilters({
@@ -160,14 +165,9 @@ export default function ProductFilters({
           ))}
         </div>
 
-        {/* Fade hints that the strip continues. Pointer-events off so it never
-            eats a tap on the chip beneath it. */}
-        {!expanded && overflows && (
-          <div
-            aria-hidden="true"
-            className="absolute bottom-0 left-0 right-0 h-6 pointer-events-none bg-gradient-to-t from-[#060a10] to-transparent"
-          />
-        )}
+        {/* No fade overlay here on purpose: collapsed is a single ~29px row, so
+            a 24px gradient would dim most of the only row the customer can see.
+            The toggle below already says how many categories are hidden. */}
       </div>
 
       {(overflows || expanded) && (
