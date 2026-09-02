@@ -2,6 +2,7 @@
 
 import { useState, useRef, useCallback, type DragEvent, type ChangeEvent } from 'react';
 import Image from 'next/image';
+import { isUploadedImage } from '@/lib/images';
 import { Upload, X, ImageIcon, Star } from 'lucide-react';
 
 interface Props {
@@ -172,6 +173,7 @@ export default function ProductImageUploader({ images, onChange }: Props) {
             >
               <Image
                 src={src}
+                unoptimized={isUploadedImage(src)}
                 alt={`Product image ${i + 1}`}
                 fill
                 sizes="(max-width: 768px) 50vw, 200px"

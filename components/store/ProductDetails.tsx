@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { isUploadedImage } from '@/lib/images';
 import { CheckCircle, XCircle, ChevronRight, Package, Wrench, Users, FileQuestion } from 'lucide-react';
 import type { Product } from '@/data/products';
 import { getRelatedProducts } from '@/data/products';
@@ -73,6 +74,7 @@ export default function ProductDetails({
                 <div className="relative h-72 overflow-hidden group/main">
                   <Image
                     src={images[activeIdx]}
+                    unoptimized={isUploadedImage(images[activeIdx])}
                     alt={`${product.name} — image ${activeIdx + 1}`}
                     fill
                     sizes="(max-width: 1024px) 100vw, 50vw"
@@ -118,6 +120,7 @@ export default function ProductDetails({
                   >
                     <Image
                       src={src}
+                      unoptimized={isUploadedImage(src)}
                       alt={`${product.name} thumbnail ${i + 1}`}
                       fill
                       sizes="64px"

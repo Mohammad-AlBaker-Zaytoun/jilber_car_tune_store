@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { isUploadedImage } from '@/lib/images';
 import { Plus, Search, Pencil, Trash2, Star, Package, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
 import ConfirmDialog from '@/components/admin/ConfirmDialog';
 import type { Product } from '@/data/products';
@@ -38,7 +39,14 @@ function ProductIdentity({ product: p }: { product: Product }) {
         aria-hidden="true"
       >
         {p.images?.[0] ? (
-          <Image src={p.images[0]} alt="" fill sizes="36px" className="object-cover" />
+          <Image
+            src={p.images[0]}
+            unoptimized={isUploadedImage(p.images[0])}
+            alt=""
+            fill
+            sizes="36px"
+            className="object-cover"
+          />
         ) : null}
       </div>
       <div className="min-w-0">

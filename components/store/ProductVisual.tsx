@@ -1,4 +1,5 @@
 import Image from 'next/image';
+import { isUploadedImage } from '@/lib/images';
 import { Cpu, Wind, Settings2, Circle, Disc3, Zap, Activity, Wrench, Package } from 'lucide-react';
 import type { Category } from '@/data/products';
 
@@ -60,6 +61,7 @@ export default function ProductVisual({
       <div className={`relative group/visual w-full ${heights[size]} overflow-hidden`}>
         <Image
           src={imageUrl}
+          unoptimized={isUploadedImage(imageUrl)}
           alt={productName ?? category}
           fill
           sizes="(max-width: 1024px) 100vw, 50vw"
