@@ -4,7 +4,7 @@ import { useState, useMemo } from 'react';
 import type { Product } from '@/data/products';
 import type { Category } from '@/data/products';
 import ProductFilters from './ProductFilters';
-import type { SortOption } from './ProductFilters';
+import { compareProducts, type SortOption } from '@/lib/product-sort';
 import ProductCard from './ProductCard';
 import EmptyState from './EmptyState';
 
@@ -33,21 +33,7 @@ export default function StoreContent({ products, categories, ratings }: Props) {
           p.shortDescription.toLowerCase().includes(q) ||
           p.category.toLowerCase().includes(q)
       )
-      .sort((a, b) => {
-        switch (sort) {
-          case 'price-asc':
-            return a.price - b.price;
-          case 'price-desc':
-            return b.price - a.price;
-          case 'rating': {
-            const aRating = ratings?.[a.id]?.rating ?? a.rating;
-            const bRating = ratings?.[b.id]?.rating ?? b.rating;
-            return bRating - aRating;
-          }
-          default:
-            return (b.featured ? 1 : 0) - (a.featured ? 1 : 0);
-        }
-      });
+      .sort(compareProducts(sort, ratings));
   }, [products, search, activeCategory, sort, ratings]);
 
   const handleReset = () => {

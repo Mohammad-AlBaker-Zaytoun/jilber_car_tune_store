@@ -3,8 +3,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronDown, Search, SlidersHorizontal } from 'lucide-react';
 import { type Category } from '@/data/products';
+import type { SortOption } from '@/lib/product-sort';
 
-export type SortOption = 'featured' | 'price-asc' | 'price-desc' | 'rating';
+// Defined alongside the comparator that consumes it; re-exported here so the
+// select and the sort logic can never drift apart.
+export type { SortOption };
 
 interface Props {
   /** Category names from the DB, resolved server-side. */
