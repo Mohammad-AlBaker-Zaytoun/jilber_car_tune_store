@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Phone, Mail, MapPin, Clock, MessageCircle, ExternalLink, CheckCircle } from 'lucide-react';
 import SectionHeader from '@/components/SectionHeader';
 import { useContactInfo } from '@/lib/useContactInfo';
@@ -41,6 +41,23 @@ const INITIAL_FORM: FormState = {
 const inputCls =
   'w-full bg-zinc-900 border border-zinc-800 focus:border-cyan-400/50 text-zinc-100 text-sm px-4 py-3 outline-none transition-colors duration-200 placeholder:text-zinc-600 focus:bg-zinc-900/80';
 
+/**
+ * Fetches a signed form token. Pure: it returns the token rather than touching
+ * component state, so it can be called both from the mount effect and from the
+ * submit handler's retry without either owning the other's lifecycle.
+ */
+async function requestFormToken(): Promise<string> {
+  try {
+    const res = await fetch('/api/contact/form-token', { cache: 'no-store' });
+    if (!res.ok) return '';
+    const { token } = (await res.json()) as { token?: string };
+    return token ?? '';
+  } catch {
+    // Non-fatal: the submit handler surfaces a retry if the token is missing.
+    return '';
+  }
+}
+
 export default function ContactSection() {
   const [form, setForm] = useState<FormState>(INITIAL_FORM);
   const [submitted, setSubmitted] = useState(false);
@@ -48,6 +65,30 @@ export default function ContactSection() {
   const [submitError, setSubmitError] = useState('');
   const [fieldErrors, setFieldErrors] = useState<Partial<Record<keyof FormState, string>>>({});
   const { info } = useContactInfo();
+
+  /**
+   * Proof this submission came from a real page load.
+   *
+   * The API refuses a POST without a signed token, and refuses one submitted
+   * within 3 seconds of the form being served — the two things a bot POSTing
+   * straight at /api/contact cannot satisfy. Fetched on mount so the clock
+   * starts while the visitor is still reading the form.
+   */
+  const [formToken, setFormToken] = useState('');
+  const retriedRef = useRef(false);
+
+  useEffect(() => {
+    // Guarded so a token arriving after the visitor navigates away cannot set
+    // state on an unmounted form.
+    let cancelled = false;
+    void (async () => {
+      const token = await requestFormToken();
+      if (!cancelled && token) setFormToken(token);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
@@ -61,11 +102,30 @@ export default function ContactSection() {
     setSubmitError('');
     setFieldErrors({});
     try {
-      const res = await fetch('/api/contact', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
-      });
+      const post = (token: string) =>
+        fetch('/api/contact', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ...form, formToken: token }),
+        });
+
+      let res = await post(formToken);
+
+      // A token that expired while the page sat open is the one honest failure
+      // here; fetch a fresh one and retry once rather than making the visitor
+      // retype everything. Guarded so a persistent failure cannot loop.
+      if (!res.ok && !retriedRef.current) {
+        const peek = (await res.clone().json().catch(() => null)) as { code?: string } | null;
+        if (peek?.code === 'expired' || peek?.code === 'too-fast') {
+          retriedRef.current = true;
+          const fresh = await requestFormToken();
+          if (fresh) {
+            setFormToken(fresh);
+            res = await post(fresh);
+          }
+        }
+      }
+
       if (!res.ok) {
         const data = (await res.json()) as {
           error?: string;
