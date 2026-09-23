@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { isUploadedImage } from '@/lib/images';
 import { Plus, Search, Pencil, Trash2, Star, Package, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
+import { chunk, MAX_BULK_DELETE } from '@/lib/product-bulk';
 import ConfirmDialog from '@/components/admin/ConfirmDialog';
 import type { Product } from '@/data/products';
 import { formatMoneyCompact, formatNumber } from '@/lib/currency';
@@ -24,6 +25,40 @@ const iconBtnCls =
 
 const PRODUCT_COLUMNS = ['Category', 'Price', 'Stock', 'Featured', 'Rating', 'Actions'] as const;
 type ProductColumn = (typeof PRODUCT_COLUMNS)[number];
+
+/** 16px box inside a 28px hit area, clearing the 24px WCAG 2.2 AA floor. */
+function SelectBox({
+  checked,
+  onChange,
+  label,
+  indeterminate = false,
+}: {
+  checked: boolean;
+  onChange: () => void;
+  label: string;
+  indeterminate?: boolean;
+}) {
+  const ref = useRef<HTMLInputElement>(null);
+  // `indeterminate` is a DOM property with no HTML attribute, so React cannot
+  // set it declaratively — without this the "some selected" state renders as a
+  // plain unchecked box and the header lies about what is selected.
+  useEffect(() => {
+    if (ref.current) ref.current.indeterminate = indeterminate;
+  }, [indeterminate]);
+
+  return (
+    <span className="inline-flex items-center justify-center w-7 h-7 shrink-0">
+      <input
+        ref={ref}
+        type="checkbox"
+        checked={checked}
+        onChange={onChange}
+        aria-label={label}
+        className="w-4 h-4 accent-cyan-400 cursor-pointer"
+      />
+    </span>
+  );
+}
 
 /** The product's image and name — the row heading in both layouts. */
 function ProductIdentity({ product: p }: { product: Product }) {
@@ -151,6 +186,11 @@ export default function ProductsClient({ categories }: { categories: string[] })
   const [deleting, setDeleting] = useState(false);
   const [toggleError, setToggleError] = useState('');
 
+  /** Slugs ticked for bulk deletion. Slug, not id: it is what the API takes. */
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [confirmBulk, setConfirmBulk] = useState(false);
+  const [bulkProgress, setBulkProgress] = useState<{ done: number; total: number } | null>(null);
+
   const load = () => {
     setLoading(true);
     fetchProducts()
@@ -177,6 +217,85 @@ export default function ProductsClient({ categories }: { categories: string[] })
       })
       .filter((p) => !q || p.name.toLowerCase().includes(q) || p.slug.toLowerCase().includes(q) || p.category.toLowerCase().includes(q));
   }, [products, search, filterCat, filterStock]);
+
+  /**
+   * Changing what is on screen drops the selection.
+   *
+   * Keeping it would mean the toolbar count could include rows the admin can no
+   * longer see — tick 40 results, clear the search, press Delete, and 40
+   * products vanish with 3 on screen. For a destructive action, "what I
+   * selected is what I can see" beats convenience across filters.
+   *
+   * Done in the change handlers rather than an effect: the selection is a
+   * consequence of the interaction, not of the render.
+   */
+  const changeView = <T,>(set: (v: T) => void) => (value: T) => {
+    set(value);
+    setSelected(new Set());
+  };
+
+  const allVisibleSelected = filtered.length > 0 && filtered.every((p) => selected.has(p.slug));
+  const someVisibleSelected = filtered.some((p) => selected.has(p.slug));
+
+  const toggleOne = (slug: string) =>
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(slug)) next.delete(slug);
+      else next.add(slug);
+      return next;
+    });
+
+  const toggleAllVisible = () =>
+    setSelected(allVisibleSelected ? new Set() : new Set(filtered.map((p) => p.slug)));
+
+  /**
+   * Deletes the selection in batches of MAX_BULK_DELETE.
+   *
+   * One request per batch rather than one per product: clearing a filtered list
+   * of 200 would otherwise fire 200 requests, and nginx's API rate limit would
+   * throttle it halfway and leave the job half-done with no clear record of
+   * where it stopped.
+   *
+   * Each response reports the slugs actually removed, so a batch that partially
+   * fails still updates the list truthfully instead of assuming success.
+   */
+  const handleBulkDelete = async () => {
+    const slugs = filtered.filter((p) => selected.has(p.slug)).map((p) => p.slug);
+    if (slugs.length === 0) return;
+
+    setDeleting(true);
+    setToggleError('');
+    const batches = chunk(slugs, MAX_BULK_DELETE);
+    setBulkProgress({ done: 0, total: slugs.length });
+
+    let removed = 0;
+    try {
+      for (const batch of batches) {
+        const res = await fetch('/api/admin/products', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ slugs: batch }),
+        });
+        if (!res.ok) {
+          const data = (await res.json().catch(() => null)) as { error?: string } | null;
+          throw new Error(data?.error ?? `Delete failed (${res.status})`);
+        }
+        const data = (await res.json()) as { deleted: string[] };
+        removed += data.deleted.length;
+        setBulkProgress({ done: removed, total: slugs.length });
+      }
+    } catch (err) {
+      setToggleError(
+        `${err instanceof Error ? err.message : 'Bulk delete failed'} — ${removed} of ${slugs.length} were deleted.`
+      );
+    } finally {
+      setDeleting(false);
+      setBulkProgress(null);
+      setConfirmBulk(false);
+      setSelected(new Set());
+      load();
+    }
+  };
 
   const handleDelete = async () => {
     if (!toDelete) return;
@@ -231,6 +350,21 @@ export default function ProductsClient({ categories }: { categories: string[] })
   return (
     <>
       <ConfirmDialog
+        open={confirmBulk}
+        title={`Delete ${selected.size} product${selected.size === 1 ? '' : 's'}`}
+        message={
+          bulkProgress
+            ? `Deleting… ${bulkProgress.done} of ${bulkProgress.total} removed.`
+            : `This permanently deletes ${selected.size} product${selected.size === 1 ? '' : 's'} and their reviews. Existing orders keep the items they were placed with. This cannot be undone.`
+        }
+        confirmLabel={`Delete ${selected.size}`}
+        danger
+        loading={deleting}
+        onConfirm={handleBulkDelete}
+        onCancel={() => setConfirmBulk(false)}
+      />
+
+      <ConfirmDialog
         open={!!toDelete}
         title="Delete Product"
         message={`Are you sure you want to delete "${toDelete?.name}"? This cannot be undone.`}
@@ -248,6 +382,36 @@ export default function ProductsClient({ categories }: { categories: string[] })
         </div>
       )}
 
+      {/* Bulk selection bar — only present when something is ticked, so the
+          page is unchanged for anyone editing a single product. */}
+      {selected.size > 0 && (
+        <div
+          role="region"
+          aria-label="Bulk actions"
+          className="flex flex-wrap items-center gap-3 mb-4 p-3 border border-cyan-400/30 bg-cyan-400/5"
+        >
+          <span className="text-xs font-black text-cyan-400 tracking-widest uppercase">
+            {selected.size} selected
+          </span>
+          <button
+            onClick={() => setSelected(new Set())}
+            className="text-[10px] text-zinc-500 hover:text-zinc-300 tracking-widest uppercase font-bold transition-colors py-1.5"
+          >
+            Clear
+          </button>
+          <button
+            onClick={() => setConfirmBulk(true)}
+            disabled={deleting}
+            className="ml-auto inline-flex items-center gap-2 px-4 py-2 bg-red-500 hover:bg-red-400 disabled:opacity-50 text-white text-xs font-black tracking-widest uppercase transition-all duration-200"
+          >
+            <Trash2 size={12} aria-hidden="true" />
+            {deleting && bulkProgress
+              ? `Deleting ${bulkProgress.done}/${bulkProgress.total}…`
+              : 'Delete selected'}
+          </button>
+        </div>
+      )}
+
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-3 mb-6">
         <div className="relative flex-1 min-w-48">
@@ -255,7 +419,7 @@ export default function ProductsClient({ categories }: { categories: string[] })
           <input
             type="search"
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => changeView(setSearch)(e.target.value)}
             placeholder="Search products…"
             className="w-full bg-zinc-900 border border-zinc-800 focus:border-cyan-400/50 text-zinc-100 text-xs pl-9 pr-4 py-2.5 outline-none transition-colors placeholder:text-zinc-600"
           />
@@ -263,7 +427,7 @@ export default function ProductsClient({ categories }: { categories: string[] })
 
         <select
           value={filterCat}
-          onChange={(e) => setFilterCat(e.target.value)}
+          onChange={(e) => changeView(setFilterCat)(e.target.value)}
           className="bg-zinc-900 border border-zinc-800 focus:border-cyan-400/50 text-zinc-400 text-xs px-3 py-2.5 outline-none transition-colors"
         >
           <option value="">All Categories</option>
@@ -272,7 +436,7 @@ export default function ProductsClient({ categories }: { categories: string[] })
 
         <select
           value={filterStock}
-          onChange={(e) => setFilterStock(e.target.value)}
+          onChange={(e) => changeView(setFilterStock)(e.target.value)}
           className="bg-zinc-900 border border-zinc-800 focus:border-cyan-400/50 text-zinc-400 text-xs px-3 py-2.5 outline-none transition-colors"
         >
           <option value="">All Stock</option>
@@ -299,6 +463,18 @@ export default function ProductsClient({ categories }: { categories: string[] })
             <table className="w-full">
               <thead>
                 <tr className="border-b border-zinc-800/50">
+                  <th className={`${thCls} w-10`}>
+                    <SelectBox
+                      checked={allVisibleSelected}
+                      indeterminate={someVisibleSelected && !allVisibleSelected}
+                      onChange={toggleAllVisible}
+                      label={
+                        allVisibleSelected
+                          ? 'Deselect all shown products'
+                          : `Select all ${filtered.length} shown products`
+                      }
+                    />
+                  </th>
                   <th className={thCls}>Product</th>
                   {PRODUCT_COLUMNS.map((col) => (
                     <th key={col} className={thCls}>
@@ -313,8 +489,17 @@ export default function ProductsClient({ categories }: { categories: string[] })
                   return (
                     <tr
                       key={p.id}
-                      className="border-b border-zinc-800/30 hover:bg-zinc-900/30 transition-colors"
+                      className={`border-b border-zinc-800/30 transition-colors ${
+                        selected.has(p.slug) ? 'bg-cyan-400/5' : 'hover:bg-zinc-900/30'
+                      }`}
                     >
+                      <td className="px-4 py-3.5 align-top">
+                        <SelectBox
+                          checked={selected.has(p.slug)}
+                          onChange={() => toggleOne(p.slug)}
+                          label={`Select ${p.name}`}
+                        />
+                      </td>
                       <td className="px-4 py-3.5 align-top">
                         <ProductIdentity product={p} />
                       </td>
@@ -340,9 +525,20 @@ export default function ProductsClient({ categories }: { categories: string[] })
               return (
                 <li
                   key={p.id}
-                  className="border border-zinc-800/50 bg-zinc-900/20 p-4 flex flex-col gap-3"
+                  className={`border p-4 flex flex-col gap-3 ${
+                    selected.has(p.slug)
+                      ? 'border-cyan-400/40 bg-cyan-400/5'
+                      : 'border-zinc-800/50 bg-zinc-900/20'
+                  }`}
                 >
-                  <ProductIdentity product={p} />
+                  <div className="flex items-start gap-2">
+                    <SelectBox
+                      checked={selected.has(p.slug)}
+                      onChange={() => toggleOne(p.slug)}
+                      label={`Select ${p.name}`}
+                    />
+                    <ProductIdentity product={p} />
+                  </div>
                   <dl className="grid grid-cols-[auto_1fr] sm:grid-cols-[auto_1fr_auto_1fr] gap-x-4 gap-y-2 items-center">
                     {PRODUCT_COLUMNS.map((col) => (
                       <div key={col} className="contents">
