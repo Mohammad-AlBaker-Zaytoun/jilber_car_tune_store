@@ -5,7 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { isUploadedImage } from '@/lib/images';
 import { Plus, Search, Pencil, Trash2, Star, Package, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
-import { chunk, MAX_BULK_DELETE } from '@/lib/product-bulk';
+import { chunk, pageBounds, MAX_BULK_DELETE } from '@/lib/product-bulk';
 import ConfirmDialog from '@/components/admin/ConfirmDialog';
 import type { Product } from '@/data/products';
 import { formatMoneyCompact, formatNumber } from '@/lib/currency';
@@ -23,8 +23,22 @@ const thCls =
 const iconBtnCls =
   'inline-flex items-center justify-center w-7 h-7 transition-colors border border-transparent hover:border-zinc-700';
 
+const pagerBtnCls =
+  'px-3 py-1.5 border border-zinc-800 text-[10px] text-zinc-300 tracking-widest uppercase font-bold transition-colors hover:border-zinc-600 hover:text-zinc-100 disabled:opacity-40 disabled:pointer-events-none';
+
 const PRODUCT_COLUMNS = ['Category', 'Price', 'Stock', 'Featured', 'Rating', 'Actions'] as const;
 type ProductColumn = (typeof PRODUCT_COLUMNS)[number];
+
+/**
+ * Rows rendered at once.
+ *
+ * The list used to render every match. At ~1,900 products that is ~1,900 table
+ * rows plus ~1,900 cards, since both layouts stay mounted and are only hidden by
+ * breakpoint. Nothing re-rendered per interaction before, so it was survivable;
+ * a per-row checkbox re-renders the list on every click, and ticking one box
+ * took seconds.
+ */
+const PAGE_SIZE = 50;
 
 /** 16px box inside a 28px hit area, clearing the 24px WCAG 2.2 AA floor. */
 function SelectBox({
@@ -186,6 +200,8 @@ export default function ProductsClient({ categories }: { categories: string[] })
   const [deleting, setDeleting] = useState(false);
   const [toggleError, setToggleError] = useState('');
 
+  const [page, setPage] = useState(0);
+
   /** Slugs ticked for bulk deletion. Slug, not id: it is what the API takes. */
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [confirmBulk, setConfirmBulk] = useState(false);
@@ -219,12 +235,13 @@ export default function ProductsClient({ categories }: { categories: string[] })
   }, [products, search, filterCat, filterStock]);
 
   /**
-   * Changing what is on screen drops the selection.
+   * Changing the search or a filter drops the selection, and returns to page 1.
    *
-   * Keeping it would mean the toolbar count could include rows the admin can no
-   * longer see — tick 40 results, clear the search, press Delete, and 40
-   * products vanish with 3 on screen. For a destructive action, "what I
-   * selected is what I can see" beats convenience across filters.
+   * Keeping it would let the toolbar count include rows outside the current
+   * filter — tick 40 results, clear the search, press Delete, and 40 products
+   * vanish with 3 on screen. So a selection never outlives the filter that
+   * produced it. Paging is exempt: it narrows what is drawn, not what matches,
+   * and a selection that spans pages is the point of the header checkbox.
    *
    * Done in the change handlers rather than an effect: the selection is a
    * consequence of the interaction, not of the render.
@@ -232,8 +249,21 @@ export default function ProductsClient({ categories }: { categories: string[] })
   const changeView = <T,>(set: (v: T) => void) => (value: T) => {
     set(value);
     setSelected(new Set());
+    setPage(0);
   };
 
+  /**
+   * Clamped rather than corrected in an effect: resetting `page` from an effect
+   * would flash an empty list for a frame and trip react-hooks/set-state-in-effect.
+   */
+  const { pageCount, page: safePage } = pageBounds(filtered.length, page, PAGE_SIZE);
+  const pageItems = useMemo(
+    () => filtered.slice(safePage * PAGE_SIZE, safePage * PAGE_SIZE + PAGE_SIZE),
+    [filtered, safePage]
+  );
+
+  // Over every match, not just the page: the header box selects the whole
+  // filtered set, so paging is a view concern and never changes what is ticked.
   const allVisibleSelected = filtered.length > 0 && filtered.every((p) => selected.has(p.slug));
   const someVisibleSelected = filtered.some((p) => selected.has(p.slug));
 
@@ -470,8 +500,8 @@ export default function ProductsClient({ categories }: { categories: string[] })
                       onChange={toggleAllVisible}
                       label={
                         allVisibleSelected
-                          ? 'Deselect all shown products'
-                          : `Select all ${filtered.length} shown products`
+                          ? 'Deselect all matching products'
+                          : `Select all ${filtered.length} matching products`
                       }
                     />
                   </th>
@@ -484,7 +514,7 @@ export default function ProductsClient({ categories }: { categories: string[] })
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((p) => {
+                {pageItems.map((p) => {
                   const cells = productCells(p, toggleStock, toggleFeatured, setToDelete);
                   return (
                     <tr
@@ -520,7 +550,7 @@ export default function ProductsClient({ categories }: { categories: string[] })
               toggling them, so the owner could not mark a part out of stock from a
               phone at all. */}
           <ul aria-label="Products" className="lg:hidden flex flex-col gap-3">
-            {filtered.map((p) => {
+            {pageItems.map((p) => {
               const cells = productCells(p, toggleStock, toggleFeatured, setToDelete);
               return (
                 <li
@@ -553,6 +583,40 @@ export default function ProductsClient({ categories }: { categories: string[] })
               );
             })}
           </ul>
+
+          {pageCount > 1 && (
+            <nav
+              aria-label="Product pages"
+              className="flex items-center justify-between gap-4 mt-4 pt-4 border-t border-zinc-800/50"
+            >
+              <p className="text-[10px] text-zinc-600 tracking-widest uppercase font-bold">
+                {formatNumber(safePage * PAGE_SIZE + 1)}–
+                {formatNumber(safePage * PAGE_SIZE + pageItems.length)} of{' '}
+                {formatNumber(filtered.length)}
+              </p>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setPage(safePage - 1)}
+                  disabled={safePage === 0}
+                  className={pagerBtnCls}
+                >
+                  Prev
+                </button>
+                <span className="text-[10px] text-zinc-500 tracking-widest uppercase font-bold tabular-nums">
+                  {safePage + 1} / {pageCount}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setPage(safePage + 1)}
+                  disabled={safePage >= pageCount - 1}
+                  className={pagerBtnCls}
+                >
+                  Next
+                </button>
+              </div>
+            </nav>
+          )}
         </>
       )}
     </>

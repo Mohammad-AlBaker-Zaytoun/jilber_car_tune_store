@@ -17,6 +17,24 @@
  */
 export const MAX_BULK_DELETE = 200;
 
+/**
+ * Page count and a page index guaranteed to be within it.
+ *
+ * Pulled out of the admin list because the clamp is the non-obvious part:
+ * deleting the last page leaves the stored page index past the end of a shorter
+ * list, and an unclamped index renders as an empty table with rows still there.
+ * Always at least one page, so an empty list reports page 1 of 1 rather than 0.
+ */
+export function pageBounds(
+  total: number,
+  page: number,
+  size: number = MAX_BULK_DELETE
+): { pageCount: number; page: number } {
+  if (size < 1) throw new Error('page size must be at least 1');
+  const pageCount = Math.max(1, Math.ceil(Math.max(0, total) / size));
+  return { pageCount, page: Math.min(Math.max(0, page), pageCount - 1) };
+}
+
 /** Splits a list into consecutive runs of at most `size`. */
 export function chunk<T>(items: readonly T[], size: number = MAX_BULK_DELETE): T[][] {
   if (size < 1) throw new Error('chunk size must be at least 1');
