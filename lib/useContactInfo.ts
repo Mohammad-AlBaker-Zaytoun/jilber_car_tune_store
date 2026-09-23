@@ -6,6 +6,7 @@ import type { PublicContactInfo } from '@/lib/contact';
 const EMPTY: PublicContactInfo = {
   contactPhone: '',
   contactEmail: '',
+  additionalEmails: [],
   address: '',
   whatsappNumber: '',
   googleMapsUrl: '',

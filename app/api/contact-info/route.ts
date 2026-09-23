@@ -7,6 +7,7 @@ export async function GET() {
   const info: PublicContactInfo = {
     contactPhone: s.contactPhone,
     contactEmail: s.contactEmail,
+    additionalEmails: s.additionalEmails,
     address: s.address,
     whatsappNumber: s.whatsappNumber,
     googleMapsUrl: s.googleMapsUrl,

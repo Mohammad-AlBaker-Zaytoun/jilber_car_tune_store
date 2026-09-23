@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Phone, Mail, MapPin, Clock, MessageCircle, ExternalLink, CheckCircle } from 'lucide-react';
 import SectionHeader from '@/components/SectionHeader';
 import { useContactInfo } from '@/lib/useContactInfo';
-import { buildWhatsAppUrl, buildTelUrl, buildMailtoUrl } from '@/lib/contact';
+import { buildWhatsAppUrl, buildTelUrl, buildMailtoUrl, listContactEmails } from '@/lib/contact';
 
 const SERVICES_LIST = [
   'ECU Tuning',
@@ -163,7 +163,7 @@ export default function ContactSection() {
     info.defaultWhatsAppMessage || undefined
   );
   const telUrl = buildTelUrl(info.contactPhone);
-  const mailUrl = buildMailtoUrl(info.contactEmail);
+  const emails = listContactEmails(info.contactEmail, info.additionalEmails);
 
   return (
     <section id="contact" className="relative py-24 lg:py-32 bg-black">
@@ -246,27 +246,36 @@ export default function ContactSection() {
               </div>
             )}
 
-            {/* Email */}
-            {info.contactEmail && (
+            {/* Email — every address the shop publishes, not just the primary. */}
+            {emails.length > 0 && (
               <div className="flex items-start gap-4 p-5 border border-zinc-800/50 bg-zinc-900/20">
                 <div className="w-9 h-9 shrink-0 flex items-center justify-center border border-zinc-700/50 bg-zinc-900">
                   <Mail className="text-cyan-400" size={16} aria-hidden="true" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-[10px] text-zinc-500 tracking-[0.2em] uppercase font-bold mb-0.5">
-                    Email
+                    {emails.length > 1 ? 'Emails' : 'Email'}
                   </p>
-                  {mailUrl ? (
-                    <a
-                      href={mailUrl}
-                      data-contact-action="email-click"
-                      className="inline-block py-1 text-sm font-semibold text-white hover:text-cyan-400 transition-colors break-all"
-                    >
-                      {info.contactEmail}
-                    </a>
-                  ) : (
-                    <p className="text-sm font-semibold text-white break-all">{info.contactEmail}</p>
-                  )}
+                  <ul className="flex flex-col">
+                    {emails.map((email) => {
+                      const href = buildMailtoUrl(email);
+                      return (
+                        <li key={email}>
+                          {href ? (
+                            <a
+                              href={href}
+                              data-contact-action="email-click"
+                              className="inline-block py-1 text-sm font-semibold text-white hover:text-cyan-400 transition-colors break-all"
+                            >
+                              {email}
+                            </a>
+                          ) : (
+                            <p className="py-1 text-sm font-semibold text-white break-all">{email}</p>
+                          )}
+                        </li>
+                      );
+                    })}
+                  </ul>
                   <p className="text-xs text-zinc-500 mt-0.5">We reply within 24 hours</p>
                 </div>
               </div>

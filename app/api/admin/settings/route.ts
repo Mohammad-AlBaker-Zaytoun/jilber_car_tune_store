@@ -8,6 +8,9 @@ const phoneRegex = /^[+\d\s\-().]*$/;
 const schema = z.object({
   shopName: z.string().min(1).optional(),
   contactEmail: z.string().email().optional(),
+  // Capped at 5: the list is rendered in full on the contact section, and an
+  // unbounded array would let one bad save stretch the page indefinitely.
+  additionalEmails: z.array(z.string().email()).max(5).optional(),
   contactPhone: z.string().regex(phoneRegex, 'Invalid phone format').max(30).optional(),
   address: z.string().max(200).optional(),
   // `currency` is deliberately NOT accepted. The store is USD-only and the

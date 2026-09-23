@@ -89,6 +89,8 @@ export interface StoredCategory {
 export interface AdminSettings {
   shopName: string;
   contactEmail: string;
+  /** Extra addresses listed beside contactEmail; see the Setting model. */
+  additionalEmails: string[];
   contactPhone: string;
   address: string;
   currency: string;

@@ -8,6 +8,7 @@ import { formatNumber } from '@/lib/currency';
 export interface PublicContactInfo {
   contactPhone: string;
   contactEmail: string;
+  additionalEmails: string[];
   address: string;
   whatsappNumber: string;
   googleMapsUrl: string;
@@ -17,6 +18,28 @@ export interface PublicContactInfo {
   defaultWhatsAppMessage: string;
   quoteWhatsAppMessage: string;
   productWhatsAppMessage: string;
+}
+
+/**
+ * Every address to show, primary first, trimmed and de-duplicated.
+ *
+ * Case-insensitive on the duplicate check: the local part of an address is
+ * technically case-sensitive but no real mail host treats it that way, and
+ * listing "Sales@" under "sales@" reads as a mistake. The surviving spelling is
+ * the first one, so the primary address always wins.
+ */
+export function listContactEmails(primary: string, additional: readonly string[] = []): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const raw of [primary, ...additional]) {
+    const email = raw?.trim();
+    if (!email) continue;
+    const key = email.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(email);
+  }
+  return out;
 }
 
 /** Strip everything except digits for wa.me links (e.g. "+961 70 123 456" → "96170123456"). */

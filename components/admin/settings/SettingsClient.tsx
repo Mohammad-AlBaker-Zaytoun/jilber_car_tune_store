@@ -10,9 +10,18 @@ const inputCls =
   'w-full bg-zinc-900 border border-zinc-800 focus:border-cyan-400/50 text-zinc-100 text-sm px-4 py-3 outline-none transition-colors duration-200 placeholder:text-zinc-600';
 const labelCls = 'block text-[10px] text-zinc-500 tracking-[0.2em] uppercase font-bold mb-1.5';
 
+/** One address per line, commas tolerated. Blank lines are dropped. */
+function parseEmailLines(text: string): string[] {
+  return text
+    .split(/[\n,;]+/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
 const EMPTY: AdminSettings = {
   shopName: '',
   contactEmail: '',
+  additionalEmails: [],
   contactPhone: '',
   address: '',
   currency: STORE_CURRENCY,
@@ -69,10 +78,22 @@ export default function SettingsClient() {
   const [error, setError] = useState('');
   const [waPreview, setWaPreview] = useState(false);
 
+  /**
+   * The extra addresses as raw text, kept apart from `form`.
+   *
+   * Deriving the textarea from the parsed string[] would strip the empty line
+   * the moment Enter is pressed, so a new address could never be typed. The
+   * text is the edit state; the array is produced on submit.
+   */
+  const [emailsText, setEmailsText] = useState('');
+
   useEffect(() => {
     fetch('/api/admin/settings')
       .then((r) => r.json())
-      .then((data: AdminSettings) => setForm({ ...EMPTY, ...data }))
+      .then((data: AdminSettings) => {
+        setForm({ ...EMPTY, ...data });
+        setEmailsText((data.additionalEmails ?? []).join('\n'));
+      })
       .catch(console.error)
       .finally(() => setLoading(false));
   }, []);
@@ -95,7 +116,7 @@ export default function SettingsClient() {
       const res = await fetch('/api/admin/settings', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
+        body: JSON.stringify({ ...form, additionalEmails: parseEmailLines(emailsText) }),
       });
       if (!res.ok) {
         const data = (await res.json()) as { error?: string };
@@ -143,6 +164,20 @@ export default function SettingsClient() {
           <div>
             <label className={labelCls}>Contact Email</label>
             <input type="email" value={form.contactEmail} onChange={set('contactEmail')} className={inputCls} placeholder="info@example.com" />
+          </div>
+          <div className="sm:col-span-2">
+            <label className={labelCls}>Additional Emails</label>
+            <textarea
+              value={emailsText}
+              onChange={(e) => setEmailsText(e.target.value)}
+              rows={3}
+              className={inputCls}
+              placeholder={'sales@example.com\ncontact@example.com'}
+            />
+            <FieldHint>
+              One per line. Listed on the contact section alongside the contact email above,
+              which stays the address the site itself writes to. Up to 5.
+            </FieldHint>
           </div>
           <div>
             <label className={labelCls}>Contact Phone</label>
