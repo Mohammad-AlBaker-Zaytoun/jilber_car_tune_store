@@ -35,6 +35,26 @@ export function pageBounds(
   return { pageCount, page: Math.min(Math.max(0, page), pageCount - 1) };
 }
 
+/**
+ * Adds or removes one page's slugs, leaving the rest of the selection intact.
+ *
+ * The header checkbox covers the page on screen. Replacing the set instead of
+ * editing it would drop everything ticked on earlier pages the moment the box
+ * was touched, so a selection built across several pages could never survive.
+ */
+export function togglePageSelection(
+  selected: ReadonlySet<string>,
+  pageSlugs: readonly string[],
+  select: boolean
+): Set<string> {
+  const next = new Set(selected);
+  for (const slug of pageSlugs) {
+    if (select) next.add(slug);
+    else next.delete(slug);
+  }
+  return next;
+}
+
 /** Splits a list into consecutive runs of at most `size`. */
 export function chunk<T>(items: readonly T[], size: number = MAX_BULK_DELETE): T[][] {
   if (size < 1) throw new Error('chunk size must be at least 1');

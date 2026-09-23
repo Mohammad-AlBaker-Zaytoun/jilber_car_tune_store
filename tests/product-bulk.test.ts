@@ -1,5 +1,51 @@
 import { describe, it, expect } from 'vitest';
-import { chunk, pageBounds, MAX_BULK_DELETE } from '@/lib/product-bulk';
+import { chunk, pageBounds, togglePageSelection, MAX_BULK_DELETE } from '@/lib/product-bulk';
+
+describe('togglePageSelection', () => {
+  it('selects the page it is given', () => {
+    expect([...togglePageSelection(new Set(), ['a', 'b'], true)]).toEqual(['a', 'b']);
+  });
+
+  it('deselects the page it is given', () => {
+    expect([...togglePageSelection(new Set(['a', 'b']), ['a', 'b'], false)]).toEqual([]);
+  });
+
+  /** The reason this is not a plain `new Set(pageSlugs)`. */
+  it('keeps ticks made on other pages when selecting', () => {
+    const fromPageOne = new Set(['p1-a', 'p1-b']);
+    expect([...togglePageSelection(fromPageOne, ['p2-a', 'p2-b'], true)]).toEqual([
+      'p1-a',
+      'p1-b',
+      'p2-a',
+      'p2-b',
+    ]);
+  });
+
+  it('keeps ticks made on other pages when deselecting', () => {
+    const both = new Set(['p1-a', 'p2-a']);
+    expect([...togglePageSelection(both, ['p2-a'], false)]).toEqual(['p1-a']);
+  });
+
+  it('does not mutate the set it is handed', () => {
+    const original = new Set(['a']);
+    togglePageSelection(original, ['b'], true);
+    expect([...original]).toEqual(['a']);
+  });
+
+  it('is idempotent', () => {
+    const once = togglePageSelection(new Set(['a']), ['a', 'b'], true);
+    const twice = togglePageSelection(once, ['a', 'b'], true);
+    expect([...twice]).toEqual([...once]);
+  });
+
+  it('ignores a slug that is not selected when deselecting', () => {
+    expect([...togglePageSelection(new Set(['a']), ['zzz'], false)]).toEqual(['a']);
+  });
+
+  it('handles an empty page', () => {
+    expect([...togglePageSelection(new Set(['a']), [], true)]).toEqual(['a']);
+  });
+});
 
 describe('pageBounds', () => {
   it('counts pages over the live catalogue size', () => {

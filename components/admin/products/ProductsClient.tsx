@@ -5,7 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { isUploadedImage } from '@/lib/images';
 import { Plus, Search, Pencil, Trash2, Star, Package, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
-import { chunk, pageBounds, MAX_BULK_DELETE } from '@/lib/product-bulk';
+import { chunk, pageBounds, togglePageSelection, MAX_BULK_DELETE } from '@/lib/product-bulk';
 import ConfirmDialog from '@/components/admin/ConfirmDialog';
 import type { Product } from '@/data/products';
 import { formatMoneyCompact, formatNumber } from '@/lib/currency';
@@ -241,7 +241,8 @@ export default function ProductsClient({ categories }: { categories: string[] })
    * filter — tick 40 results, clear the search, press Delete, and 40 products
    * vanish with 3 on screen. So a selection never outlives the filter that
    * produced it. Paging is exempt: it narrows what is drawn, not what matches,
-   * and a selection that spans pages is the point of the header checkbox.
+   * so ticks made on one page survive a move to the next and the toolbar count
+   * accumulates.
    *
    * Done in the change handlers rather than an effect: the selection is a
    * consequence of the interaction, not of the render.
@@ -262,10 +263,10 @@ export default function ProductsClient({ categories }: { categories: string[] })
     [filtered, safePage]
   );
 
-  // Over every match, not just the page: the header box selects the whole
-  // filtered set, so paging is a view concern and never changes what is ticked.
-  const allVisibleSelected = filtered.length > 0 && filtered.every((p) => selected.has(p.slug));
-  const someVisibleSelected = filtered.some((p) => selected.has(p.slug));
+  // Scoped to the page on screen, so the header box reports on the rows the
+  // admin can actually see rather than on matches further down the list.
+  const allVisibleSelected = pageItems.length > 0 && pageItems.every((p) => selected.has(p.slug));
+  const someVisibleSelected = pageItems.some((p) => selected.has(p.slug));
 
   const toggleOne = (slug: string) =>
     setSelected((prev) => {
@@ -275,8 +276,15 @@ export default function ProductsClient({ categories }: { categories: string[] })
       return next;
     });
 
+  /** Ticks or clears the current page only, leaving other pages' ticks alone. */
   const toggleAllVisible = () =>
-    setSelected(allVisibleSelected ? new Set() : new Set(filtered.map((p) => p.slug)));
+    setSelected((prev) =>
+      togglePageSelection(
+        prev,
+        pageItems.map((p) => p.slug),
+        !allVisibleSelected
+      )
+    );
 
   /**
    * Deletes the selection in batches of MAX_BULK_DELETE.
@@ -500,8 +508,8 @@ export default function ProductsClient({ categories }: { categories: string[] })
                       onChange={toggleAllVisible}
                       label={
                         allVisibleSelected
-                          ? 'Deselect all matching products'
-                          : `Select all ${filtered.length} matching products`
+                          ? 'Deselect the products on this page'
+                          : `Select the ${pageItems.length} products on this page`
                       }
                     />
                   </th>
