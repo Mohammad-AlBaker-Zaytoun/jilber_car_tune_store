@@ -37,8 +37,19 @@ describe('form token', () => {
   it('rejects garbage and tampered tokens', async () => {
     expect(await verifyFormToken('not-a-jwt')).toBe('invalid');
     const good = await createFormToken(AGED(MIN_AGE_MS + 1000));
-    // Flip the last character of the signature.
-    const tampered = good.slice(0, -1) + (good.at(-1) === 'a' ? 'b' : 'a');
+    const [header, payload, signature] = good.split('.');
+    /**
+     * Alter the FIRST character of the signature, not the last.
+     *
+     * The signature is a 32-byte HMAC, which is 43 base64url characters: 43 x 6
+     * = 258 bits carrying 256, so the final character's low two bits are
+     * dropped on decode. Changing only that character leaves the signature
+     * bytes untouched whenever the replacement shares its top four bits, which
+     * is why the earlier version of this assertion passed or failed at random
+     * depending on the timestamp baked into each run's token.
+     */
+    const tampered = [header, payload, (signature[0] === 'A' ? 'B' : 'A') + signature.slice(1)].join('.');
+    expect(tampered).not.toBe(good);
     expect(await verifyFormToken(tampered)).toBe('invalid');
   });
 
