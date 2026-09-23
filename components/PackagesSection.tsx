@@ -1,57 +1,64 @@
 import { Check, Star } from 'lucide-react';
 import SectionHeader from '@/components/SectionHeader';
 
+/**
+ * The four build levels, as specified by the shop.
+ *
+ * No prices: they vary per vehicle, so every card sends the visitor to the
+ * contact section instead of quoting a figure the workshop would have to walk
+ * back.
+ */
 const PACKAGES = [
   {
     name: 'Stage 1',
-    subtitle: 'Street Performance',
-    price: 'From $1,200',
+    subtitle: 'Engine & Transmission Tune',
     highlight: false,
     popular: false,
     features: [
-      'ECU remap & custom map file',
-      'Air intake upgrade',
-      'Performance intercooler',
-      'Dyno session & full report',
-      'Before / after power figures',
-      '12-month software warranty',
+      'Engine and transmission tune',
+      'Calibrated to whatever fuel the car will be using',
+      'Single fuel mode or flexfuel',
     ],
-    cta: 'Get Stage 1',
   },
   {
     name: 'Stage 2',
-    subtitle: 'Track-Ready',
-    price: 'From $3,500',
+    subtitle: 'Hardware & Software',
     highlight: true,
     popular: true,
     features: [
-      'Everything in Stage 1',
-      'Custom cat-back exhaust',
-      'Upgraded turbo or injectors',
-      'Coilover suspension install',
-      'Corner balance & alignment',
-      'Full diagnostics deep-dive',
-      'Priority workshop access',
+      'Custom engine and transmission Stage 2 software',
+      'Cold air intake',
+      'Downpipe',
+      'Intercooler',
     ],
-    cta: 'Get Stage 2',
   },
   {
-    name: 'Stage 3',
-    subtitle: 'Full Race Build',
-    price: 'Custom Quote',
+    name: 'Stage 2+',
+    subtitle: 'Stage 2 With Injection',
     highlight: false,
     popular: false,
     features: [
-      'Everything in Stage 2',
-      'Forged internals rebuild',
-      'Big brake kit & pads',
-      'Aero package & splitter',
-      'Cage fabrication / harness bar',
-      'Livery consultation',
-      'Dedicated build manager',
-      'Post-build track day',
+      'Custom engine and transmission Stage 2 software',
+      'Cold air intake',
+      'Downpipe',
+      'Intercooler',
+      'Methanol injection and/or port injection',
     ],
-    cta: 'Get a Quote',
+  },
+  {
+    name: 'Stage 3',
+    subtitle: 'Upgraded Turbos',
+    highlight: false,
+    popular: false,
+    features: [
+      'Upgraded turbos',
+      'Cold air intake',
+      'Downpipe',
+      'Intercooler',
+      'Meth injection',
+      'Custom Stage 3 engine and transmission tune',
+      'Methanol injection and/or port injection',
+    ],
   },
 ];
 
@@ -71,13 +78,13 @@ export default function PackagesSection() {
         <SectionHeader
           tag="Performance Packages"
           heading="BUILD LEVELS"
-          sub="Choose the level of performance that fits your goals, timeline, and budget."
+          sub="Choose the level of performance that fits your goals and your car."
           align="center"
           className="mb-14 lg:mb-20"
         />
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 lg:gap-6 items-start">
-          {PACKAGES.map(({ name, subtitle, price, highlight, popular, features, cta }) => (
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5 lg:gap-6 items-start">
+          {PACKAGES.map(({ name, subtitle, highlight, popular, features }) => (
             <div
               key={name}
               className={`relative flex flex-col p-7 lg:p-8 border transition-all duration-300 ${
@@ -106,7 +113,6 @@ export default function PackagesSection() {
                 <h3 className="text-3xl font-black text-white tracking-tight">
                   {name}
                 </h3>
-                <p className="mt-4 text-2xl font-black text-white">{price}</p>
               </div>
 
               <ul className="flex-1 space-y-3 mb-8">
@@ -133,7 +139,7 @@ export default function PackagesSection() {
                     : 'border border-zinc-700 text-zinc-300 hover:border-cyan-400/40 hover:text-cyan-400'
                 }`}
               >
-                {cta}
+                Contact Us For Pricing
               </a>
 
               {highlight && (
@@ -146,9 +152,15 @@ export default function PackagesSection() {
           ))}
         </div>
 
-        <p className="text-center text-xs text-zinc-600 mt-10 tracking-wider">
-          All packages include consultation, build planning, and post-service
-          report. Pricing varies by vehicle.
+        <p className="text-center text-sm text-zinc-500 mt-10 tracking-wider">
+          For prices and more questions please{' '}
+          <a
+            href="#contact"
+            className="text-cyan-400 font-bold hover:text-cyan-300 underline underline-offset-4 transition-colors"
+          >
+            contact us
+          </a>
+          .
         </p>
       </div>
     </section>
