@@ -2,6 +2,8 @@ import { describe, it, expect } from 'vitest';
 import {
   shouldAutoScroll,
   scrollBehaviorFor,
+  hasLanded,
+  LANDING_TOLERANCE_PX,
   type AutoScrollConditions,
 } from '@/lib/first-load-scroll';
 
@@ -10,6 +12,7 @@ const CLEAN: AutoScrollConditions = {
   hash: '',
   scrollY: 0,
   interacted: false,
+  alreadyMoved: false,
 };
 
 describe('shouldAutoScroll', () => {
@@ -63,5 +66,45 @@ describe('scrollBehaviorFor', () => {
    */
   it('jumps instantly under reduced motion, bypassing the CSS smooth scroll', () => {
     expect(scrollBehaviorFor(true)).toBe('instant');
+  });
+});
+
+describe('shouldAutoScroll, once we have moved the page ourselves', () => {
+  const MOVED: AutoScrollConditions = { ...CLEAN, alreadyMoved: true, scrollY: 2580 };
+
+  /**
+   * The retry loop depends on this. Our own first scroll leaves scrollY well
+   * above zero, and reading that as "the visitor scrolled" would veto every
+   * retry after it — which is exactly the state /store ends up in when its first
+   * attempt is dropped mid-stream.
+   */
+  it('does not treat our own scroll as the visitor having scrolled', () => {
+    expect(shouldAutoScroll(MOVED)).toBe(true);
+  });
+
+  it('still stands down for an interaction after we have moved', () => {
+    expect(shouldAutoScroll({ ...MOVED, interacted: true })).toBe(false);
+  });
+
+  it('still stands down for a deep link after we have moved', () => {
+    expect(shouldAutoScroll({ ...MOVED, hash: '#contact' })).toBe(false);
+  });
+});
+
+describe('hasLanded', () => {
+  it('accepts an exact arrival', () => {
+    expect(hasLanded(2580, 2580)).toBe(true);
+  });
+
+  /** Sub-pixel layout and rounding mean the two rarely match exactly. */
+  it('tolerates a few pixels either side', () => {
+    expect(hasLanded(2580 + LANDING_TOLERANCE_PX, 2580)).toBe(true);
+    expect(hasLanded(2580 - LANDING_TOLERANCE_PX, 2580)).toBe(true);
+  });
+
+  it('rejects a scroll that was dropped or overshot', () => {
+    expect(hasLanded(0, 2580)).toBe(false);
+    expect(hasLanded(2580, 6192)).toBe(false);
+    expect(hasLanded(2580 + LANDING_TOLERANCE_PX + 1, 2580)).toBe(false);
   });
 });

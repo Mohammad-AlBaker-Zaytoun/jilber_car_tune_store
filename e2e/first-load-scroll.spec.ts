@@ -60,6 +60,33 @@ test.describe('First-load scroll', () => {
     });
   }
 
+  /**
+   * The store reached by clicking through from the home page, not by loading it
+   * directly — which is how it broke. The home page has already scrolled itself
+   * to #services, so the new page starts its life carrying a scrollY of several
+   * thousand pixels until the router resets it. Reading that as "the visitor has
+   * already scrolled" vetoes the whole thing, and on a slow line the target is
+   * not in the DOM at the first attempt either.
+   */
+  test('scrolls after a client-side navigation from the home page', async ({ page }) => {
+    await page.goto('/');
+    await page.waitForTimeout(SETTLED_MS);
+    expect(await page.evaluate(() => Math.round(window.scrollY))).toBeGreaterThan(0);
+
+    await page.getByRole('link', { name: /^store$/i }).first().click();
+    await page.waitForURL('**/store');
+    await page.waitForSelector('#products', { state: 'attached' });
+
+    const destination = await topOf(page, '#products');
+    expect(destination).toBeGreaterThan(0);
+
+    // Longer than a direct load: the router has to settle the carried-over
+    // scroll position first, and the retry loop waits for that.
+    await page.waitForTimeout(6000);
+    const settled = await page.evaluate(() => Math.round(window.scrollY));
+    expect(Math.abs(settled - destination)).toBeLessThan(5);
+  });
+
   test('the destination is actually on screen afterwards', async ({ page }) => {
     await page.goto('/');
     await page.waitForTimeout(SETTLED_MS);

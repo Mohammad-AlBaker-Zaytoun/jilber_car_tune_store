@@ -12,13 +12,44 @@ export interface AutoScrollConditions {
   scrollY: number;
   /** The visitor scrolled, tapped or typed while we waited for layout to settle. */
   interacted: boolean;
+  /**
+   * True once we have moved the page ourselves.
+   *
+   * After that, `scrollY` is our own doing and can no longer be read as the
+   * visitor having scrolled — without this the first attempt would veto every
+   * retry that follows it.
+   */
+  alreadyMoved: boolean;
 }
 
-export function shouldAutoScroll({ hash, scrollY, interacted }: AutoScrollConditions): boolean {
+export function shouldAutoScroll({
+  hash,
+  scrollY,
+  interacted,
+  alreadyMoved,
+}: AutoScrollConditions): boolean {
   if (hash && hash !== '#') return false;
-  if (scrollY > 0) return false;
   if (interacted) return false;
+  if (!alreadyMoved && scrollY > 0) return false;
   return true;
+}
+
+/** Close enough to the target to stop trying. */
+export const LANDING_TOLERANCE_PX = 4;
+
+/**
+ * Whether the page has arrived where it was sent.
+ *
+ * Needed because issuing the scroll is not the same as landing: on a page that
+ * is still streaming, the browser drops or overshoots a programmatic scroll as
+ * content keeps changing the layout beneath it.
+ */
+export function hasLanded(
+  scrollY: number,
+  targetTop: number,
+  tolerance: number = LANDING_TOLERANCE_PX
+): boolean {
+  return Math.abs(scrollY - targetTop) <= tolerance;
 }
 
 /**
