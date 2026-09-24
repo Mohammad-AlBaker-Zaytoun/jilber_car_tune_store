@@ -40,7 +40,14 @@ type ProductColumn = (typeof PRODUCT_COLUMNS)[number];
  */
 const PAGE_SIZE = 50;
 
-/** 16px box inside a 28px hit area, clearing the 24px WCAG 2.2 AA floor. */
+/**
+ * 24px box in a 28px cell, which is the WCAG 2.2 AA floor (SC 2.5.8).
+ *
+ * The box itself has to be 24px. An earlier version was 16px inside a 28px span
+ * on the assumption that the span was the hit area, but the activation target of
+ * a bare checkbox is the input, so the real target was 16px — the responsive
+ * audit flagged it at every width.
+ */
 function SelectBox({
   checked,
   onChange,
@@ -68,7 +75,7 @@ function SelectBox({
         checked={checked}
         onChange={onChange}
         aria-label={label}
-        className="w-4 h-4 accent-cyan-400 cursor-pointer"
+        className="w-6 h-6 accent-cyan-400 cursor-pointer"
       />
     </span>
   );

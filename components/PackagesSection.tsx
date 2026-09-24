@@ -83,13 +83,19 @@ export default function PackagesSection() {
           className="mb-14 lg:mb-20"
         />
 
+        {/* The highlighted card used to carry md:scale-[1.03]. With three columns
+            it was always the middle one, so the extra 3% grew into the gaps. As the
+            second of four it lands in the right-hand column at the 2-column
+            breakpoints, where it overflowed the grid by 5–7px — caught by the
+            responsive audit at 768px and 1024px. The border and glow already mark
+            it out. */}
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5 lg:gap-6 items-start">
           {PACKAGES.map(({ name, subtitle, highlight, popular, features }) => (
             <div
               key={name}
               className={`relative flex flex-col p-7 lg:p-8 border transition-all duration-300 ${
                 highlight
-                  ? 'bg-zinc-900 border-cyan-400/35 shadow-[0_0_50px_rgba(0,212,255,0.10)] md:scale-[1.03]'
+                  ? 'bg-zinc-900 border-cyan-400/35 shadow-[0_0_50px_rgba(0,212,255,0.10)]'
                   : 'bg-zinc-950 border-zinc-800/60 hover:border-zinc-700'
               }`}
             >
