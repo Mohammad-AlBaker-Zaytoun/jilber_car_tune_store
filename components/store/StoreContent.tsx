@@ -43,7 +43,7 @@ export default function StoreContent({ products, categories, ratings }: Props) {
   };
 
   return (
-    <section className="bg-zinc-950 py-16 lg:py-20">
+    <section id="products" className="bg-zinc-950 py-16 lg:py-20">
       <div className="max-w-7xl mx-auto px-6 lg:px-8">
         <div className="sticky top-16 lg:top-20 z-30 bg-zinc-950/95 backdrop-blur-sm py-4 -mx-6 lg:-mx-8 px-6 lg:px-8 border-b border-zinc-900">
           <ProductFilters

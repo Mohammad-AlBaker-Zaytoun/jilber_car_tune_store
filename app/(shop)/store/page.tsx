@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { getProducts } from '@/lib/products';
 import { getApprovedReviews } from '@/lib/reviews';
 import { buildRatingsMap } from '@/lib/rating';
-import FirstLoadScrollNudge from '@/components/FirstLoadScrollNudge';
+import FirstLoadScroll from '@/components/FirstLoadScroll';
 import StoreScrollHero from '@/components/store/StoreScrollHero';
 import StoreContent from '@/components/store/StoreContent';
 import { siteConfig } from '@/lib/seo/site-config';
@@ -49,7 +49,7 @@ export default async function StorePage() {
 
   return (
     <>
-      <FirstLoadScrollNudge />
+      <FirstLoadScroll target="#products" />
       <StoreScrollHero />
       <StoreContent products={products} categories={categories} ratings={ratings} />
     </>
