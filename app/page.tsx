@@ -50,7 +50,7 @@ export default async function Home() {
         dangerouslySetInnerHTML={{ __html: safeJsonLd(orgJsonLd) }}
       />
       <Navbar />
-      <FirstLoadScrollNudge storageKey="nudged:home" />
+      <FirstLoadScrollNudge />
       <main>
         <ScrollFrameHero />
         <ServicesSection />

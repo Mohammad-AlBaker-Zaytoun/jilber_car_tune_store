@@ -1,17 +1,20 @@
 import { describe, it, expect } from 'vitest';
-import { shouldNudge, nudgeDistance, type NudgeConditions } from '@/lib/scroll-nudge';
+import {
+  shouldNudge,
+  nudgeBehavior,
+  nudgeDistance,
+  type NudgeConditions,
+} from '@/lib/scroll-nudge';
 
-/** A fresh first load with nothing standing in the way. */
+/** A fresh load with nothing standing in the way. */
 const CLEAN: NudgeConditions = {
   hash: '',
   scrollY: 0,
-  reducedMotion: false,
-  alreadyNudged: false,
   interacted: false,
 };
 
 describe('shouldNudge', () => {
-  it('nudges on a clean first load', () => {
+  it('nudges on a clean load', () => {
     expect(shouldNudge(CLEAN)).toBe(true);
   });
 
@@ -24,18 +27,10 @@ describe('shouldNudge', () => {
     expect(shouldNudge({ ...CLEAN, hash: '#' })).toBe(true);
   });
 
-  /** Back-navigation restores a scroll position; yanking it to the top reads as a glitch. */
+  /** Back-navigation restores a scroll position; yanking it reads as a glitch. */
   it('stands down when the page is already scrolled', () => {
     expect(shouldNudge({ ...CLEAN, scrollY: 1 })).toBe(false);
     expect(shouldNudge({ ...CLEAN, scrollY: 4000 })).toBe(false);
-  });
-
-  it('respects prefers-reduced-motion', () => {
-    expect(shouldNudge({ ...CLEAN, reducedMotion: true })).toBe(false);
-  });
-
-  it('does not repeat within the same tab', () => {
-    expect(shouldNudge({ ...CLEAN, alreadyNudged: true })).toBe(false);
   });
 
   /** If they started scrolling while we waited, they already know it scrolls. */
@@ -44,7 +39,31 @@ describe('shouldNudge', () => {
   });
 
   it('needs only one objection to stand down', () => {
-    expect(shouldNudge({ ...CLEAN, reducedMotion: true, interacted: true })).toBe(false);
+    expect(shouldNudge({ ...CLEAN, hash: '#contact', interacted: true })).toBe(false);
+  });
+
+  /**
+   * Reduced motion is deliberately NOT a veto. It changes how the nudge travels,
+   * not whether it happens — an earlier version skipped it outright, which hid
+   * the feature from everyone with OS animation effects turned off.
+   */
+  it('still nudges under reduced motion, which only affects the behaviour', () => {
+    expect(shouldNudge(CLEAN)).toBe(true);
+    expect(nudgeBehavior(true)).not.toBe('smooth');
+  });
+});
+
+describe('nudgeBehavior', () => {
+  it('animates by default', () => {
+    expect(nudgeBehavior(false)).toBe('smooth');
+  });
+
+  /**
+   * 'instant', never 'auto': globals.css sets `scroll-behavior: smooth` on the
+   * document, and 'auto' defers to that, so it would animate anyway.
+   */
+  it('jumps instantly under reduced motion, bypassing the CSS smooth scroll', () => {
+    expect(nudgeBehavior(true)).toBe('instant');
   });
 });
 

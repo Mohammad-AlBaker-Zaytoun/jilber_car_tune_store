@@ -49,7 +49,7 @@ export default async function StorePage() {
 
   return (
     <>
-      <FirstLoadScrollNudge storageKey="nudged:store" />
+      <FirstLoadScrollNudge />
       <StoreScrollHero />
       <StoreContent products={products} categories={categories} ratings={ratings} />
     </>
