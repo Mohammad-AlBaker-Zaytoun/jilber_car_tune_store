@@ -22,8 +22,11 @@ export type RatingMap = Record<string, { rating: number; count: number }> | unde
  * Array.prototype.sort is stable, so products that tie keep the order the
  * server sent them in rather than shuffling between renders.
  */
+/** Only what the comparator reads, so the slim storefront ListingProduct sorts too. */
+type Sortable = Pick<Product, 'id' | 'inStock' | 'price' | 'rating' | 'featured'>;
+
 export function compareProducts(sort: SortOption, ratings?: RatingMap) {
-  return (a: Product, b: Product): number => {
+  return (a: Sortable, b: Sortable): number => {
     if (a.inStock !== b.inStock) return a.inStock ? -1 : 1;
 
     switch (sort) {

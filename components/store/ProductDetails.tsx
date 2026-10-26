@@ -271,7 +271,9 @@ export default function ProductDetails({
                 <Wrench size={12} className="text-cyan-400" aria-hidden="true" />
                 Description
               </h2>
-              <p className="text-sm text-zinc-400 leading-relaxed">{product.description}</p>
+              {/* pre-line: imported supplier descriptions keep their paragraph and
+                  bullet breaks as plain newlines (no HTML is ever rendered here). */}
+              <p className="text-sm text-zinc-400 leading-relaxed whitespace-pre-line">{product.description}</p>
             </div>
 
             {/* Specs */}
