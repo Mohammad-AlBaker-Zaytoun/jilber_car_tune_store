@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
+import { isUploadedImage } from '@/lib/images';
 import { Trash2 } from 'lucide-react';
 import type { CartItem } from '@/lib/cart';
 import { useCartStore } from '@/lib/cart';
@@ -25,6 +26,7 @@ export default function CartItemRow({ item }: { item: CartItem }) {
         {thumb ? (
           <Image
             src={thumb}
+            unoptimized={isUploadedImage(thumb)}
             alt={item.name}
             fill
             sizes="80px"

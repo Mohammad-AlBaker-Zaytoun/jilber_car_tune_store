@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import type { Product } from '@/data/products';
+import type { ListingProduct } from '@/lib/product-listing';
 import ProductVisual from './ProductVisual';
 import ProductBadge from './ProductBadge';
 import AddToCartButton from './AddToCartButton';
@@ -9,7 +9,8 @@ import StarRating from './StarRating';
 import { formatMoneyCompact } from '@/lib/currency';
 
 interface Props {
-  product: Product;
+  /** A full Product also fits: ListingProduct is a subset of its fields. */
+  product: ListingProduct;
   /** Effective customer-average rating. When provided, overrides product.rating. */
   effectiveRating?: number;
   /** Effective review count. When provided, overrides product.reviewCount. */

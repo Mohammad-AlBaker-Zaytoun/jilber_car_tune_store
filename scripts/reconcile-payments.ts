@@ -21,6 +21,13 @@
  * Exits non-zero if anything could not be reached, so cron mail / monitoring fires.
  */
 
+// MUST be first: this runs under `tsx` from cron, not Next.js, so nothing else
+// loads .env. Without it the job reads an empty environment — it exits 0 with
+// "WHISH_CHANNEL / WHISH_SECRET are not set" and looks healthy, while every
+// charged-but-unconfirmed order silently goes unreconciled. Once credentials
+// ARE set it gets further and dies on "DATABASE_URL is not set" instead.
+import 'dotenv/config';
+
 import { getUnconfirmedWhishOrders } from '../lib/orders';
 import { settleWhishOrder } from '../lib/payments/whish-settle';
 import { isWhishConfigured } from '../lib/payments/whish';
@@ -41,8 +48,21 @@ async function main() {
   }
 
   if (!isWhishConfigured()) {
-    console.error('WHISH_CHANNEL / WHISH_SECRET are not set — nothing to reconcile.');
-    process.exit(2);
+    // NOT an error: card payment is simply switched off, so there is nothing to
+    // reconcile and the run succeeded in doing nothing.
+    //
+    // This used to exit 2. Running every 15 minutes from cron, that produced a
+    // "SCHEDULED JOB FAILED" mail 96 times a day for weeks — 2,011 of them,
+    // enough to blow the daily sending quota on six separate days (SMTP 550),
+    // which would have taken real order confirmations and password resets down
+    // with it. And an alert that fires every quarter of an hour is an alert
+    // nobody reads, so a genuine reconciliation failure would have been
+    // invisible in the noise.
+    //
+    // Exit codes here are read by an operator's alerting, so they must mean
+    // what they say: 2 = misconfigured, 1 = could not reach Whish, 0 = fine.
+    console.log('WHISH_CHANNEL / WHISH_SECRET are not set — nothing to reconcile.');
+    return;
   }
 
   const orders = await getUnconfirmedWhishOrders(olderThanMinutes * 60_000);
