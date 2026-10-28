@@ -4,10 +4,13 @@ import { useState } from 'react';
 import { ShoppingCart, Check } from 'lucide-react';
 import { useCartStore } from '@/lib/cart';
 import { useToast } from '@/components/ui/Toast';
-import type { Product } from '@/data/products';
+import type { ListingProduct } from '@/lib/product-listing';
 
 interface Props {
-  product: Product;
+  product: Pick<
+    ListingProduct,
+    'id' | 'slug' | 'name' | 'category' | 'price' | 'currency' | 'visualColor' | 'images' | 'inStock'
+  >;
   quantity?: number;
   size?: 'sm' | 'md' | 'lg';
   fullWidth?: boolean;

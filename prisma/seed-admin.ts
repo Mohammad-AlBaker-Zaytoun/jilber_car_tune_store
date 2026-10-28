@@ -13,6 +13,11 @@
  * password reset to the provided value); otherwise a new admin user is created.
  */
 
+// MUST be first: this runs under `tsx`, not Next.js, and nothing else loads
+// .env for a standalone script. Without it createPrismaAdapter() throws
+// "DATABASE_URL is not set" even though .env sits right there in APP_DIR.
+import 'dotenv/config';
+
 import { randomUUID } from 'crypto';
 import bcrypt from 'bcryptjs';
 import { PrismaClient } from '@prisma/client';
@@ -39,16 +44,34 @@ async function main() {
 
   const passwordHash = await bcrypt.hash(password, 12);
 
+  // Mark the address verified. There is no verification email to click for a
+  // bootstrapped admin — the account is created by whoever already controls the
+  // server — and leaving it null greets the operator with a permanent
+  // "Email not verified" banner on their very first sign-in.
+  const now = new Date();
+
   const existing = await prisma.user.findUnique({ where: { email } });
   if (existing) {
     await prisma.user.update({
       where: { email },
-      data: { role: 'admin', passwordHash, name },
+      data: {
+        role: 'admin',
+        passwordHash,
+        name,
+        emailVerifiedAt: existing.emailVerifiedAt ?? now,
+      },
     });
     console.log(`✓ Promoted existing user to admin: ${email}`);
   } else {
     await prisma.user.create({
-      data: { id: randomUUID(), email, name, passwordHash, role: 'admin' },
+      data: {
+        id: randomUUID(),
+        email,
+        name,
+        passwordHash,
+        role: 'admin',
+        emailVerifiedAt: now,
+      },
     });
     console.log(`✓ Created admin user: ${email}`);
   }

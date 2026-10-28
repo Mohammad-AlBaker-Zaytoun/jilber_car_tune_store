@@ -287,6 +287,10 @@ model Setting {
   id                     Int     @id @default(1)
   shopName               String
   contactEmail           String
+  // Further addresses shown beside contactEmail, which stays the one the site
+  // writes to (mailto CTAs, organisation JSON-LD). JSON-encoded string[], the
+  // same convention Product uses for its arrays.
+  additionalEmails       String  @default("[]") @db.NVarChar(Max)
   contactPhone           String
   address                String  @db.NVarChar(Max)
   currency               String

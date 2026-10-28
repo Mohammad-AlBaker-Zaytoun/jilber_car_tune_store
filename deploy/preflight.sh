@@ -200,8 +200,22 @@ fi
 section "6. Process"
 # ---------------------------------------------------------------------------
 if command -v pm2 >/dev/null 2>&1; then
-  instances="$(pm2 jlist 2>/dev/null | grep -o '"name":"jilber"' | wc -l)"
-  if [ "$instances" -eq 1 ]; then
+  # Parse the JSON rather than grepping it. `pm2 jlist` emits "name":"jilber"
+  # TWICE per app — once at the top level and once nested inside pm2_env — so
+  # a grep -c counts double, reports 2 for a single healthy process, and makes
+  # this check impossible to pass.
+  instances="$(pm2 jlist 2>/dev/null | node -e '
+    let s = "";
+    process.stdin.on("data", d => s += d).on("end", () => {
+      try { console.log(JSON.parse(s).filter(p => p && p.name === "jilber").length); }
+      catch { console.log("-1"); }
+    });
+  ' 2>/dev/null)"
+  [ -n "$instances" ] || instances=-1
+
+  if [ "$instances" = "-1" ]; then
+    warn "Could not read the pm2 process list" "Check: pm2 jlist"
+  elif [ "$instances" -eq 1 ]; then
     ok "pm2 is running exactly one 'jilber' instance"
   elif [ "$instances" -eq 0 ]; then
     warn "pm2 has no 'jilber' process" "Start it: pm2 start deploy/ecosystem.config.js"
