@@ -2,11 +2,13 @@ import type { Metadata } from 'next';
 import { getProducts } from '@/lib/products';
 import { getApprovedReviews } from '@/lib/reviews';
 import { buildRatingsMap } from '@/lib/rating';
+import FirstLoadScroll from '@/components/FirstLoadScroll';
 import StoreScrollHero from '@/components/store/StoreScrollHero';
 import StoreContent from '@/components/store/StoreContent';
 import { siteConfig } from '@/lib/seo/site-config';
 import { absoluteUrl } from '@/lib/seo/helpers';
 import { getCategoryNames } from '@/lib/categories';
+import { toListingProduct } from '@/lib/product-listing';
 
 export const metadata: Metadata = {
   title: 'Performance Parts Store',
@@ -45,11 +47,14 @@ export default async function StorePage() {
     getCategoryNames(),
   ]);
   const ratings = buildRatingsMap(products, approvedReviews);
+  // Slim records only: the full Product list was ~15 MB of RSC payload per load.
+  const listing = products.map(toListingProduct);
 
   return (
     <>
+      <FirstLoadScroll target="#products" />
       <StoreScrollHero />
-      <StoreContent products={products} categories={categories} ratings={ratings} />
+      <StoreContent products={listing} categories={categories} ratings={ratings} />
     </>
   );
 }

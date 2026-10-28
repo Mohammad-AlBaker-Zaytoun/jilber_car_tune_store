@@ -13,6 +13,7 @@ import { prisma } from '@/lib/db/prisma';
 import { logger } from '@/lib/logger';
 import type { Product as ProductRow } from '@prisma/client';
 import type { Product, ProductSpec, Category } from '@/data/products';
+import { MAX_BULK_DELETE } from '@/lib/product-bulk';
 
 export type { Product };
 
@@ -205,6 +206,41 @@ export async function updateProduct(
  * Both statements run in one transaction so a product can never be removed
  * while its reviews survive.
  */
+/**
+ * Deletes several products by slug, with their reviews, in one transaction.
+ *
+ * Returns the slugs actually removed — callers need to know which of the ones
+ * they asked for were already gone, and reporting "12 deleted" when 3 never
+ * existed would be a lie the admin acts on.
+ *
+ * Order history is deliberately untouched: OrderItem stores the slug, name and
+ * price it was bought at as plain columns with no relation to Product, so
+ * deleting a discontinued part does not alter what a customer was charged or
+ * make an old order unreadable.
+ */
+export { MAX_BULK_DELETE };
+
+export async function deleteProducts(slugs: string[]): Promise<string[]> {
+  const unique = [...new Set(slugs.filter((s) => typeof s === 'string' && s.length > 0))];
+  if (unique.length === 0) return [];
+  if (unique.length > MAX_BULK_DELETE) {
+    throw new Error(`Cannot delete more than ${MAX_BULK_DELETE} products in one request`);
+  }
+
+  const found = await prisma.product.findMany({
+    where: { slug: { in: unique } },
+    select: { id: true, slug: true },
+  });
+  if (found.length === 0) return [];
+
+  const ids = found.map((p) => p.id);
+  await prisma.$transaction([
+    prisma.review.deleteMany({ where: { productId: { in: ids } } }),
+    prisma.product.deleteMany({ where: { id: { in: ids } } }),
+  ]);
+  return found.map((p) => p.slug);
+}
+
 export async function deleteProduct(slug: string): Promise<boolean> {
   try {
     const product = await prisma.product.findUnique({

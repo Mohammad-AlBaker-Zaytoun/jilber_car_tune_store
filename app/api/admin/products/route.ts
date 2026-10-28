@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { requireAdmin, handleAdminError } from '@/lib/admin';
-import { getProducts, createProduct } from '@/lib/products';
+import { getProducts, createProduct, deleteProducts, MAX_BULK_DELETE } from '@/lib/products';
 import { getCategoryNames } from '@/lib/categories';
 import { type Product } from '@/data/products';
 
@@ -65,6 +65,42 @@ export async function POST(request: Request) {
     if (err instanceof Error && err.message.includes('slug')) {
       return NextResponse.json({ error: err.message }, { status: 409 });
     }
+    return handleAdminError(err);
+  }
+}
+
+const bulkDeleteSchema = z.object({
+  slugs: z.array(z.string().min(1)).min(1).max(MAX_BULK_DELETE),
+});
+
+/**
+ * Bulk delete. The per-slug route stays for single deletes; this exists so the
+ * admin does not fire 200 requests to clear a filtered list, which the nginx
+ * rate limit would throttle halfway through and leave half-done.
+ *
+ * Responds with the slugs actually removed rather than a count, so the client
+ * can reconcile its list against reality instead of assuming every slug it
+ * asked for existed.
+ */
+export async function DELETE(request: Request) {
+  try {
+    await requireAdmin();
+
+    const body: unknown = await request.json();
+    const parsed = bulkDeleteSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        {
+          error: `Send between 1 and ${MAX_BULK_DELETE} product slugs.`,
+          issues: parsed.error.flatten().fieldErrors,
+        },
+        { status: 400 }
+      );
+    }
+
+    const deleted = await deleteProducts(parsed.data.slugs);
+    return NextResponse.json({ deleted, count: deleted.length });
+  } catch (err) {
     return handleAdminError(err);
   }
 }

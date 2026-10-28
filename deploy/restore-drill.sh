@@ -58,13 +58,19 @@ RESTORE DATABASE [${SCRATCH_DB}]
 " || fail "RESTORE failed"
 
 log "Sanity-checking restored contents"
+# Table names are the @@map() values from prisma/schema.prisma (snake_case
+# plural), NOT the Prisma model names. Querying [User] instead of [users]
+# fails with "Invalid object name", which would report a perfectly good
+# backup as unrestorable.
+#
+# `rows` is a reserved keyword in SQL Server and must stay bracketed.
 sq -Q "
 USE [${SCRATCH_DB}];
-SELECT 'users'    AS entity, COUNT(*) AS rows FROM [User]
-UNION ALL SELECT 'products', COUNT(*) FROM [Product]
-UNION ALL SELECT 'orders',   COUNT(*) FROM [Order]
-UNION ALL SELECT 'orderItems', COUNT(*) FROM [OrderItem]
-UNION ALL SELECT 'quotes',   COUNT(*) FROM [Quote];
+SELECT 'users'      AS entity, COUNT(*) AS [rows] FROM [users]
+UNION ALL SELECT 'products',    COUNT(*) FROM [products]
+UNION ALL SELECT 'orders',      COUNT(*) FROM [orders]
+UNION ALL SELECT 'order_items', COUNT(*) FROM [order_items]
+UNION ALL SELECT 'quotes',      COUNT(*) FROM [quotes];
 " || fail "restored database is missing expected tables"
 
 # The migration table proves schema history survived, not just the rows.

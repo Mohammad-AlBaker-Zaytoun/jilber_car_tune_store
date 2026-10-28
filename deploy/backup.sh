@@ -15,6 +15,7 @@
 #   BACKUP_DIR          where dumps land                   (default: /var/backups/jilber)
 #   MSSQL_BACKUP_DIR    path SQL Server itself can write   (default: /var/opt/mssql/backups)
 #   RETENTION_DAYS      prune older than this              (default: 14)
+#   RETENTION_COUNT     keep only the N newest instead     (overrides RETENTION_DAYS)
 #   OFFSITE_DEST        optional rsync/scp destination
 #
 # NOTE: SQL Server writes BACKUP DATABASE from ITS OWN process, so MSSQL_BACKUP_DIR
@@ -49,9 +50,28 @@ mkdir -p "$BACKUP_DIR"
 # ---------------------------------------------------------------------------
 # Database
 # ---------------------------------------------------------------------------
+# Backup compression is an Enterprise/Standard feature. On Express, BACKUP
+# DATABASE ... WITH COMPRESSION does not degrade gracefully — it aborts the
+# whole backup with "Msg 1844: BACKUP DATABASE WITH COMPRESSION is not
+# supported on Express Edition", which would leave the store with no backups
+# at all. Detect the edition rather than hardcoding, so this keeps producing
+# compressed dumps if the database ever moves to Standard or Enterprise.
+#
+# EngineEdition: 1=Personal 2=Standard 3=Enterprise/Developer 4=Express
+ENGINE_EDITION="$(sqlcmd -S "$DB_HOST" -U "$DB_USER" -P "$DB_PASS" -C -b -h -1 -W \
+  -Q "SET NOCOUNT ON; SELECT CONVERT(varchar(2), SERVERPROPERTY('EngineEdition'));" 2>/dev/null \
+  | tr -dc '0-9' | head -c 2)"
+
+if [ "$ENGINE_EDITION" = "4" ]; then
+  COMPRESSION_OPT=""
+  log "Express Edition detected — writing an uncompressed backup"
+else
+  COMPRESSION_OPT=", COMPRESSION"
+fi
+
 log "Backing up database '$DB_NAME'"
 sqlcmd -S "$DB_HOST" -U "$DB_USER" -P "$DB_PASS" -C -b -Q \
-  "BACKUP DATABASE [$DB_NAME] TO DISK = N'${MSSQL_BACKUP_DIR}/${DB_FILE}' WITH INIT, COMPRESSION, CHECKSUM, STATS = 10;" \
+  "BACKUP DATABASE [$DB_NAME] TO DISK = N'${MSSQL_BACKUP_DIR}/${DB_FILE}' WITH INIT${COMPRESSION_OPT}, CHECKSUM, STATS = 10;" \
   || fail "BACKUP DATABASE failed"
 
 # Verify the dump is readable BEFORE we count it as a backup.
@@ -90,10 +110,36 @@ fi
 
 # ---------------------------------------------------------------------------
 # Prune
+#
+# Two modes. RETENTION_COUNT keeps the N newest files of each kind regardless of
+# age, which is what you want when the provider holds the long-tail history and
+# these dumps only exist for a fast surgical restore. RETENTION_DAYS is the
+# age-based fallback.
+#
+# Count-based pruning is deliberately applied per file KIND (.bak and uploads
+# tarball separately) so a run that skipped the uploads half cannot cause the
+# database dumps to be over-pruned.
 # ---------------------------------------------------------------------------
-log "Pruning backups older than ${RETENTION_DAYS} days"
-find "$BACKUP_DIR" -name "${DB_NAME}-*.bak" -mtime "+${RETENTION_DAYS}" -delete
-find "$BACKUP_DIR" -name 'uploads-*.tar.gz' -mtime "+${RETENTION_DAYS}" -delete
+prune_keep_newest() {
+  # $1 = glob of files to consider, $2 = how many to keep
+  local keep="$2" old
+  # Filenames are timestamped by this script and contain no spaces.
+  # shellcheck disable=SC2012
+  ls -1t $1 2>/dev/null | tail -n "+$((keep + 1))" | while IFS= read -r old; do
+    [ -f "$old" ] || continue
+    rm -f -- "$old" && echo "  pruned $(basename "$old")"
+  done
+}
+
+if [ -n "${RETENTION_COUNT:-}" ]; then
+  log "Pruning: keeping the ${RETENTION_COUNT} newest of each kind"
+  prune_keep_newest "${BACKUP_DIR}/${DB_NAME}-*.bak"   "$RETENTION_COUNT"
+  prune_keep_newest "${BACKUP_DIR}/uploads-*.tar.gz"   "$RETENTION_COUNT"
+else
+  log "Pruning backups older than ${RETENTION_DAYS} days"
+  find "$BACKUP_DIR" -name "${DB_NAME}-*.bak" -mtime "+${RETENTION_DAYS}" -delete
+  find "$BACKUP_DIR" -name 'uploads-*.tar.gz' -mtime "+${RETENTION_DAYS}" -delete
+fi
 
 log "Done: ${BACKUP_DIR}/${DB_FILE}"
 ls -lh "${BACKUP_DIR}/${DB_FILE}"

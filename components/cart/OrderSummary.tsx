@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
+import { isUploadedImage } from '@/lib/images';
 import { useCartStore } from '@/lib/cart';
 import { formatMoney } from '@/lib/currency';
 
@@ -54,6 +55,7 @@ export default function OrderSummary({
                   {thumb ? (
                     <Image
                       src={thumb}
+                      unoptimized={isUploadedImage(thumb)}
                       alt={item.name}
                       fill
                       sizes="40px"

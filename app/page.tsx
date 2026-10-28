@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Navbar from "@/components/Navbar";
+import FirstLoadScroll from "@/components/FirstLoadScroll";
 import ScrollFrameHero from "@/components/ScrollFrameHero";
 import ServicesSection from "@/components/ServicesSection";
 import PackagesSection from "@/components/PackagesSection";
@@ -49,6 +50,7 @@ export default async function Home() {
         dangerouslySetInnerHTML={{ __html: safeJsonLd(orgJsonLd) }}
       />
       <Navbar />
+      <FirstLoadScroll target="#services" />
       <main>
         <ScrollFrameHero />
         <ServicesSection />
